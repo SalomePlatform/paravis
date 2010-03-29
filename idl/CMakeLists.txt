@@ -338,14 +338,9 @@ SET(SUFFIXES
         ENDFOREACH(v ${vars})
         SET(flags "${flags} ${f}")
         ENDFOREACH(f ${var})
-        SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
-        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
-        
+        SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")        
 
         SET_TARGET_PROPERTIES(${name} PROPERTIES VERSION ${VERSION_INFO} SOVERSION ${SOVERSION_INFO})
-        
-
-        SET(libadd -L/local00/install/ParaView/lib/paraview-3.7 -lvtkCommon)
         
 
         IF(WINDOWS)
@@ -397,9 +392,7 @@ SET(SUFFIXES
         SET(libadd ${libadd} ${lib})
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
-        
-        MESSAGE("${name} LINK with LIBRARY ${libadd}")
-        
+                
 
         IF(WINDOWS)
         SET(targets)
@@ -521,7 +514,6 @@ SET(SUFFIXES
         SET(flags "${flags} ${f}")
         ENDFOREACH(f ${var})
         SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
-        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
         
 
         SET(libadd)
@@ -580,9 +572,6 @@ SET(SUFFIXES
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
         
-                MESSAGE("${name} LINK with LIBRARY ${libadd}")
-        
-
         IF(WINDOWS)
         SET(targets)
         SET(targets ${targets} MEFISTO2D)

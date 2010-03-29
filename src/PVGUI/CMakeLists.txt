@@ -364,13 +364,9 @@ SET(nodist_salomeres_DATA
         SET(flags "${flags} ${f}")
         ENDFOREACH(f ${var})
         SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
-        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
 
         SET_TARGET_PROPERTIES(${name} PROPERTIES VERSION ${VERSION_INFO} SOVERSION ${SOVERSION_INFO})
-        
-
-        SET(libadd -L/local00/install/ParaView/lib/paraview-3.7 -lvtkCommon )
-        
+                
 
         SET(libs ${PLATFORM_LIBADD} ${PLATFORM_LDFLAGS} ${${amname}_LIBADD} ${${amname}_LDADD} ${${amname}_LDFLAGS})
         FOREACH(lib SALOMEBasics SalomeBatch)
@@ -407,7 +403,6 @@ SET(nodist_salomeres_DATA
         SET(libadd ${libadd} ${lib})
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
-        message("${name} link with ${libadd}")
         
 
         IF(WINDOWS)
@@ -531,9 +526,6 @@ SET(nodist_salomeres_DATA
         ENDFOREACH(f ${var})
         SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
         
-        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
-        
-
         SET(libadd)
         
 
@@ -589,7 +581,6 @@ SET(nodist_salomeres_DATA
         SET(libadd ${libadd} ${lib})
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
-        message("${name} link with ${libadd}")
         
 
         IF(WINDOWS)
