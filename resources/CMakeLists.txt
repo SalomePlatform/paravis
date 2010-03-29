@@ -63,14 +63,14 @@ SET(nodist_salomeres_SCRIPTS
                 CONFIGURE_FILE(${input} ${output})
                 
 
-                SET(input ${CMAKE_CURRENT_SOURCE_DIR}/SalomeApp.xml.in)
+                #SET(input ${CMAKE_CURRENT_SOURCE_DIR}/SalomeApp.xml.in)
                 
 
-                SET(output ${CMAKE_CURRENT_BINARY_DIR}/SalomeApp.xml)
+                #SET(output ${CMAKE_CURRENT_BINARY_DIR}/SalomeApp.xml)
                 
 
-                MESSAGE(STATUS "Creation of ${output}")
-                CONFIGURE_FILE(${input} ${output})
+                #MESSAGE(STATUS "Creation of ${output}")
+                #CONFIGURE_FILE(${input} ${output})
                 
 
             FOREACH(dir ${SUBDIRS})
