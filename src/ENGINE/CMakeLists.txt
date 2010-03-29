@@ -182,21 +182,6 @@ SET(libPARAVISEngine_la_LDFLAGS
         ENDIF(name STREQUAL ${target})
         ENDFOREACH(target ${targets})
         ENDIF(WINDOWS)
-        
-
-        IF(WINDOWS)
-        SET(targets)
-        SET(targets ${targets} MEFISTO2D)
-        FOREACH(target ${targets})
-        IF(name STREQUAL ${target})
-        SET(dir $ENV{F2CHOME})
-        STRING(REPLACE "\\\\" "/" dir ${dir})
-        SET(var ${var} -I${dir})
-        SET(var ${var} -DF2C_BUILD)
-        ENDIF(name STREQUAL ${target})
-        ENDFOREACH(target ${targets})
-        ENDIF(WINDOWS)
-        
 
         SET(var ${var} ${AM_CPPFLAGS})
         SET(var ${var} ${AM_CXXFLAGS})

@@ -5,7 +5,7 @@
             ENDIF(COMMAND cmake_policy)
             
 
-                SET(KERNEL_ROOT_DIR $ENV{KERNEL_ROOT_DIR})
+                SET(KERNEL_ROOT_DIR $ENV{KERNEL_ROOT_DIR} CACHE PATH "KERNEL_ROOT_DIR")
                 INCLUDE(${KERNEL_ROOT_DIR}/salome_adm/cmake_files/FindPLATFORM.cmake)
                 INCLUDE(${KERNEL_ROOT_DIR}/salome_adm/cmake_files/FindPYTHON.cmake)
                 INCLUDE(${KERNEL_ROOT_DIR}/salome_adm/cmake_files/FindOMNIORB.cmake)
@@ -23,7 +23,7 @@
                     IF(EXISTS ${PARAVIEW_VTK_DIR}/VTKConfig.cmake)
                     SET(VTK_DIR ${PARAVIEW_VTK_DIR})
                     ENDIF(EXISTS ${PARAVIEW_VTK_DIR}/VTKConfig.cmake)
-                    SET(GUI_ROOT_DIR $ENV{GUI_ROOT_DIR})
+                    SET(GUI_ROOT_DIR $ENV{GUI_ROOT_DIR} CACHE PATH "GUI_ROOT_DIR")
                     INCLUDE(${GUI_ROOT_DIR}/adm_local/cmake_files/FindCAS.cmake)
                     INCLUDE(${GUI_ROOT_DIR}/adm_local/cmake_files/FindQT4.cmake)
                     INCLUDE(${GUI_ROOT_DIR}/adm_local/cmake_files/FindOPENGL.cmake)
@@ -34,8 +34,8 @@
                     
 
                         SET(BUILD_PLUGINS 1)
-                        SET(MED_ROOT_DIR $ENV{MED_ROOT_DIR})
-                        SET(VISU_ROOT_DIR $ENV{VISU_ROOT_DIR})
+                        SET(VISU_ROOT_DIR $ENV{VISU_ROOT_DIR} CACHE PATH "VISU_ROOT_DIR")
+                        SET(MED_ROOT_DIR $ENV{MED_ROOT_DIR} CACHE PATH "MED_ROOT_DIR")
                         INCLUDE(${MED_ROOT_DIR}/adm_local/cmake_files/FindMED.cmake)
                         IF(EXISTS ${VISU_ROOT_DIR}/adm_local/cmake_files/FindVISU.cmake)
                         INCLUDE(${VISU_ROOT_DIR}/adm_local/cmake_files/FindVISU.cmake)

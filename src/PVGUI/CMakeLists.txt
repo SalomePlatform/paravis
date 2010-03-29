@@ -364,26 +364,12 @@ SET(nodist_salomeres_DATA
         SET(flags "${flags} ${f}")
         ENDFOREACH(f ${var})
         SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
-        
+        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
 
         SET_TARGET_PROPERTIES(${name} PROPERTIES VERSION ${VERSION_INFO} SOVERSION ${SOVERSION_INFO})
         
 
-        SET(libadd)
-        
-
-        IF(WINDOWS)
-        SET(targets)
-        SET(targets ${targets} MEFISTO2D)
-        FOREACH(target ${targets})
-        IF(name STREQUAL ${target})
-        SET(dir $ENV{F2CHOME})
-        STRING(REPLACE "\\\\" "/" dir ${dir})
-        SET(libadd ${libadd} ${dir}/LIBF77.lib)
-        SET(libadd ${libadd} ${dir}/LIBI77.lib)
-        ENDIF(name STREQUAL ${target})
-        ENDFOREACH(target ${targets})
-        ENDIF(WINDOWS)
+        SET(libadd -L/local00/install/ParaView/lib/paraview-3.7 -lvtkCommon )
         
 
         SET(libs ${PLATFORM_LIBADD} ${PLATFORM_LDFLAGS} ${${amname}_LIBADD} ${${amname}_LDADD} ${${amname}_LDFLAGS})
@@ -421,6 +407,7 @@ SET(nodist_salomeres_DATA
         SET(libadd ${libadd} ${lib})
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
+        message("${name} link with ${libadd}")
         
 
         IF(WINDOWS)
@@ -544,6 +531,8 @@ SET(nodist_salomeres_DATA
         ENDFOREACH(f ${var})
         SET_TARGET_PROPERTIES(${name} PROPERTIES COMPILE_FLAGS "${flags}")
         
+        message("${name} PROPERTIES COMPILE_FLAGS ${flags}")
+        
 
         SET(libadd)
         
@@ -600,6 +589,7 @@ SET(nodist_salomeres_DATA
         SET(libadd ${libadd} ${lib})
         ENDFOREACH(lib ${libs})
         TARGET_LINK_LIBRARIES(${name} ${libadd})
+        message("${name} link with ${libadd}")
         
 
         IF(WINDOWS)
@@ -617,7 +607,6 @@ SET(nodist_salomeres_DATA
 
             SET(DEST bin/salome)
             
-
             IF(WINDOWS)
             INSTALL(TARGETS ${name} DESTINATION ${DEST})
             INSTALL(FILES ${CMAKE_INSTALL_PREFIX}/${DEST}/${name}.exe DESTINATION ${DEST} RENAME ${amname}.exe)
@@ -717,7 +706,6 @@ FOREACH(f ${nodist_salomeres_DATA})
             STRING(REPLACE "\\" "/" KERNEL_ROOT_DIR ${KERNEL_ROOT_DIR})
             INSTALL(SCRIPT ${KERNEL_ROOT_DIR}/salome_adm/cmake_files/install_and_compile_python_file.cmake)
             
-
         ENDIF(ext STREQUAL .py)
         
 ENDFOREACH(f ${nodist_salomeres_DATA})
