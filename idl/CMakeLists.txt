@@ -452,6 +452,7 @@ SET(SUFFIXES
         LIST(LENGTH srcs nb)
         IF(nb)
         ADD_EXECUTABLE(${name} ${srcs})
+	ADD_DEPENDENCIES(${name} generate_txt)
         
 
         SET(var)
