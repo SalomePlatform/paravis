@@ -27,7 +27,9 @@
 #include "PVGUI_Module.h"
 
 #include "SALOMEconfig.h"
+#ifdef WITH_VISU
 #include CORBA_CLIENT_HEADER(VISU_Gen)
+#endif
 #include CORBA_SERVER_HEADER(SALOMEDS)
 
 
