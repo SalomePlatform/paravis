@@ -32,7 +32,6 @@
 # include $(top_srcdir)/adm_local/unix/make_common_starter.am
 
 SET(SUBDIRS
-    unix
     cmake_files
 )
 
