@@ -31,16 +31,12 @@
 #include CORBA_SERVER_HEADER(SALOMEDS)
 #include CORBA_SERVER_HEADER(SALOMEDS_Attributes)
 
-//#include <string>
-//#include <vector>
-
 #include <QStringList>
 
 namespace PARAVIS
 {
   class PARAVIS_Base_i;
 
-  //SALOMEDS::ListOfFileNames* GetListOfFileNames(const std::vector<std::string>& theFileNames);
   SALOMEDS::ListOfFileNames* GetListOfFileNames(const QStringList& theFileNames);
 
 
@@ -53,7 +49,6 @@ namespace PARAVIS
   bool GetRestoreParam(SALOMEDS::SComponent_ptr theComponent);
 
   PARAVIS_Base_i* GET_SERVANT(CORBA::Object_ptr aObj);
-  //dynamic_cast<PARAVIS_Base_i*>(PARAVIS_Gen_i::GetPOA()->reference_to_servant(OBJ).in())
 
 };
 

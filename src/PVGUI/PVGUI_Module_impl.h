@@ -29,7 +29,6 @@
 #include "PVGUI_Module.h"
 #include "PVGUI_OutputWindowAdapter.h"
 
-//#include <QAssistantClient>
 #include <pqHelpWindow.h>
 #include <QPointer>
 

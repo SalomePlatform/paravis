@@ -35,7 +35,7 @@
 #include <QStatusBar>
 #include <QShortcut>
 
-#include <pqAnimationViewWidget.h> //VSV
+#include <pqAnimationViewWidget.h> 
 
 #include <pqApplicationCore.h>
 #include <pqComparativeVisPanel.h>
@@ -95,8 +95,6 @@ void PVGUI_Module::setupDockWidgets()
   objectInspectorDock->setWidget(proxyTab);
   connect( proxyTab->getObjectInspector(), SIGNAL( helpRequested(QString) ),
           this, SLOT( showHelpForProxy(QString) ) );
-  //connect( proxyTab->getObjectInspector(), SIGNAL( preaccept() ), this, SLOT( onPreAccept() ) );
-  //connect( proxyTab->getObjectInspector(), SIGNAL( postaccept() ), this, SLOT( onPostAccept() ) );
   myDockWidgets.append(objectInspectorDock);
 
   // Statistic View

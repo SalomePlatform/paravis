@@ -273,7 +273,7 @@ namespace PARAVIS
     }
     
     QDomElement aRoot = aDoc.documentElement();
-    if ( aRoot.isNull() /*|| aRoot.tagName() != "SALOME" Names are different in various versions */ ) {
+    if ( aRoot.isNull() ) {
       MESSAGE( "Invalid XML root" );
       return false;
     }
@@ -362,7 +362,6 @@ namespace PARAVIS
     SALOMEDS::ListOfFileNames_var aListOfNames = GetListOfFileNames(aNames);
 
     aStreamFile = SALOMEDS_Tool::PutFilesToStream(aListOfFileNames.in(), aListOfNames.in());
-    //SALOMEDS_Tool::RemoveTemporaryFiles(theURL, aListOfFileNames, true);
     
     return aStreamFile._retn();
   }

@@ -40,7 +40,6 @@
 #include "PVGUI_ViewManager.h"
 #include "PVGUI_ViewWindow.h"
 #include "PVGUI_Tools.h"
-//#include "PVGUI_Trace.h"
 
 #include <SUIT_Desktop.h>
 #include <SUIT_MessageBox.h>
@@ -136,7 +135,6 @@
 #include <pqPluginDockWidgetsBehavior.h>
 #include <pqPluginManager.h>
 #include <pqPVNewSourceBehavior.h>
-//#include <pqQtMessageHandlerBehavior.h>
 #include <pqSpreadSheetVisibilityBehavior.h>
 #include <pqStandardViewModules.h>
 #include <pqUndoRedoBehavior.h>
@@ -289,7 +287,6 @@ void PVGUI_Module::initialize( CAM_Application* app )
     pqApplicationCore::instance()->loadDistributedPlugins();
 
     // Define application behaviors.
-    //new pqQtMessageHandlerBehavior(this);
     new pqDataTimeStepBehavior(this);
     new pqViewFrameActionsBehavior(this);
     new pqSpreadSheetVisibilityBehavior(this);
@@ -429,12 +426,8 @@ bool PVGUI_Module::pvInit()
 
     // End of Initializer code
 
-    //qInstallMsgHandler(0); // switch off standard Paraview message handler
     pqImplementation::OutputWindowAdapter = PVGUI_OutputWindowAdapter::New();
     vtkOutputWindow::SetInstance(pqImplementation::OutputWindowAdapter);
-
-    //pqPluginManager* pgm = pqApplicationCore::instance()->getPluginManager();
-    //pgm->loadExtensions(NULL);
 
     new pqViewManager(); // it registers as "MULTIVIEW_MANAGER on creation
     
@@ -469,19 +462,11 @@ void PVGUI_Module::showView( bool toShow )
   pvWnd->setShown( toShow );
 }
 
-
-// void PVGUI_Module::connectToPlay()
-// {
-//   connect( action(PlayId), SIGNAL( triggered() ), &Implementation->Core.VCRController(), SLOT( onPlay() ) );
-// }
-
-
 /*!
   \brief Slot to show help for proxy.
 */
 void PVGUI_Module::showHelpForProxy( const QString& proxy )
 {
-  //pqHelpReaction::showHelp(QString("qthelp://paraview.org/paraview/%1.html").arg(proxy));
   showHelp(QString("qthelp://paraview.org/paraview/%1.html").arg(proxy));
 }
 
@@ -677,18 +662,9 @@ void PVGUI_Module::onApplicationClosed( SUIT_Application* theApp )
   CAM_Module::onApplicationClosed(theApp);
 }
 
+
 /*!
-  \brief Compares the contents of the window with the given reference image,
-  returns true if they "match" within some tolerance.
-*/
-/*VSV it seems that this method is obsolete
-bool PVGUI_Module::compareView( const QString& ReferenceImage, double Threshold,
-                                std::ostream& Output, const QString& TempDirectory )
-{
-  if ( Implementation )
-    return Implementation->Core.compareView( ReferenceImage, Threshold, Output, TempDirectory );
-  return false;
-}
+  \brief Returns IOR of current engine
 */
 QString PVGUI_Module::engineIOR() const
 {
@@ -745,7 +721,6 @@ QString PVGUI_Module::getTraceString()
 */
 void PVGUI_Module::saveTrace(const char* theName)
 {
-  //save_trace(theName);
   QFile file(theName);
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
     MESSAGE( "Could not open file:" << theName );
@@ -810,9 +785,6 @@ void PVGUI_Module::onImportFromVisu(QString theEntry)
 
   _PTR(StudyBuilder) aStudyBuilder = aStudy->NewBuilder();
   aStudyBuilder->LoadWith( aVisuComp, SalomeApp_Application::orb()->object_to_string(aVISU) );
-
-  // set current study to VISU engine
-  //aVISU->SetCurrentStudy(aStudyVar);
 
   // get VISU result object
   CORBA::Object_var aResultObject = aSObject->GetObject();

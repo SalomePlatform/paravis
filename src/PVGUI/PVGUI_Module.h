@@ -73,48 +73,11 @@ class PVGUI_Module : public SalomeApp_Module
 	 DeleteId,
 	 DeleteAllId,
 
-	 //InteractId,
-	 //SelectCellsOnId,
-	 //SelectPointsOnId,
-	 //SelectCellsThroughId,
-	 //SelectPointsThroughId,
-	 //SelectBlockId,
-
 	 SettingsId,
 	 ViewSettingsId,
 
 	 // Menu "View"
    FullScreenId, 
-// 	 ResetCameraId,
-// 	 PositiveXId,
-// 	 NegativeXId,
-// 	 PositiveYId,
-// 	 NegativeYId,
-// 	 PositiveZId,
-// 	 NegativeZId,
-// 
-// 	 ShowCenterId,
-// 	 ResetCenterId,
-// 	 PickCenterId,
-// 	 ShowColorLegendId,
-// 	 EditColorMapId,
-// 	 ResetRangeId,
-// 
-// 	 AnimationInspectorId,
-// 	 AnimationViewId,
-// 	 ComparativeViewInspectorId,
-// 	 SelectionInspectorId,
-// 	 LookmarkBrowserId,
-// 	 LookmarkInspectorId,
-// 	 ObjectInspectorId,
-// 	 PipelineBrowserId,
-// 	 StatisticsViewId,
-
-	 // Menu "Sources"
-	 // TODO...
-
-	 // Menu "Filters"
-	 // TODO...
 
 	 // Menu "Animation"
 	 FirstFrameId,
@@ -156,12 +119,6 @@ public:
   pqViewManager*         getMultiViewManager() const;
 
   virtual QString engineIOR() const;
-
-  /*! Compares the contents of the window with the given reference image,
-   * returns true if they "match" within some tolerance
-   */
-  /*bool                   compareView( const QString& ReferenceImage, double Threshold,
-    std::ostream& Output, const QString& TempDirectory );*/
 
   void openFile(const char* theName);
   void saveParaviewState(const char* theFileName);

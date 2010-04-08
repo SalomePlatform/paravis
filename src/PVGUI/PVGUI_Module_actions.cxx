@@ -361,7 +361,6 @@ void PVGUI_Module::pvCreateActions()
   anAction->setShortcut(QKeySequence::HelpContents);
   connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
   registerAction(ParaViewHelpId, anAction);
-  //new pqHelpReaction(anAction << pqSetName("actionHelp"));
 }
 
 /*!

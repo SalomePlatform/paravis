@@ -49,9 +49,7 @@ namespace PARAVIS {
     typedef SalomeApp_Application* TResult;
     TResult myResult;
     
-     TGetGUIApplication(const int theStudyId):
-      myStudyId(theStudyId), myResult(0)
-    {}
+    TGetGUIApplication(const int theStudyId):myStudyId(theStudyId), myResult(0) {}
     
     virtual void Execute()
     {
@@ -59,11 +57,11 @@ namespace PARAVIS {
       SUIT_Session* aSession = SUIT_Session::session();
       QList<SUIT_Application*> anApplications = aSession->applications();
       for (int i = 0; i < anApplications.count() && !myResult; i++ ){
-	if ( anApplications[i]->activeStudy() && anApplications[i]->activeStudy()->id() == myStudyId )
-	  myResult = dynamic_cast<SalomeApp_Application*>( anApplications[i] );
+        if ( anApplications[i]->activeStudy() && anApplications[i]->activeStudy()->id() == myStudyId )
+          myResult = dynamic_cast<SalomeApp_Application*>( anApplications[i] );
       }
       if ( !myResult ) {
-	MESSAGE("Error: application is not found for study with id = : " << myStudyId);
+        MESSAGE("Error: application is not found for study with id = : " << myStudyId);
       }
     }
   };
@@ -75,9 +73,7 @@ namespace PARAVIS {
   {
     SalomeApp_Application* myApp;
 
-    TModuleEvent(SalomeApp_Application* theApp ) :
-      myApp(theApp)
-    {}
+    TModuleEvent(SalomeApp_Application* theApp ):myApp(theApp) {}
 
       //! Returns pointer on PARAVIS module instance
     PVGUI_Module* getModule() 
@@ -99,9 +95,7 @@ namespace PARAVIS {
    */
   struct TActivateModule: public TModuleEvent
   {
-    TActivateModule(SalomeApp_Application* theApp ) :
-      TModuleEvent(theApp)
-   {}
+    TActivateModule(SalomeApp_Application* theApp ):TModuleEvent(theApp) {}
     
     virtual void Execute()
     {

@@ -88,20 +88,6 @@ void PVGUI_ViewWindow::setVisualParameters( const QString& parameters )
   SUIT_ViewWindow::setVisualParameters( parameters );
 }
 
-/*!
-  \brief Sets the ParaView multi-view manager for this view window
-*/
-// void PVGUI_ViewWindow::setMultiViewManager()
-// {
-//   myPVMgr = qobject_cast<pqViewManager*>(pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
-//   if (myPVMgr) {
-//     myPVMgr->setParent( this );
-//     // This is mandatory, see setParent() method in Qt 4 documentation
-//     myPVMgr->show();
-//     setCentralWidget( myPVMgr );
-//   } else
-//     qDebug("No multiViewManager defined");
-// }
 
 /*!
   \brief Returns the ParaView multi-view manager previously set with setMultiViewManager()
