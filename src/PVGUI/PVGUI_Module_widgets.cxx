@@ -45,7 +45,7 @@
 #include <pqSettings.h>
 #include <pqDataInformationWidget.h>
 #include <pqPVAnimationWidget.h>
-#include <pqSelectionInspectorPanel.h>
+#include <pqSelectionInspectorWidget.h>
 #include <pqProgressWidget.h>
 
 #include <pqAlwaysConnectedBehavior.h>
@@ -120,7 +120,7 @@ void PVGUI_Module::setupDockWidgets()
   selectionInspectorDock->setObjectName("selectionInspectorDock");
   selectionInspectorDock->setAllowedAreas( Qt::AllDockWidgetAreas );
   desk->addDockWidget( Qt::LeftDockWidgetArea, selectionInspectorDock );
-  pqSelectionInspectorPanel* aSelInspector = new pqSelectionInspectorPanel(selectionInspectorDock);
+  pqSelectionInspectorPanel* aSelInspector = new pqSelectionInspectorWidget(selectionInspectorDock);
   selectionInspectorDock->setWidget(aSelInspector);
   myDockWidgets.append(selectionInspectorDock);
 
