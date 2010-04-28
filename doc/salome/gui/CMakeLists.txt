@@ -20,17 +20,9 @@
 #  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SET(SUBDIRS
-  images
-  static
-  )
-
 SET(input ${CMAKE_CURRENT_SOURCE_DIR}/doxyfile.in)
 SET(output ${CMAKE_CURRENT_BINARY_DIR}/doxyfile)
 
 MESSAGE(STATUS "Creation of ${output}")
 CONFIGURE_FILE(${input} ${output})
 
-FOREACH(dir ${SUBDIRS})
-  ADD_SUBDIRECTORY(${dir})
-ENDFOREACH(dir ${SUBDIRS})
