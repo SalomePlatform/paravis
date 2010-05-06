@@ -139,7 +139,7 @@
 #include <pqStandardViewModules.h>
 #include <pqUndoRedoBehavior.h>
 #include <pqViewFrameActionsBehavior.h>
-
+#include <pqServerManagerObserver.h>
 
 //----------------------------------------------------------------------------
 pqApplicationCore* PVGUI_Module::pqImplementation::Core = 0;
@@ -336,19 +336,43 @@ void PVGUI_Module::initialize( CAM_Application* app )
   foreach (QToolBar* aBar, aBars) {
     myToolbarState[aBar] = true;
   }
+  pqServerManagerObserver* aObserver = pqImplementation::Core->getServerManagerObserver();
+  connect(aObserver, SIGNAL(connectionCreated(vtkIdType)), this, SLOT(onConnectionCreated(vtkIdType)));
 
+  myTraceTimer = new QTimer(this);
+  myTraceTimer->setSingleShot(true);
+  connect(myTraceTimer, SIGNAL(timeout()), this, SLOT(activateTrace()));
+ 
   SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
   bool isStop = aResourceMgr->booleanValue( "PARAVIS", "stop_trace", false );
   if(!isStop) 
-    QTimer::singleShot(50, this, SLOT(activateTrace()));
+    myTraceTimer->start(50);
+    //QTimer::singleShot(50, this, SLOT(activateTrace()));
 }
 
+void PVGUI_Module::onConnectionCreated(vtkIdType theId)
+{
+  if (myTraceTimer->isActive())
+    myTraceTimer->stop();
 
+  SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
+  bool isStop = aResourceMgr->booleanValue( "PARAVIS", "stop_trace", false );
+  if (!isStop)
+    myTraceTimer->start(1000);
+    //QTimer::singleShot(500, this, SLOT(activateTrace()));
+    //activateTrace();
+ 
+}
+
+/*!
+  \brief Launches a tracing of current server
+*/
 void PVGUI_Module::activateTrace()
 {
   PyInterp_Dispatcher* aDispatcher = PyInterp_Dispatcher::Get();
   if (aDispatcher->IsBusy()) {
-    QTimer::singleShot(50, this, SLOT(activateTrace()));
+    myTraceTimer->start(50);
+    //QTimer::singleShot(50, this, SLOT(activateTrace()));
     return;
   }
 
@@ -390,10 +414,17 @@ bool PVGUI_Module::pvInit()
   if ( !pqImplementation::Core ){
     // Obtain command-line arguments
     int argc = 0;
+    char** argv = 0;
+    QString aOptions = getenv("PARAVIS_OPTIONS");
+    QStringList aOptList = aOptions.split(":", QString::SkipEmptyParts);
+    argv = new char*[aOptList.size() + 1];
     QStringList args = QApplication::arguments();
-    char** argv = new char*[args.size()];
-    for ( QStringList::const_iterator it = args.begin(); argc < 1 && it != args.end(); it++, argc++ ) {
-      argv[argc] = strdup( (*it).toLatin1().constData() );
+    argv[0] = (args.size() > 0)? strdup(args[0].toLatin1().constData()) : strdup("paravis");
+    argc++;
+
+    foreach (QString aStr, aOptList) {
+      argv[argc] = strdup( aStr.toLatin1().constData() );
+      argc++;
     }
     pqImplementation::Core = new pqPVApplicationCore (argc, argv);
     if (pqImplementation::Core->getOptions()->GetHelpSelected() ||
@@ -431,8 +462,8 @@ bool PVGUI_Module::pvInit()
 
     new pqViewManager(); // it registers as "MULTIVIEW_MANAGER on creation
     
-    if (argc == 1)
-      free(argv[0]); // because in creation argc < 1
+    for (int i = 0; i < argc; i++)
+      free(argv[i]);
     delete[] argv;
   }
   

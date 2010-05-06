@@ -30,6 +30,7 @@
 #include <SalomeApp_Module.h>
 
 #include <ostream>
+#include <vtkType.h>
 
 class QMenu;
 class QDockWidget;
@@ -181,6 +182,8 @@ private slots:
   void showParaViewHelp();
   void showHelp(const QString& url);
 
+  void onConnectionCreated(vtkIdType);
+
 public slots:
   virtual bool           activateModule( SUIT_Study* );
   virtual bool           deactivateModule( SUIT_Study* );
@@ -203,6 +206,7 @@ private:
   QMap<QToolBar*, bool>  myToolbarState;
 
   QtMsgHandler           myOldMsgHandler;
+  QTimer* myTraceTimer;
 };
 
 #endif // PVGUI_Module_H
