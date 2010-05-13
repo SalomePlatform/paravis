@@ -67,6 +67,8 @@ SET(dist_libPARAVIS_la_SOURCES
   PVGUI_OutputWindowAdapter.cxx
   PVGUI_Tools.h
   PVGUI_Tools.cxx
+  PVGUI_ParaViewSettingsPane.h
+  PVGUI_ParaViewSettingsPane.cxx
   PV_I.h
   PARAVIS_Gen_i.hh
   PV_Events.h
@@ -84,6 +86,7 @@ SET(MOC_FILES
   PVGUI_ViewManager_moc.cxx
   PVGUI_ViewModel_moc.cxx
   PVGUI_ViewWindow_moc.cxx
+  PVGUI_ParaViewSettingsPane_moc.cxx
   )
 
 # additionnal compilation flags

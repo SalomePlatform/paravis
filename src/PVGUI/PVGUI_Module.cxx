@@ -40,6 +40,7 @@
 #include "PVGUI_ViewManager.h"
 #include "PVGUI_ViewWindow.h"
 #include "PVGUI_Tools.h"
+#include "PVGUI_ParaViewSettingsPane.h"
 
 #include <SUIT_Desktop.h>
 #include <SUIT_MessageBox.h>
@@ -864,6 +865,12 @@ pqServer* PVGUI_Module::getActiveServer()
 */
 void PVGUI_Module::createPreferences()
 {
+  // Paraview settings tab
+  int aSettingsTab = addPreference( tr( "TIT_PVSETTINGS" ) );
+  int aPanel = addPreference(QString(), aSettingsTab, LightApp_Preferences::UserDefined, "PARAVIS", "");
+  setPreferenceProperty(aPanel, "content", (qint64)(new PVGUI_ParaViewSettingsPane()));
+
+  // Paravis properties tab
   int TraceTab = addPreference( tr( "TIT_TRACE" ) );
   addPreference( tr( "PREF_STOP_TRACE" ), TraceTab, LightApp_Preferences::Bool, "PARAVIS", "stop_trace");
 

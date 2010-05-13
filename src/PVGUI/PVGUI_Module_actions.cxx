@@ -239,11 +239,11 @@ void PVGUI_Module::pvCreateActions()
 
 
   // Setting
-  anAction = new QAction(tr("MEN_SETTINGS"), this);
+  /*anAction = new QAction(tr("MEN_SETTINGS"), this);
   anAction->setToolTip(tr("TOP_SETTINGS"));
   anAction->setStatusTip(tr("STB_SETTINGS"));
   registerAction(SettingsId, anAction);
-  new pqApplicationSettingsReaction(anAction);
+  new pqApplicationSettingsReaction(anAction);*/
   
   // View Settings
   anAction = new QAction(tr("MEN_VIEW_SETTINGS"), this);
@@ -425,7 +425,7 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( DeleteAllId, aPVMnu );
   createMenu( separator(), aPVMnu );
 
-  createMenu( SettingsId, aPVMnu );
+  //createMenu( SettingsId, aPVMnu );
   createMenu( ViewSettingsId, aPVMnu );
   createMenu( separator(), aPVMnu );
 

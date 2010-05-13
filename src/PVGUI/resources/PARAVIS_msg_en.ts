@@ -1108,6 +1108,10 @@
         <translation>Trace</translation>
     </message>
     <message>
+        <source>TIT_PVSETTINGS</source>
+        <translation>ParaView Settings</translation>
+    </message>
+    <message>
         <source>MEN_MACROS</source>
         <translation>&amp;Macros</translation>
     </message>
