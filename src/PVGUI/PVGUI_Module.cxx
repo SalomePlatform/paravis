@@ -100,8 +100,9 @@
 #include <pqPythonDialog.h>
 #include <pqPythonManager.h>
 #include <pqPythonShell.h>
-#include "pqBrandPluginsLoader.h"
+#include <pqBrandPluginsLoader.h>
 #include <pqLoadDataReaction.h>
+#include <vtkEventQtSlotConnect.h>
 
 /*
  * Make sure all the kits register their classes with vtkInstantiator.
@@ -349,6 +350,24 @@ void PVGUI_Module::initialize( CAM_Application* app )
   if(!isStop) 
     myTraceTimer->start(50);
     //QTimer::singleShot(50, this, SLOT(activateTrace()));
+
+  this->VTKConnect = vtkEventQtSlotConnect::New();
+  vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
+
+  this->VTKConnect->Connect(pm, vtkCommand::StartEvent,
+    this, SLOT(onStartProgress()));
+  this->VTKConnect->Connect(pm, vtkCommand::EndEvent,
+    this, SLOT(onEndProgress()));
+}
+
+void PVGUI_Module::onStartProgress()
+{
+  QApplication::setOverrideCursor(Qt::WaitCursor);
+}
+
+void PVGUI_Module::onEndProgress()
+{
+  QApplication::restoreOverrideCursor();
 }
 
 void PVGUI_Module::onConnectionCreated(vtkIdType theId)

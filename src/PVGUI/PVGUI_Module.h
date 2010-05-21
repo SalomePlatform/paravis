@@ -40,6 +40,7 @@ class pqOptions;
 class pqServer;
 class pqViewManager;
 class pqMainWindowCore;
+class vtkEventQtSlotConnect;
 
 class PVGUI_Module : public SalomeApp_Module
 {
@@ -184,6 +185,9 @@ private slots:
 
   void onConnectionCreated(vtkIdType);
 
+  void onStartProgress();
+  void onEndProgress();
+
 public slots:
   virtual bool           activateModule( SUIT_Study* );
   virtual bool           deactivateModule( SUIT_Study* );
@@ -207,6 +211,8 @@ private:
 
   QtMsgHandler           myOldMsgHandler;
   QTimer* myTraceTimer;
+
+  vtkEventQtSlotConnect *VTKConnect;
 };
 
 #endif // PVGUI_Module_H
