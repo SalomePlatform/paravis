@@ -20,8 +20,8 @@
 #  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SET(VERSION_INFO 0.0.0)
-SET(SOVERSION_INFO 0)
+SET(VERSION_INFO 6.1.0)
+SET(SOVERSION_INFO 6.1)
 
 ADD_DEFINITIONS(-DHAVE_SALOME_CONFIG)
 INCLUDE_DIRECTORIES(${KERNEL_ROOT_DIR}/include/salome ${CMAKE_CURRENT_SOURCE_DIR}/../ParaView ${CMAKE_BINARY_DIR}/idl ${CMAKE_CURRENT_SOURCE_DIR})
