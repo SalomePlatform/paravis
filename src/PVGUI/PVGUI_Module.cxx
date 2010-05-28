@@ -266,6 +266,8 @@ void PVGUI_Module::initialize( CAM_Application* app )
   // Create GUI elements (menus, toolbars, dock widgets)
   if ( !Implementation ){
     SalomeApp_Application* anApp = getApp();
+    // Remember current state of desktop toolbars
+    QList<QToolBar*> aOther_toolbars = anApp->desktop()->findChildren<QToolBar*>();
 
     // Simulate ParaView client main window
     Implementation = new pqImplementation( anApp->desktop() );
@@ -330,14 +332,16 @@ void PVGUI_Module::initialize( CAM_Application* app )
     // Force creation of engine
     PARAVIS::GetParavisGen(this);
     updateObjBrowser();
+
+    // Find created toolbars
+    QCoreApplication::processEvents();
+    QList<QToolBar*> aAll_toolbars = application()->desktop()->findChildren<QToolBar*>();
+    foreach(QToolBar* aBar, aAll_toolbars) {
+      if (!aOther_toolbars.contains(aBar))
+        myToolbarState[aBar] = true;
+    }
   }
 
-  // Initialize list of toolbars
-  QCoreApplication::processEvents();
-  QList<QToolBar*> aBars = getParaViewToolbars();
-  foreach (QToolBar* aBar, aBars) {
-    myToolbarState[aBar] = true;
-  }
   pqServerManagerObserver* aObserver = pqImplementation::Core->getServerManagerObserver();
   connect(aObserver, SIGNAL(connectionCreated(vtkIdType)), this, SLOT(onConnectionCreated(vtkIdType)));
 
