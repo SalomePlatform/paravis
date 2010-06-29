@@ -351,10 +351,11 @@ class SourceProxy(Proxy):
             self.SMProxy.UpdatePipeline(time)
         else:
             self.SMProxy.UpdatePipeline()
-        # Fetch the new information. This is also here to cause a receive
+        # This is here to cause a receive
         # on the client side so that progress works properly.
-        self.SMProxy.GetDataInformation()
-
+        if ActiveConnection and ActiveConnection.IsRemote():
+            self.SMProxy.GetDataInformation()
+ 
     def FileNameChanged(self):
         "Called when the filename of a source proxy is changed."
         self.UpdatePipelineInformation()
@@ -2511,6 +2512,16 @@ def __determineGroup(proxy):
     xmlgroup = proxy.GetXMLGroup()
     xmlname = proxy.GetXMLName()
     if xmlgroup == "sources":
+        if xmlname in ["BlockSelectionSource",
+                       "FrustumSelectionSource",
+                       "GlobalIDSelectionSource",
+                       "PedigreeIDSelectionSource",
+                       "IDSelectionSource",
+                       "CompositeDataIDSelectionSource",
+                       "HierarchicalDataIDSelectionSource",
+                       "ThresholdSelectionSource",
+                       "LocationSelectionSource"]:
+            return "selection_sources"
         return "sources"
     elif xmlgroup == "filters":
         return "sources"

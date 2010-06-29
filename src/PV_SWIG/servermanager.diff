@@ -2,7 +2,7 @@
 < #==============================================================================
 < #
 < #  Program:   ParaView
-< #  Module:    $RCSfile: servermanager.diff,v $
+< #  Module:    servermanager.py
 < #
 < #  Copyright (c) Kitware, Inc.
 < #  All rights reserved.
@@ -66,7 +66,11 @@
 > ##         if not c.HasObserver("ModifiedEvent"):
 > ##             self.ObserverTag =c.AddObserver("ModifiedEvent", _makeUpdateCameraMethod(weakref.ref(self)))
 > ##             self.Observed = c
-439,457c417,434
+380c358
+< 
+---
+>  
+440,458c418,435
 <     if paraview.compatibility.GetVersion() >= 3.5:
 <         def FileNameChanged(self):
 <             "Called when the filename changes. Selects all variables."
@@ -105,33 +109,33 @@
 >                      'ElementVariables', 'GlobalVariables'):
 >             f = getattr(self, prop)
 >             f.DeselectAll()
-1040c1017,1018
+1041c1018,1019
 <             if proxy == px:
 ---
 >             ## VSV: ==
 >             if proxy.IsSame(px):
-1217c1195
+1218c1196
 <         return vtk.vtkDataObjectTypes.GetClassNameFromTypeId(self.GetDataSetType())
 ---
 >         return vtkDataObjectTypes.GetClassNameFromTypeId(self.GetDataSetType())
-1259,1261d1236
+1260,1262d1237
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <        def Range(self, component=0):
 <            return self.GetRange(component)
-1521c1496
+1522c1497
 <         collection = vtk.vtkCollection()
 ---
 >         collection = vtkCollection()
-1909c1884
+1910c1885
 < 
 ---
 >        
-2020c1995,1996
+2021c1996,1997
 <         try: isRep = rep.Input == aProxy
 ---
 >         #VSV: ==
 >         try: isRep = rep.Input.IsSame(aProxy)
-2265,2281c2241,2242
+2266,2282c2242,2243
 <     """Turn on/off printing of progress (by default, it is on). You can
 <     always turn progress off and add your own observer to the process
 <     module to handle progress in a custom way. See _printProgress for
@@ -152,21 +156,21 @@
 ---
 >     """Is not supported because of not supported observers"""
 >     pass
-2308,2310c2269,2270
+2309,2311c2270,2271
 <     if paraview.compatibility.GetVersion() >= 3.5:
 <         if smproxy.GetXMLLabel():
 <             xmlName = smproxy.GetXMLLabel()
 ---
 >     if smproxy.GetXMLLabel():
 >         xmlName = smproxy.GetXMLLabel()
-2350,2353c2310
+2351,2354c2311
 <         if paraview.compatibility.GetVersion() >= 3.5:
 <             return self.GetPropertyValue(propName)
 <         else:
 <             return self.GetProperty(propName)
 ---
 >         return self.GetPropertyValue(propName)
-2471c2428,2437
+2472c2429,2438
 <     return paraview.make_name_valid(name)
 ---
 >     """Make a string into a valid Python variable name.  Return None if
@@ -179,12 +183,12 @@
 >     if not name[0].isalpha():
 >         name = 'a' + name
 >     return name
-2490,2491c2456
+2491,2492c2457
 <         if paraview.compatibility.GetVersion() >= 3.5 and\
 <            proto.GetXMLLabel():
 ---
 >         if proto.GetXMLLabel():
-2506,2509c2471,2472
+2507,2510c2472,2473
 <             if paraview.compatibility.GetVersion() >= 3.5:
 <                 if (prop.GetInformationOnly() and propName != "TimestepValues" ) \
 <                   or prop.GetIsInternal():
@@ -192,12 +196,12 @@
 ---
 >             if (prop.GetInformationOnly() and propName != "TimestepValues" ) or prop.GetIsInternal():
 >                 continue
-2511,2512c2474
+2512,2513c2475
 <             if paraview.compatibility.GetVersion() >= 3.5:
 <                 names = [iter.PropertyLabel]
 ---
 >             names = [iter.PropertyLabel]
-2641,2650c2603,2606
+2652,2661c2614,2617
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <         ss = sources.SphereSource(Radius=2, ThetaResolution=32)
 <         shr = filters.ShrinkFilter(Input=OutputPort(ss,0))
@@ -213,28 +217,28 @@
 >     shr = filters.Shrink(Input=OutputPort(ss,0))
 >     cs = sources.Cone()
 >     app = filters.AppendDatasets()
-2671,2674c2627
+2682,2685c2638
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <         arraySelection = reader.PointResultArrayStatus
 <     else:
 <         arraySelection = reader.PointVariables
 ---
 >     arraySelection = reader.PointVariables
-2708,2711c2661
+2719,2722c2672
 <             if paraview.compatibility.GetVersion() <= 3.4:
 <                 print "Range:", ai.Range(j)
 <             else:
 <                 print "Range:", ai.GetRange(j)
 ---
 >             print "Range:", ai.GetRange(j)
-2742,2745c2692
+2753,2756c2703
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <         source = sources.RTAnalyticSource()
 <     else:
 <         source = sources.Wavelet()
 ---
 >     source = sources.Wavelet()
-2776,2783c2723,2725
+2787,2794c2734,2736
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <         probe = filters.Probe(Input=source)
 <         # with a line
@@ -247,14 +251,14 @@
 >     probe = filters.ResampleWithDataset(Input=source)
 >     # with a line
 >     line = sources.Line(Resolution=60)
-2827,2830c2769
+2838,2841c2780
 <     if paraview.compatibility.GetVersion() <= 3.4:
 <         sphere = sources.SphereSource()
 <     else:
 <         sphere = sources.Sphere()
 ---
 >     sphere = sources.Sphere()
-2897,2899c2836,2844
+2908,2910c2847,2855
 < if hasattr(sys, "ps1"):
 <     # session is interactive.
 <     print vtkSMProxyManager.GetParaViewSourceVersion();
