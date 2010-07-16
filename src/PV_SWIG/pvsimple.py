@@ -68,10 +68,37 @@ def CreateRenderView():
     return _create_view("RenderView")
 
 def CreateXYPlotView():
-    return _create_view("XYPlotView")
+    return _create_view("XYChartView")
 
 def CreateBarChartView():
-    return _create_view("BarChart")
+    return _create_view("XYBarChartView")
+
+def CreateComparativeRenderView():
+    return _create_view("ComparativeRenderView")
+
+def CreateComparativeXYPlotView():
+    return _create_view("ComparativeXYPlotView")
+ 
+def CreateComparativeBarChartView():
+    return _create_view("ComparativeBarChartView")
+
+def OpenDataFile(filename, **extraArgs):
+    """Creates a reader to read the give file, if possible.
+       This uses extension matching to determine the best reader possible.
+       If a reader cannot be identified, then this returns None."""
+    reader_factor = servermanager.ProxyManager().GetReaderFactory()
+    if  reader_factor.GetNumberOfRegisteredPrototypes() == 0:
+      reader_factor.RegisterPrototypes("sources")
+    cid = servermanager.ActiveConnection.ID
+    if not reader_factor.TestFileReadability(filename, cid):
+        raise RuntimeError, "File not readable: %s " % filename
+    if not reader_factor.CanReadFile(filename, cid):
+        raise RuntimeError, "File not readable. No reader found for '%s' " % filename
+    prototype = servermanager.ProxyManager().GetPrototypeProxy(
+      reader_factor.GetReaderGroup(), reader_factor.GetReaderName())
+    xml_name = paraview.make_name_valid(prototype.GetXMLLabel())
+    reader = globals()[xml_name](FileName=filename, **extraArgs)
+    return reader
 
 def GetRenderView():
     "Returns the active view if there is one. Else creates and returns a new view."
@@ -161,6 +188,40 @@ def SetProperties(proxy=None, **params):
         if not hasattr(proxy, param):
             raise AttributeError("object has no property %s" % param)
         setattr(proxy, param, params[param])
+
+def GetProperty(*arguments, **keywords):
+    """Get one property of the given pipeline object. If keywords are used,
+       you can set the proxy and the name of the property that you want to get
+       like in the following example :
+            GetProperty({proxy=sphere, name="Radius"})
+       If it's arguments that are used, then you have two case:
+         - if only one argument is used that argument will be
+           the property name.
+         - if two arguments are used then the first one will be
+           the proxy and the second one the property name.
+       Several example are given below:
+           GetProperty({name="Radius"})
+           GetProperty({proxy=sphereProxy, name="Radius"})
+           GetProperty( sphereProxy, "Radius" )
+           GetProperty( "Radius" )
+    """
+    name = None
+    proxy = None
+    for key in keywords:
+        if key == "name":
+            name = keywords[key]
+        if key == "proxy":
+            proxy = keywords[key]
+    if len(arguments) == 1 :
+        name = arguments[0]
+    if len(arguments) == 2 :
+        proxy = arguments[0]
+        name  = arguments[1]
+    if not name:
+        raise RuntimeError, "Expecting at least a property name as input. Otherwise keyword could be used to set 'proxy' and property 'name'"
+    if not proxy:
+        proxy = active_objects.source
+    return proxy.GetProperty(name)
 
 def SetDisplayProperties(proxy=None, view=None, **params):
     """Sets one or more display properties of the given pipeline object. If an argument
@@ -300,6 +361,24 @@ def CreatePiecewiseFunction(**params):
     servermanager.Register(pfunc)
     SetProperties(pfunc, **params)
     return pfunc
+
+def GetLookupTableForArray(arrayname, num_components, **params):
+    """Used to get an existing lookuptable for a array or to create one if none
+    exists. Keyword arguments can be passed in to initialize the LUT if a new
+    one is created."""
+    proxyName = "%d.%s.PVLookupTable" % (int(num_components), arrayname)
+    lut = servermanager.ProxyManager().GetProxy("lookup_tables", proxyName)
+    if lut:
+        return lut
+    # No LUT exists for this array, create a new one.
+    # TODO: Change this to go a LookupTableManager that is shared with the GUI,
+    # so that the GUI and python end up create same type of LUTs. For now,
+    # python will create a Blue-Red LUT, unless overridden by params.
+    lut = servermanager.rendering.PVLookupTable(
+            ColorSpace="HSV", RGBPoints=[0, 0, 0, 1, 1, 1, 0, 0])
+    SetProperties(lut, **params)
+    servermanager.Register(lut, registrationName=proxyName)
+    return lut
 
 def CreateScalarBar(**params):
     """Create and return a scalar bar widget.  The returned widget may

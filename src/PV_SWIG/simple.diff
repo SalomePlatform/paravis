@@ -2,7 +2,7 @@
 < #==============================================================================
 < #
 < #  Program:   ParaView
-< #  Module:    $RCSfile: simple.diff,v $
+< #  Module:    simple.py
 < #
 < #  Copyright (c) Kitware, Inc.
 < #  All rights reserved.
@@ -23,22 +23,22 @@
 > import paravisSM
 > 
 > servermanager = paravisSM
-280c265,266
+341c326,327
 <         if proxy == GetActiveSource():
 ---
 >         #VSV:==
 >         if proxy.IsSame(GetActiveSource()):
-288c274,275
+349c335,336
 <             if rep.Input == proxy:
 ---
 >             #VSV:==
 >             if rep.Input.IsSame(proxy):
-292c279,280
+353c340,341
 <         if proxy == GetActiveView():
 ---
 >         ##VSV:==
 >         if proxy.IsSame(GetActiveView()):
-709a698,704
+788a777,783
 > def PrintTrace():
 >     print paravisSM.myParavis.GetTrace()
 > 
@@ -46,10 +46,10 @@
 >     paravisSM.myParavis.SaveTrace(fileName)
 > 
 > 
-711a707,708
+790a786,787
 > ## Initialisation for SALOME GUI
 > active_objects.view = servermanager.GetRenderView()
-714a712,714
+793a791,793
 > 
 > def ImportFile(theFileName):
 >     paravisSM.ImportFile(theFileName)
