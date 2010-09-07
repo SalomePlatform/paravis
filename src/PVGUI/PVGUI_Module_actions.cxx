@@ -78,6 +78,7 @@
 #include <pqAboutDialogReaction.h>
 #include <pqHelpReaction.h>
 #include <pqViewManager.h>
+#include <pqDataQueryReaction.h>
 
 #include "PVGUI_Tools.h"
 
@@ -208,6 +209,13 @@ void PVGUI_Module::pvCreateActions()
   registerAction(CameraRedoId, anAction);
   new pqCameraUndoRedoReaction(anAction, false);
 
+  // Find Data
+  anAction = new QAction(tr("MEN_FIND_DATA"), this);
+  anAction->setToolTip("");
+  anAction->setStatusTip("");
+  registerAction(FindDataId, anAction);
+  new pqDataQueryReaction(anAction);
+  
   // Change Input
   anAction = new QAction(tr("MEN_CHANGE_INPUT"), this);
   anAction->setToolTip(tr("TOP_CHANGE_INPUT"));
@@ -322,6 +330,15 @@ void PVGUI_Module::pvCreateActions()
   new pqTestingReaction(anAction << pqSetName("actionTesting_Window_Size"),
                         pqTestingReaction::LOCK_VIEW_SIZE);
 
+  // Custom Window Size
+  anAction = new QAction(tr("MEN_CUSTOM_WINDOW_SIZE"), this);
+  anAction->setToolTip(tr(""));
+  anAction->setStatusTip(tr(""));
+  anAction->setCheckable(true);
+  registerAction(CustomWindowSizeId, anAction);
+  new pqTestingReaction(anAction << pqSetName("actionTesting_Window_Size_Custom"),
+                        pqTestingReaction::LOCK_VIEW_SIZE_CUSTOM);
+
   // Timer Log
   anAction = new QAction(tr("MEN_TIMER_LOG"), this);
   anAction->setToolTip(tr("TOP_TIMER_LOG"));
@@ -419,6 +436,7 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( CameraRedoId, aPVMnu );
   createMenu( separator(), aPVMnu );
 
+  createMenu( FindDataId, aPVMnu );
   createMenu( ChangeInputId, aPVMnu );
   createMenu( IgnoreTimeId, aPVMnu );
   createMenu( DeleteId, aPVMnu );
@@ -431,13 +449,14 @@ void PVGUI_Module::pvCreateMenus()
 
   // --- Menu "View"
   aPVMnu = createMenu( tr( "MEN_DESK_VIEW" ), -1, -1 );
-  myToolbarsMenuId = createMenu( "Toolbars", aPVMnu );
+  /*myToolbarsMenuId = createMenu( "Toolbars", aPVMnu );
   aMenu = getMenu( myToolbarsMenuId );
   if (aMenu) {
     buildToolbarsMenu();
     connect(aMenu, SIGNAL(aboutToShow()), this, SLOT(buildToolbarsMenu()));
   }
-  createMenu( separator(), aPVMnu );
+  createMenu( separator(), aPVMnu );*/
+
   createMenu( FullScreenId, aPVMnu );
   
   // --- Menu "Sources"
@@ -478,6 +497,7 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( RecordTestId, aToolsMnu );
   createMenu( PlayTestId, aToolsMnu );
   createMenu( MaxWindowSizeId, aToolsMnu );
+  createMenu( CustomWindowSizeId, aToolsMnu );
   createMenu( separator(), aToolsMnu );
 
   createMenu( TimerLogId, aToolsMnu );
@@ -523,7 +543,7 @@ QMenu* PVGUI_Module::getMenu( const int id )
 /*!
   \brief Returns list of ParaView toolbars
 */
-QList<QToolBar*> PVGUI_Module::getParaViewToolbars()
+/*QList<QToolBar*> PVGUI_Module::getParaViewToolbars()
 {
   QList<QToolBar*> all_toolbars = application()->desktop()->findChildren<QToolBar*>();
   // First two toolbars has to be ignored because they are not from ParaView
@@ -532,14 +552,14 @@ QList<QToolBar*> PVGUI_Module::getParaViewToolbars()
     all_toolbars.removeFirst();
   }
   return all_toolbars;
-}
+  }*/
 
 
 
 /*!
   \brief Builds a menu which referred to toolbars
 */
-void PVGUI_Module::buildToolbarsMenu()
+/*void PVGUI_Module::buildToolbarsMenu()
 {
   SUIT_Desktop* desk = application()->desktop();
   QMenu* aMenu = menuMgr()->findMenu( myToolbarsMenuId );
@@ -574,5 +594,5 @@ void PVGUI_Module::buildToolbarsMenu()
     }
     disconnect(aMenu, SIGNAL(aboutToShow()), this, SLOT(buildToolbarsMenu()));
   }
-}
+  }*/
 

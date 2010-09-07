@@ -448,6 +448,10 @@
         <translation>Change Input...</translation>
     </message>
     <message>
+        <source>MEN_FIND_DATA</source>
+        <translation>Find Data...</translation>
+    </message>
+    <message>
         <source>MEN_CHANGE_INPUT</source>
         <translation>Change &amp;Input...</translation>
     </message>
@@ -970,6 +974,10 @@
     <message>
         <source>MEN_MAX_WINDOW_SIZE</source>
         <translation>Lock View Size</translation>
+    </message>
+    <message>
+        <source>MEN_CUSTOM_WINDOW_SIZE</source>
+        <translation>Lock View Size Custom...</translation>
     </message>
     <message>
         <source>PRP_APP_MAX_WINDOW_SIZE</source>

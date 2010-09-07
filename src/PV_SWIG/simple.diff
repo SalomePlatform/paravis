@@ -23,22 +23,69 @@
 > import paravisSM
 > 
 > servermanager = paravisSM
-341c326,327
+91,117d75
+< def CreateComparativeRenderView():
+<     return _create_view("ComparativeRenderView")
+< 
+< def CreateComparativeXYPlotView():
+<     return _create_view("ComparativeXYPlotView")
+<  
+< def CreateComparativeBarChartView():
+<     return _create_view("ComparativeBarChartView")
+< 
+< def OpenDataFile(filename, **extraArgs):
+<     """Creates a reader to read the give file, if possible.
+<        This uses extension matching to determine the best reader possible.
+<        If a reader cannot be identified, then this returns None."""
+<     reader_factor = servermanager.ProxyManager().GetReaderFactory()
+<     if  reader_factor.GetNumberOfRegisteredPrototypes() == 0:
+<       reader_factor.RegisterPrototypes("sources")
+<     cid = servermanager.ActiveConnection.ID
+<     if not reader_factor.TestFileReadability(filename, cid):
+<         raise RuntimeError, "File not readable: %s " % filename
+<     if not reader_factor.CanReadFile(filename, cid):
+<         raise RuntimeError, "File not readable. No reader found for '%s' " % filename
+<     prototype = servermanager.ProxyManager().GetPrototypeProxy(
+<       reader_factor.GetReaderGroup(), reader_factor.GetReaderName())
+<     xml_name = paraview.make_name_valid(prototype.GetXMLLabel())
+<     reader = globals()[xml_name](FileName=filename, **extraArgs)
+<     return reader
+< 
+341c299,300
 <         if proxy == GetActiveSource():
 ---
 >         #VSV:==
 >         if proxy.IsSame(GetActiveSource()):
-349c335,336
+349c308,309
 <             if rep.Input == proxy:
 ---
 >             #VSV:==
 >             if rep.Input.IsSame(proxy):
-353c340,341
+353c313,314
 <         if proxy == GetActiveView():
 ---
 >         ##VSV:==
 >         if proxy.IsSame(GetActiveView()):
-788a777,783
+377,394d337
+< def GetLookupTableForArray(arrayname, num_components, **params):
+<     """Used to get an existing lookuptable for a array or to create one if none
+<     exists. Keyword arguments can be passed in to initialize the LUT if a new
+<     one is created."""
+<     proxyName = "%d.%s.PVLookupTable" % (int(num_components), arrayname)
+<     lut = servermanager.ProxyManager().GetProxy("lookup_tables", proxyName)
+<     if lut:
+<         return lut
+<     # No LUT exists for this array, create a new one.
+<     # TODO: Change this to go a LookupTableManager that is shared with the GUI,
+<     # so that the GUI and python end up create same type of LUTs. For now,
+<     # python will create a Blue-Red LUT, unless overridden by params.
+<     lut = servermanager.rendering.PVLookupTable(
+<             ColorSpace="HSV", RGBPoints=[0, 0, 0, 1, 1, 1, 0, 0])
+<     SetProperties(lut, **params)
+<     servermanager.Register(lut, registrationName=proxyName)
+<     return lut
+< 
+788a732,738
 > def PrintTrace():
 >     print paravisSM.myParavis.GetTrace()
 > 
@@ -46,10 +93,10 @@
 >     paravisSM.myParavis.SaveTrace(fileName)
 > 
 > 
-790a786,787
+790a741,742
 > ## Initialisation for SALOME GUI
 > active_objects.view = servermanager.GetRenderView()
-793a791,793
+793a746,748
 > 
 > def ImportFile(theFileName):
 >     paravisSM.ImportFile(theFileName)

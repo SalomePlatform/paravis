@@ -70,6 +70,7 @@ class PVGUI_Module : public SalomeApp_Module
 	 CameraUndoId,
 	 CameraRedoId,
 
+   FindDataId,   
 	 ChangeInputId,
    IgnoreTimeId, 
 	 DeleteId,
@@ -101,6 +102,7 @@ class PVGUI_Module : public SalomeApp_Module
 	 RecordTestScreenshotId,
 	 PlayTestId,
 	 MaxWindowSizeId,
+	 CustomWindowSizeId,
 	 TimerLogId,
 	 OutputWindowId,
 	 PythonShellId,
@@ -166,7 +168,7 @@ private:
 
   void                   deleteTemporaryFiles();
   
-  QList<QToolBar*>       getParaViewToolbars();
+  //QList<QToolBar*>       getParaViewToolbars();
 
 private slots:
 
@@ -178,7 +180,7 @@ private slots:
 
   void activateTrace();
 
-  void buildToolbarsMenu();
+  //  void buildToolbarsMenu();
 
   void showParaViewHelp();
   void showHelp(const QString& url);
