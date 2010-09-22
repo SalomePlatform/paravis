@@ -167,6 +167,15 @@ def GetNbComponents(theProxy, theEntityType, theFieldName):
     nbComponents = entityDataInfo[theFieldName].GetNumberOfComponents()
     return nbComponents
 
+def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
+    result = False
+    if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE or
+        thePrsType == PrsTypeEnum.VECTORS):
+        nbComp = GetNbComponents(theProxy, theEntityType, theFieldName)
+        result = (nbComp > 1)
+        
+    return result
+
 def GetStdScalarBar(theTitle, theLookupTable):
     """Auxiliary function. Create scalar bar."""
     scalarBar = CreateScalarBar(Enabled=1, LabelFontSize=10, TitleFontSize=8, NumberOfLabels=5)
@@ -346,7 +355,7 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     basePlaneRep.Visibility = 0
     
     # Create cutting planes
-    cutPlanes=Slice()
+    cutPlanes=Slice(basePlane)
     cutPlanes.SliceType="Plane"
 
     # Set cutting planes normal and get positions
@@ -407,12 +416,19 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     rep.Visibility = 0
     
     # Cell centers
-    cellCenters = CellCenters()
+    cellCenters = CellCenters(theProxy)
 
     # Vectors
-    glyphFilter = Glyph(GlyphType="Arrow")
+    glyphFilter = Glyph(cellCenters)
+    glyphFilter.GlyphType="Arrow"
     glyphFilter.Vectors = theFieldName
     glyphFilter.ScaleMode = 'vector'
+
+    glyphFilter.GlyphType.TipResolution = 1
+    glyphFilter.GlyphType.TipRadius = 0.1
+    glyphFilter.GlyphType.TipLength = 0.19
+    glyphFilter.GlyphType.ShaftResolution = 0
+    glyphFilter.GlyphType.ShaftRadius = 0.0
     
     vectors = GetRepresentation(glyphFilter)
    
@@ -430,6 +446,9 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     if (theIsColored):
         vectors.ColorArrayName = 'GlyphVector'
     vectors.LookupTable = lookupTable
+
+    # Set wireframe represenatation mode
+    vectors.Representation = 'Wireframe'
 
     # Set scalar bar name and lookup table
     barTitle = theFieldName + ", " + str(timeValue)
@@ -619,22 +638,60 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                 # Show and record the presentation
                 ProcessPrsForTest(aPrs, theView, aPictureName)
 
-        if HasValue(thePrsTypeList, PrsTypeEnum.DEFORMEDSHAPE):
-            # Create  Deformed Shape for all timestamps
+        if HasValue(thePrsTypeList, PrsTypeEnum.CUTLINES):
+            # Create Cut Lines for all timestamps
             for timeStampNb in xrange(1, len(aTimeStamps)+1):
                 timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = DeformedShapeOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                print "          Creating Cut Lines on %s, time = %s... " % (aFieldName, str(timeValue)),
+                aPrs = CutLinesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
                 if aPrs is None :
-                    print "Error: can't create Deformed Shape." 
+                    print "Error: can't create Cut Lines." 
                 else:
                     print "OK" 
 
                 # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPE." + thePictureExt
+                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_CUTLINES." + thePictureExt
 
                 # Show and record the presentation
                 ProcessPrsForTest(aPrs, theView, aPictureName)
+
+        if HasValue(thePrsTypeList, PrsTypeEnum.DEFORMEDSHAPE):
+            # Create  Deformed Shape for all timestamps if possible
+            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.DEFORMEDSHAPE)
+            if (aIsPossible):
+                for timeStampNb in xrange(1, len(aTimeStamps)+1):
+                    timeValue = aTimeStamps[timeStampNb-1]
+                    print "          Creating Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
+                    aPrs = DeformedShapeOnField(theProxy, aFieldEntity, aFieldName, timeStampNb, 0.25)
+                    if aPrs is None :
+                        print "Error: can't create Deformed Shape." 
+                    else:
+                        print "OK" 
+
+                    # Construct image file name
+                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPE." + thePictureExt
+
+                    # Show and record the presentation
+                    ProcessPrsForTest(aPrs, theView, aPictureName)
+
+        if HasValue(thePrsTypeList, PrsTypeEnum.VECTORS):
+            # Create  Vectors for all timestamps if possible
+            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.VECTORS)
+            if (aIsPossible):
+                for timeStampNb in xrange(1, len(aTimeStamps)+1):
+                    timeValue = aTimeStamps[timeStampNb-1]
+                    print "          Creating Vectors on %s, time = %s... " % (aFieldName, str(timeValue)),
+                    aPrs = VectorsOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                    if aPrs is None :
+                        print "Error: can't create Vectors." 
+                    else:
+                        print "OK" 
+
+                    # Construct image file name
+                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_VECTORS." + thePictureExt
+
+                    # Show and record the presentation
+                    ProcessPrsForTest(aPrs, theView, aPictureName)
 
     # Delete the proxy if necessary
     if (theIsAutoDelete):
