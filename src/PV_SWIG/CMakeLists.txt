@@ -24,6 +24,7 @@ SET(dist_salomescript_DATA
   paravis.py
   paravisSM.py
   pvsimple.py
+  presentations.py
   )
 
 FOREACH(f ${dist_salomescript_DATA})
