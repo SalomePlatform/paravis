@@ -12,6 +12,8 @@ except:
 
 # Constants
 EPS = 0.001
+FLT_MIN = 1E-37
+
 DEBUG_ON = True
 
 # Enumerations
@@ -19,6 +21,7 @@ class PrsTypeEnum:
     """
     Presentation types.
     """
+    MESH = 0
     SCALARMAP = 1
     ISOSURFACES = 2
     CUTPLANES = 3
@@ -26,11 +29,14 @@ class PrsTypeEnum:
     DEFORMEDSHAPE = 5
     DEFORMEDSHAPESCALARMAP = 6
     VECTORS = 7
+    PLOT3D = 8
+    STREAMLINES = 9
 
 class Orientation:
     """
     Orientation types.
     """
+    AUTO = 0
     XY = 1
     YZ = 2
     ZX = 3
@@ -123,24 +129,95 @@ def GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode):
         raise RuntimeError, "Vector mode is incorrect: %s " % theVectorMode
 
     return dataRange
-        
-def GetXRange(theProxy):
-    """Auxiliary function. Get X range."""
+
+def GetBounds(theProxy):
+    """Auxiliary function. Get bounds of the proxy."""
     dataInfo = theProxy.GetDataInformation()
     boundsInfo = dataInfo.GetBounds()
+
+    return boundsInfo
+
+def GetXRange(theProxy):
+    """Auxiliary function. Get X range."""
+    boundsInfo = GetBounds(theProxy)
     return boundsInfo[0:2]
 
 def GetYRange(theProxy):
     """Auxiliary function. Get Y range."""
-    dataInfo = theProxy.GetDataInformation()
-    boundsInfo = dataInfo.GetBounds()
+    boundsInfo = GetBounds(theProxy)
     return boundsInfo[2:4]
 
 def GetZRange(theProxy):
     """Auxiliary function. Get Z range."""
-    dataInfo = theProxy.GetDataInformation()
-    boundsInfo = dataInfo.GetBounds()
+    boundsInfo = GetBounds(theProxy)
     return boundsInfo[4:6]
+
+def IsPlanarInput(theProxy):
+    """Auxiliary function. Check if the given input is planar."""
+    boundsInfo = GetBounds(theProxy)
+
+    if ( abs(boundsInfo[0] - boundsInfo[1]) <= FLT_MIN or
+         abs(boundsInfo[2] - boundsInfo[3]) <= FLT_MIN or
+         abs(boundsInfo[4] - boundsInfo[5]) <= FLT_MIN ):
+        return True
+
+    return False
+
+def IsDataOnCells(theProxy, theFieldName):
+    """Auxiliary function. Check if the field data is on cells."""
+    cellDataInfo = theProxy.GetCellDataInformation()
+    return (theFieldName in cellDataInfo.keys())
+
+def GetOrientation(theProxy):
+    """Auxiliary function. Get the optimum cutting plane orientation."""
+    anOrientation = Orientation.XY
+
+    aBounds = GetBounds(theProxy)
+    aDelta = [aBounds[1] - aBounds[0],
+              aBounds[3] - aBounds[2],
+              aBounds[5] - aBounds[4] ]
+
+    if (aDelta[0] >= aDelta[1] and aDelta[0] >= aDelta[2]):
+        if (aDelta[1] >= aDelta[2]):
+            anOrientation = Orientation.XY
+        else:
+            anOrientation = Orientation.ZX
+    elif (aDelta[1] >= aDelta[0] and aDelta[1] >= aDelta[2]):
+        if (aDelta[0] >= aDelta[2]):
+            anOrientation = Orientation.XY
+        else:
+            anOrientation = Orientation.YZ
+    elif (aDelta[2] >= aDelta[0] and aDelta[2] >= aDelta[1]):
+        if (aDelta[0] >= aDelta[1]):
+            anOrientation = Orientation.ZX
+        else:
+            anOrientation = Orientation.YZ
+
+    return anOrientation
+
+def GetNormalByOrientation(theOrientation):
+    """Auxiliary function. Get normal for the plane by its orientation."""
+    normal = [0.0, 0.0, 0.0]
+    if (theOrientation == Orientation.XY):
+        normal[2] = 1.0
+    elif (theOrientation == Orientation.ZX):
+        normal[1] = 1.0
+    elif (theOrientation == Orientation.YZ):
+        normal[0] = 1.0
+        
+    return normal
+
+def GetRangeForOrientation(theProxy, theOrientation):
+    """Auxiliary function. Get source range for cutting plane orientation."""
+    valRange = []
+    if (theOrientation == Orientation.XY):
+        valRange = GetZRange(theProxy)
+    elif (theOrientation == Orientation.ZX):
+        valRange = GetYRange(theProxy)
+    elif (theOrientation == Orientation.YZ):
+        valRange = GetXRange(theProxy)
+
+    return valRange
 
 def GetPositions(valRange, theNbPlanes, theDisplacement):
     """Compute plane positions."""
@@ -168,6 +245,7 @@ def GetNbComponents(theProxy, theEntityType, theFieldName):
     return nbComponents
 
 def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
+    """Auxiliary function. Check if the presentation is possible on the given field."""
     result = False
     if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE or
         thePrsType == PrsTypeEnum.VECTORS):
@@ -254,7 +332,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
     return scalarMap
 
 def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                     theNbPlanes=10, theOrientation = Orientation.YZ, theDisplacement=0.5,
+                     theNbPlanes=10, theOrientation = Orientation.YZ, theDisplacement1=0.5,
                      theVectorMode='Magnitude'):
     """Creates cut planes on the given field."""
     # Get time value
@@ -464,7 +542,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
                          theIsColored=False, theVectorMode='Magnitude'):
-    """Creates and return Defromed shape on the given field."""
+    """Creates Defromed shape on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
     
@@ -473,10 +551,11 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     rep.Visibility = 0
 
     # Do merge
-    bergeBlocks = MergeBlocks()
+    mergeBlocks = MergeBlocks()
     
-    # Cell centers
-    cellDataToPointData = CellDatatoPointData()
+    # Cell data to point data
+    if (IsDataOnCells(theProxy, theFieldName)):
+        cellDataToPointData = CellDatatoPointData()
 
     # Warp by vector
     warpByVector = WarpByVector()
@@ -522,7 +601,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
 def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
                                      theScalarEntityType=None, theScalarFieldName=None,
                                      theVectorMode='Magnitude'):
-    """Creates and Defromed shape And Scalar Map on the given field."""
+    """Creates Defromed shape And Scalar Map on the given field."""
     # Set scalar field by default
     if ((theScalarEntityType is None) or (theScalarFieldName is None)):
         theScalarEntityType = theEntityType
@@ -536,7 +615,7 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     rep.Visibility = 0
 
     # Do merge
-    bergeBlocks = MergeBlocks()
+    mergeBlocks = MergeBlocks()
     
     # Cell centers
     cellDataToPointData = CellDatatoPointData()
@@ -577,6 +656,184 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     GetRenderView().ViewTime = timeValue
        
     return defshapeandmap
+
+
+def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
+                  theOrientation = Orientation.AUTO, thePosition=0.5, theIsRelative=True,
+                  theScaleFactor=-1, theIsContourPrs=False, theNbOfContours=32,
+                  theVectorMode='Magnitude'):
+    """Creates plot 3d on the given field."""
+    # Get time value
+    timeValue = GetTime(theProxy, theTimeStampNumber)
+
+    # Hide initial object
+    rep = GetRepresentation(theProxy)
+    rep.Visibility = 0
+
+    # Do merge
+    mergeBlocks = MergeBlocks()
+    mergeBlocks.UpdatePipeline()
+    #Show()
+    
+    aPolyData = None
+
+    # Define orientation if necessary (auto mode)
+    anOrientation = theOrientation
+    if (anOrientation == Orientation.AUTO):
+        anOrientation = GetOrientation(theProxy)
+
+    # Get cutting plane normal
+    normal = GetNormalByOrientation(anOrientation)
+   
+    # Cutting plane
+    if (not IsPlanarInput(theProxy)):
+        # Create slice filter
+        sliceFilter=Slice(mergeBlocks)
+        sliceFilter.SliceType="Plane"
+
+        # Set cutting plane normal
+        sliceFilter.SliceType.Normal = normal
+
+        # Set cutting plane position
+        valRange = GetRangeForOrientation(theProxy, anOrientation)
+        
+        if (theIsRelative):
+            sliceFilter.SliceOffsetValues = GetPositions(valRange, 1, thePosition)
+        else:
+            sliceFilter.SliceOffsetValues = thePosition
+
+        sliceFilter.UpdatePipeline()
+        aPolyData = sliceFilter
+
+    # Geometry filter
+    if (not aPolyData or aPolyData.GetDataInformation().GetNumberOfCells() == 0):
+        geometryFilter = GeometryFilter(mergeBlocks)
+        aPolyData = geometryFilter
+    
+    warpByScalar = None
+    plot3d = None
+
+    if (IsDataOnCells(aPolyData, theFieldName)):
+        # Cell data to point data
+        cellDataToPointData = CellDatatoPointData(aPolyData)
+        cellDataToPointData.PassCellData = 1
+        # Warp by scalar
+        warpByScalar = WarpByScalar(cellDataToPointData)
+    else:
+        # Warp by scalar
+        warpByScalar = WarpByScalar(aPolyData)
+
+    # Warp by scalar settings
+    warpByScalar.Scalars = ['POINTS', theFieldName]
+    warpByScalar.Normal = normal
+    if (theScaleFactor > 0):
+        warpByScalar.ScaleFactor = theScaleFactor
+    warpByScalar.UpdatePipeline()
+
+    if (theIsContourPrs):
+        # Contours
+        contour = Contour(warpByScalar)
+        contour.PointMergeMethod = "Uniform Binning"
+        contour.ContourBy = ['POINTS', theFieldName]
+        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+        contour.Isosurfaces = GetPositions(scalarRange, theNbOfContours, 0)
+        contour.UpdatePipeline()
+        plot3d = GetRepresentation(contour)
+    else:
+        plot3d = GetRepresentation(warpByScalar)
+   
+    # Get lookup table
+    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
+    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
+    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+
+    # Set field range if necessary
+    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookupTable.LockScalarRange = 1
+    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+
+    # Set properties
+    plot3d.ColorAttributeType = theEntityType
+    plot3d.ColorArrayName = theFieldName
+    plot3d.LookupTable = lookupTable
+  
+    # Set scalar bar name and lookup table
+    barTitle = theFieldName + ", " + str(timeValue)
+    if (nbComponents > 1):
+        barTitle += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(barTitle, lookupTable)
+    GetRenderView().Representations.append(scalarBar)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    
+    return plot3d
+
+
+def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
+                       theRange = None, theNbOfSurfaces=10, theIsColored = True,
+                       theColor = None, theVectorMode='Magnitude'):
+    """Creates iso surfaces on the given field."""
+    # Get time value
+    timeValue = GetTime(theProxy, theTimeStampNumber)
+    
+    # Hide initial object
+    rep = GetRepresentation(theProxy)
+    rep.Visibility = 0
+
+    contourFilter = None
+
+    if (IsDataOnCells(theProxy, theFieldName)):
+        # Cell data to point data
+        cellDataToPointData = CellDatatoPointData(theProxy)
+        cellDataToPointData.PassCellData = 1
+        # Contour
+        contourFilter = Contour(cellDataToPointData)
+    else:
+        contourFilter = Contour(theProxy)
+
+    # Contour filter settings
+    contourFilter.PointMergeMethod = "Uniform Binning"
+    contourFilter.ContourBy = ['POINTS', theFieldName]
+    scalarRange = theRange
+    if (scalarRange is None):
+        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    contourFilter.Isosurfaces = GetPositions(scalarRange, theNbOfSurfaces, 0)
+    contourFilter.UpdatePipeline()
+
+    isosurfaces = GetRepresentation(contourFilter)
+
+    # Get lookup table
+    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
+    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
+    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+
+    # Set field range if necessary
+    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookupTable.LockScalarRange = 1
+    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+
+    # Set properties
+    if (theIsColored):
+        isosurfaces.ColorAttributeType = theEntityType
+        isosurfaces.ColorArrayName = theFieldName
+    else:
+        isosurfaces.ColorArrayName = ''
+        if (theColor is not None):
+            isosurfaces.DiffuseColor = theColor
+    isosurfaces.LookupTable = lookupTable
+  
+    # Set scalar bar name and lookup table
+    barTitle = theFieldName + ", " + str(timeValue)
+    if (nbComponents > 1):
+        barTitle += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(barTitle, lookupTable)
+    GetRenderView().Representations.append(scalarBar)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+
+    return isosurfaces
 
 def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete = 0):
     """Build presentations of the given types for all fields of the given file."""
