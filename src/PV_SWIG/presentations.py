@@ -41,15 +41,17 @@ class Orientation:
     YZ = 2
     ZX = 3
 
+class _aux_counter:
+    "Internal class."
+    first_render = True
+
 def ProcessPrsForTest(thePrs, theView, thePictureName):
     """Auxiliary function. Used to show presentation and record image."""
-    # Show 
+    # Show
     thePrs.Visibility = 1 
     
-    # Update view 
-    Render(view=theView) 
+    # Reset view 
     ResetView(theView) 
-    ResetCamera(view=theView) 
            
     # Save picture 
     aPictureName = re.sub("\s+","_", thePictureName) 
@@ -57,17 +59,21 @@ def ProcessPrsForTest(thePrs, theView, thePictureName):
     
     # Hide all
     HideAll(theView, True)
-    Render(view=theView)
 
 def ResetView(theView=None):
-    """Auxiliary function. Resets the settings of the camera.
+    """Auxiliary function. Resets the view.
     If an argument is not provided, the active view is used."""
     if not theView:
         theView = GetRenderView()
 
-    theView.CameraFocalPoint = [0.0, 0.0, 0.0]
-    theView.CameraViewUp = [0.0, 0.0, 1.0]
-    theView.CameraPosition = [738.946, -738.946, 738.946]
+    if _aux_counter.first_render:
+        theView.CameraFocalPoint = [0.0, 0.0, 0.0]
+        theView.CameraViewUp = [0.0, 0.0, 1.0]
+        theView.CameraPosition = [738.946, -738.946, 738.946]
+        _aux_counter.first_render = False
+
+    theView.ResetCamera()
+    Render(view=theView)
 
 def HideAll(theView, toRemove = False):
     """Auxiliary function. Hide all representations for the given view."""
@@ -248,6 +254,7 @@ def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
     """Auxiliary function. Check if the presentation is possible on the given field."""
     result = False
     if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE or
+        thePrsType == PrsTypeEnum.DEFORMEDSHAPESCALARMAP or
         thePrsType == PrsTypeEnum.VECTORS):
         nbComp = GetNbComponents(theProxy, theEntityType, theFieldName)
         result = (nbComp > 1)
@@ -332,7 +339,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
     return scalarMap
 
 def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                     theNbPlanes=10, theOrientation = Orientation.YZ, theDisplacement1=0.5,
+                     theNbPlanes=10, theOrientation = Orientation.YZ, theDisplacement=0.5,
                      theVectorMode='Magnitude'):
     """Creates cut planes on the given field."""
     # Get time value
@@ -551,12 +558,13 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks()
+    mergeBlocks = MergeBlocks(theProxy)
     
     # Cell data to point data
     if (IsDataOnCells(theProxy, theFieldName)):
         cellDataToPointData = CellDatatoPointData()
-
+        cellDataToPointData.PassCellData = 1
+        
     # Warp by vector
     warpByVector = WarpByVector()
     warpByVector.Vectors = [theFieldName]
@@ -606,8 +614,8 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     if ((theScalarEntityType is None) or (theScalarFieldName is None)):
         theScalarEntityType = theEntityType
         theScalarFieldName = theFieldName
-        
-     # Get time value
+
+    # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
     
     # Hide initial object
@@ -615,11 +623,13 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks()
-    
-    # Cell centers
-    cellDataToPointData = CellDatatoPointData()
+    mergeBlocks = MergeBlocks(theProxy)
 
+    # Cell data to point data
+    if (IsDataOnCells(theProxy, theFieldName)):
+        cellDataToPointData = CellDatatoPointData()
+        cellDataToPointData.PassCellData = 1
+        
     # Warp by vector
     warpByVector = WarpByVector()
     warpByVector.Vectors = [theFieldName]
@@ -639,11 +649,12 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
     
     # Set properties
-    defshapeandmap.ColorAttributeType = theScalarEntityType
     defshapeandmap.ColorArrayName = theScalarFieldName
-       
     defshapeandmap.LookupTable = lookupTable
+    defshapeandmap.ColorAttributeType = theScalarEntityType
 
+    #Render()
+    
     # Set scalar bar name and lookup table
     barTitle = theScalarFieldName + ", " + str(timeValue)
     nbComponents = GetNbComponents(theProxy, theScalarEntityType, theScalarFieldName)
@@ -656,7 +667,6 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     GetRenderView().ViewTime = timeValue
        
     return defshapeandmap
-
 
 def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                   theOrientation = Orientation.AUTO, thePosition=0.5, theIsRelative=True,
@@ -671,7 +681,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks()
+    mergeBlocks = MergeBlocks(theProxy)
     mergeBlocks.UpdatePipeline()
     #Show()
     
@@ -854,7 +864,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
     aNbOnNodes = len(aFieldNames)
     aFieldNames.extend(theProxy.CellArrays.GetData())
     aTimeStamps = theProxy.TimestepValues.GetData()
-    
+
     for i in xrange(len(aFieldNames)):
         aFieldName = aFieldNames[i]
         aFieldEntity = 'POINT_DATA'
@@ -927,6 +937,25 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
 
                     # Construct image file name
                     aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPE." + thePictureExt
+
+                    # Show and record the presentation
+                    ProcessPrsForTest(aPrs, theView, aPictureName)
+
+        if HasValue(thePrsTypeList, PrsTypeEnum.DEFORMEDSHAPESCALARMAP):
+            # Create Scalar Map on Deformed Shape for all timestamps if possible
+            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.DEFORMEDSHAPESCALARMAP)
+            if (aIsPossible):
+                for timeStampNb in xrange(1, len(aTimeStamps)+1):
+                    timeValue = aTimeStamps[timeStampNb-1]
+                    print "          Creating Scalar Map on Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
+                    aPrs = DeformedShapeAndScalarMapOnField(theProxy, aFieldEntity, aFieldName, timeStampNb, 0.25)
+                    if aPrs is None :
+                        print "Error: can't create Scalar Map on Deformed Shape." 
+                    else:
+                        print "OK" 
+
+                    # Construct image file name
+                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPESCALARMAP." + thePictureExt
 
                     # Show and record the presentation
                     ProcessPrsForTest(aPrs, theView, aPictureName)
