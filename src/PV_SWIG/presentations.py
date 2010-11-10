@@ -13,6 +13,7 @@ except:
 # Constants
 EPS = 0.001
 FLT_MIN = 1E-37
+VTK_LARGE_FLOAT = 1E+38
 
 DEBUG_ON = True
 
@@ -113,7 +114,7 @@ def CheckVectorMode(theVectorMode, theNbComponents):
 
     return vectorMode
 
-def GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode):
+def GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode='Magnitude'):
     """Auxiliary function. Get data range for the field."""
     entityDataInfo = None
     if (theEntityType == 'CELL_DATA'):
@@ -249,6 +250,44 @@ def GetNbComponents(theProxy, theEntityType, theFieldName):
         entityDataInfo = theProxy.GetPointDataInformation()
     nbComponents = entityDataInfo[theFieldName].GetNumberOfComponents()
     return nbComponents
+
+def GetScaleFactor(theProxy):
+    """Auxiliary function. Get scale factor."""
+    aDataInfo = theProxy.GetDataInformation()
+
+    aNbCells = aDataInfo.GetNumberOfCells()
+    aNbPoints = aDataInfo.GetNumberOfPoints()
+    aNbElements = aNbCells
+    if (aNbElements < 1):
+        aNbElements = aNbPoints
+
+    aBounds = GetBounds(theProxy)
+
+    aVolume = 1
+    aVol = aDim = 0
+    
+    for i in xrange(0, 6, 2):
+        aVol = abs(aBounds[i+1] - aBounds[i])
+        if (aVol > 0):
+            aDim += 1
+            aVolume *= aVol
+
+    if (aNbElements == 0 or aDim < 1):
+        return 0
+
+    aVolume /= aNbElements
+    return pow(aVolume, 1.0/aDim)
+            
+def GetDefaultScale(theProxy, theEntityType, theFieldName):
+    """Auxiliary function. Get default scale factor."""
+    aDataRange = GetDataRange(theProxy, theEntityType, theFieldName)
+    EPS = 1.0 / VTK_LARGE_FLOAT
+    if abs(aDataRange[1] > EPS):
+        aScaleFactor = GetScaleFactor(theProxy)
+        return aScaleFactor / aDataRange[1];
+    
+    return 0
+    
 
 def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
     """Auxiliary function. Check if the presentation is possible on the given field."""
@@ -570,7 +609,10 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     warpByVector.Vectors = [theFieldName]
     if (theScaleFactor > 0):
         warpByVector.ScaleFactor = theScaleFactor
-    
+    else:
+        aDefScale = GetDefaultScale(theProxy, theEntityType, theFieldName)
+        warpByVector.ScaleFactor = aDefScale
+        
     defshape = GetRepresentation(warpByVector)
    
     # Get lookup table
@@ -779,7 +821,6 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     
     return plot3d
 
-
 def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                        theRange = None, theNbOfSurfaces=10, theIsColored = True,
                        theColor = None, theVectorMode='Magnitude'):
@@ -844,6 +885,20 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     GetRenderView().ViewTime = timeValue
 
     return isosurfaces
+
+def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
+                       theVectorMode='Magnitude'):
+    """Creates gauss points on the given field."""
+    # Get time value
+    timeValue = GetTime(theProxy, theTimeStampNumber)
+    
+    # Hide initial object
+    rep = GetRepresentation(theProxy)
+    rep.Visibility = 0
+
+    gausspnt = None
+
+    return gausspnt
 
 def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete = 0):
     """Build presentations of the given types for all fields of the given file."""
@@ -929,7 +984,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                 for timeStampNb in xrange(1, len(aTimeStamps)+1):
                     timeValue = aTimeStamps[timeStampNb-1]
                     print "          Creating Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
-                    aPrs = DeformedShapeOnField(theProxy, aFieldEntity, aFieldName, timeStampNb, 0.25)
+                    aPrs = DeformedShapeOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
                     if aPrs is None :
                         print "Error: can't create Deformed Shape." 
                     else:
