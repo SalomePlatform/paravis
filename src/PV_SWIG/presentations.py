@@ -4,6 +4,7 @@ typical for Post-Pro module (Scalar Map, Deformed Shape, Vectors, etc.)
 """
 
 import re
+from math import sqrt
 
 try:
     pvsimple
@@ -278,14 +279,26 @@ def GetScaleFactor(theProxy):
     aVolume /= aNbElements
     return pow(aVolume, 1.0/aDim)
             
-def GetDefaultScale(theProxy, theEntityType, theFieldName):
+def GetDefaultScale(thePrsType, theProxy, theEntityType, theFieldName):
     """Auxiliary function. Get default scale factor."""
     aDataRange = GetDataRange(theProxy, theEntityType, theFieldName)
-    EPS = 1.0 / VTK_LARGE_FLOAT
-    if abs(aDataRange[1] > EPS):
-        aScaleFactor = GetScaleFactor(theProxy)
-        return aScaleFactor / aDataRange[1];
     
+    if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE):
+        EPS = 1.0 / VTK_LARGE_FLOAT
+        if ( abs(aDataRange[1]) > EPS ):
+            aScaleFactor = GetScaleFactor(theProxy)
+            return aScaleFactor / aDataRange[1]
+    elif (thePrsType == PrsTypeEnum.PLOT3D):
+        aBounds = GetBounds(theProxy)
+        aLength = sqrt( (aBounds[1]-aBounds[0])**2 +
+                        (aBounds[3]-aBounds[2])**2 +
+                        (aBounds[5]-aBounds[4])**2 )
+        
+        EPS = 0.3
+        aRange = aDataRange[1]
+        if ( aDataRange[1] > 0 ):
+            return aLength / aDataRange[1] * EPS
+        
     return 0
     
 
@@ -364,6 +377,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
     scalarMap.ColorAttributeType = theEntityType
     scalarMap.ColorArrayName = theFieldName
     scalarMap.LookupTable = lookupTable
+    scalarMap.BackfaceRepresentation = 'Cull Frontface'
 
     # Set scalar bar name and lookup table
     barTitle = theFieldName + ", " + str(timeValue)
@@ -610,7 +624,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     if (theScaleFactor > 0):
         warpByVector.ScaleFactor = theScaleFactor
     else:
-        aDefScale = GetDefaultScale(theProxy, theEntityType, theFieldName)
+        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
         warpByVector.ScaleFactor = aDefScale
         
     defshape = GetRepresentation(warpByVector)
@@ -677,6 +691,11 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     warpByVector.Vectors = [theFieldName]
     if (theScaleFactor > 0):
         warpByVector.ScaleFactor = theScaleFactor
+    else:
+        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        #@MZN
+        print "DEFAULT SCALE FACTOR = ", aDefScale
+        warpByVector.ScaleFactor = aDefScale
     
     defshapeandmap = GetRepresentation(warpByVector)
    
@@ -780,6 +799,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     warpByScalar.Normal = normal
     if (theScaleFactor > 0):
         warpByScalar.ScaleFactor = theScaleFactor
+    else:
+        aDefScale = GetDefaultScale(PrsTypeEnum.PLOT3D, theProxy, theEntityType, theFieldName)
+        warpByScalar.ScaleFactor = aDefScale
+        
     warpByScalar.UpdatePipeline()
 
     if (theIsContourPrs):
@@ -1003,7 +1026,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                 for timeStampNb in xrange(1, len(aTimeStamps)+1):
                     timeValue = aTimeStamps[timeStampNb-1]
                     print "          Creating Scalar Map on Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
-                    aPrs = DeformedShapeAndScalarMapOnField(theProxy, aFieldEntity, aFieldName, timeStampNb, 0.25)
+                    aPrs = DeformedShapeAndScalarMapOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
                     if aPrs is None :
                         print "Error: can't create Scalar Map on Deformed Shape." 
                     else:
