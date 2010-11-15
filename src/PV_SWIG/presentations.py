@@ -3,6 +3,7 @@ This module is intended to provide Python API for building presentations
 typical for Post-Pro module (Scalar Map, Deformed Shape, Vectors, etc.)
 """
 
+import os
 import re
 from math import sqrt
 
@@ -55,8 +56,13 @@ def ProcessPrsForTest(thePrs, theView, thePictureName):
     # Reset view 
     ResetView(theView) 
            
-    # Save picture 
-    aPictureName = re.sub("\s+","_", thePictureName) 
+    # Create directory for screenshot if necessary
+    aPictureName = re.sub("\s+","_", thePictureName)
+    aPicDir = os.path.dirname(thePictureName)
+    if (not os.path.exists(aPicDir)):
+        os.makedirs(aPicDir)
+        
+    # Save picture
     WriteImage(aPictureName, view=theView, Magnification=1) 
     
     # Hide all
@@ -69,9 +75,18 @@ def ResetView(theView=None):
         theView = GetRenderView()
 
     if _aux_counter.first_render:
+        # Camera preferences
         theView.CameraFocalPoint = [0.0, 0.0, 0.0]
         theView.CameraViewUp = [0.0, 0.0, 1.0]
         theView.CameraPosition = [738.946, -738.946, 738.946]
+
+        # Turn on the headligth
+        theView.LightSwitch = 1
+        theView.LightIntensity = 0.5
+
+        # Use parallel projection
+        theView.CameraParallelProjection = 1
+        
         _aux_counter.first_render = False
 
     theView.ResetCamera()
@@ -377,7 +392,8 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
     scalarMap.ColorAttributeType = theEntityType
     scalarMap.ColorArrayName = theFieldName
     scalarMap.LookupTable = lookupTable
-    scalarMap.BackfaceRepresentation = 'Cull Frontface'
+    if (not IsPlanarInput(theProxy)):
+        scalarMap.BackfaceRepresentation = 'Cull Frontface'
 
     # Set scalar bar name and lookup table
     barTitle = theFieldName + ", " + str(timeValue)
@@ -932,8 +948,10 @@ def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir, the
         raise RuntimeError, "Error: can't import file."
     else: print "OK"
 
+    # Get view
     aView = GetRenderView()
 
+    # Create required presentations for the proxy
     CreatePrsForProxy(aProxy, aView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
 
 def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete):
