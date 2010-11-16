@@ -377,6 +377,10 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
 
     # Show pipeline object
     scalarMap = GetRepresentation(theProxy)
+    
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
    
     # Get lookup table
     nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
@@ -401,10 +405,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
         barTitle += "\n" + theVectorMode
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
-
+    
     return scalarMap
 
 def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
@@ -621,6 +622,10 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     """Creates Defromed shape on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
     
     # Hide initial object
     rep = GetRepresentation(theProxy)
@@ -670,9 +675,6 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
 
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
-
     # Set wireframe represenatation mode
     defshape.Representation = 'Wireframe'
     
@@ -689,6 +691,10 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
 
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
     
     # Hide initial object
     rep = GetRepresentation(theProxy)
@@ -739,9 +745,6 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
         barTitle += "\n" + theVectorMode
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
        
     return defshapeandmap
 
