@@ -22,10 +22,47 @@
 
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
+      A1	
       A2
       A3
       A4
+      A5      
+      A7
+      A8
+      A9
+      B0     
+      B2
+      E0
+      E1
+      E2      
+      E4
+      E5
+      E6
+      E7
+      E8
+      E9      
+      F1
+      F2
+      F3
+      F4
+      F5
+      F6
+      F7
+      F8            
+      G1
+      G2
       )
     ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/ScalarMap/${tfile}.py)
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)
+
+
+
+
+
+
+
+
+
+
+

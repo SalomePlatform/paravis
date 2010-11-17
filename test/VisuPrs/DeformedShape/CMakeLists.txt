@@ -22,9 +22,37 @@
 
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
+      A0
+      A1
       A2
       A3
       A4
+      A5
+      A7
+      A8
+      A9
+      B0
+      B1
+      B2           
+      C8
+      E0
+      E1
+      E2     
+      E4
+      E5
+      E6
+      E7
+      E8
+      E9
+      F1
+      F2
+      F3
+      F4
+      F5
+      F6
+      F7
+      F8
+      F9            
       )
     ADD_TEST(DEFORMEDSHAPE_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/DeformedShape/${tfile}.py)
   ENDFOREACH( tfile )
