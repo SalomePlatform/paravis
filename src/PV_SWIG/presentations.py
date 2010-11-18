@@ -13,7 +13,7 @@ except:
     from pvsimple import *
 
 # Constants
-EPS = 0.001
+EPS = 1E-3
 FLT_MIN = 1E-37
 VTK_LARGE_FLOAT = 1E+38
 
@@ -246,8 +246,15 @@ def GetPositions(valRange, theNbPlanes, theDisplacement):
     """Compute plane positions."""
     positions = []
     if (theNbPlanes > 1):
-        step = (valRange[1] - valRange[0])/(theNbPlanes-1)
-        startPos = valRange[0] + step*(theDisplacement - 0.5)
+        aDistance = valRange[1] - valRange[0]
+        valRange[1] = valRange[0] + (1.0 - EPS)*aDistance
+        valRange[0] = valRange[0] + EPS*aDistance
+        
+        aDistance = valRange[1] - valRange[0]
+        step = aDistance/(theNbPlanes-1)
+        aDisplacement = step*theDisplacement
+        startPos = valRange[0] - 0.5*step + aDisplacement
+        
         for i in range(theNbPlanes):
             pos = startPos + i*step
             positions.append(pos)
