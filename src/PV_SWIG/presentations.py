@@ -654,6 +654,8 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
         warpByVector.ScaleFactor = theScaleFactor
     else:
         aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        #@MZN
+        print "DEFAULT SCALE FACTOR = ", aDefScale
         warpByVector.ScaleFactor = aDefScale
         
     defshape = GetRepresentation(warpByVector)
@@ -1018,7 +1020,8 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
             for timeStampNb in xrange(1, len(aTimeStamps)+1):
                 timeValue = aTimeStamps[timeStampNb-1]
                 print "          Creating Cut Lines on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = CutLinesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                aPrs = CutLinesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb,
+                                       theOrientation1 = Orientation.XY, theOrientation2 = Orientation.ZX)
                 if aPrs is None :
                     print "Error: can't create Cut Lines." 
                 else:
