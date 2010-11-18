@@ -192,7 +192,7 @@ def IsDataOnCells(theProxy, theFieldName):
     return (theFieldName in cellDataInfo.keys())
 
 def GetOrientation(theProxy):
-    """Auxiliary function. Get the optimum cutting plane orientation."""
+    """Auxiliary function. Get the optimum cutting plane orientation for Plot3d."""
     anOrientation = Orientation.XY
 
     aBounds = GetBounds(theProxy)
@@ -396,8 +396,9 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, 
     scalarMap.ColorAttributeType = theEntityType
     scalarMap.ColorArrayName = theFieldName
     scalarMap.LookupTable = lookupTable
-    if (not IsPlanarInput(theProxy)):
-        scalarMap.BackfaceRepresentation = 'Cull Frontface'
+    # Commented by @MZN:
+    #if (not IsPlanarInput(theProxy)):
+    #    scalarMap.BackfaceRepresentation = 'Cull Frontface'
 
     # Set scalar bar name and lookup table
     barTitle = theFieldName + ", " + str(timeValue)
@@ -576,8 +577,8 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Vectors
     glyphFilter = Glyph(cellCenters)
     glyphFilter.GlyphType="Arrow"
-    glyphFilter.Vectors = theFieldName
     glyphFilter.ScaleMode = 'vector'
+    glyphFilter.Vectors = theFieldName
 
     glyphFilter.GlyphType.TipResolution = 1
     glyphFilter.GlyphType.TipRadius = 0.1
@@ -992,7 +993,8 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
             for timeStampNb in xrange(1, len(aTimeStamps)+1):
                 timeValue = aTimeStamps[timeStampNb-1]
                 print "          Creating Cut Planes on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = CutPlanesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                aPrs = CutPlanesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb,
+                                        theOrientation = Orientation.ZX)
                 if aPrs is None :
                     print "Error: can't create Cut Planes." 
                 else:
