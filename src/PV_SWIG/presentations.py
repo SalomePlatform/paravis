@@ -44,6 +44,14 @@ class Orientation:
     YZ = 2
     ZX = 3
 
+class GlyphPos:
+    """
+    Glyph positions.
+    """
+    CENTER = 0
+    TAIL = 1
+    HEAD = 2
+
 class _aux_counter:
     "Internal class."
     first_render = True
@@ -569,8 +577,8 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     return cutLines
 
-def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                   theIsColored=False, theVectorMode='Magnitude'):
+def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
+                   theGlyphPos=GlyphPos.TAIL, theIsColored=False, theVectorMode='Magnitude'):
     """Creates vectors on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
@@ -580,20 +588,34 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     rep.Visibility = 0
     
     # Cell centers
-    cellCenters = CellCenters(theProxy)
+    if (IsDataOnCells(theProxy, theFieldName)):
+        cellCenters = CellCenters(theProxy)
+        cellCenters.VertexCells = 1
 
     # Vectors
-    glyphFilter = Glyph(cellCenters)
-    glyphFilter.GlyphType="Arrow"
-    glyphFilter.ScaleMode = 'vector'
+    glyphFilter = Glyph()
     glyphFilter.Vectors = theFieldName
+    glyphFilter.ScaleMode = 'vector'
 
-    glyphFilter.GlyphType.TipResolution = 1
-    glyphFilter.GlyphType.TipRadius = 0.1
-    glyphFilter.GlyphType.TipLength = 0.19
-    glyphFilter.GlyphType.ShaftResolution = 0
-    glyphFilter.GlyphType.ShaftRadius = 0.0
-    
+    glyphFilter.GlyphType = "2D Glyph"
+    glyphFilter.GlyphType.GlyphType = 'Arrow'
+    if (theGlyphPos == GlyphPos.TAIL):
+        glyphFilter.GlyphType.Center = [0.5, 0.0, 0.0]
+    elif (theGlyphPos == GlyphPos.HEAD):
+        glyphFilter.GlyphType.Center = [-0.5, 0.0, 0.0]
+    elif (theGlyphPos == GlyphPos.CENTER):
+        glyphFilter.GlyphType.Center = [0.0, 0.0, 0.0]
+        
+    if (theScaleFactor > 0):
+        glyphFilter.SetScaleFactor = theScaleFactor
+    else:
+        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        #@MZN
+        print "DEFAULT SCALE FACTOR = ", aDefScale
+        glyphFilter.SetScaleFactor = aDefScale
+
+    glyphFilter.UpdatePipeline()
+
     vectors = GetRepresentation(glyphFilter)
    
     # Get lookup table
@@ -609,7 +631,11 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Set properties
     if (theIsColored):
         vectors.ColorArrayName = 'GlyphVector'
+    else:
+        vectors.ColorArrayName = ''
     vectors.LookupTable = lookupTable
+    
+    vectors.LineWidth = 1.0
 
     # Set wireframe represenatation mode
     vectors.Representation = 'Wireframe'
