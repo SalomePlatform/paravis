@@ -22,8 +22,34 @@
 
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
+      A1
       A2
       A3
+      A4
+      A5      
+      A7
+      A8
+      A9
+      B0
+      B1
+      B2
+      B3
+      E0
+      E1
+      E2      
+      E4
+      E5
+      E6
+      E7
+      E8
+      E9
+      F1
+      F2
+      F3
+      F4
+      F5
+      F6      
+      G1           
       )
     ADD_TEST(CUTLINES_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/CutLines/${tfile}.py)
   ENDFOREACH( tfile )
