@@ -423,6 +423,9 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
 
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    
     # Hide initial object
     rep = GetRepresentation(theProxy)
     rep.Visibility = 0
@@ -471,9 +474,6 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         barTitle += "\n" + theVectorMode
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
     
     return cutPlanes
 
@@ -485,10 +485,9 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     """Creates cut lines on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
-    
-    # Hide initial object
-    rep = GetRepresentation(theProxy)
-    rep.Visibility = 0
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
     
     # Create base plane
     basePlane=Slice(theProxy)
@@ -513,9 +512,11 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     # Set base plane position
     basePlane.SliceOffsetValues = GetPositions(valRangeBase, 1, theDisplacement1)
-    
-    basePlaneRep = GetRepresentation(basePlane)
-    basePlaneRep.Visibility = 0
+
+    # Check base plane
+    basePlane.UpdatePipeline()
+    if (basePlane.GetDataInformation().GetNumberOfCells() == 0):
+        basePlane = theProxy
     
     # Create cutting planes
     cutPlanes=Slice(basePlane)
@@ -555,6 +556,9 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     cutLines.ColorArrayName = theFieldName
     cutLines.LookupTable = lookupTable
 
+    # Set wireframe represenatation mode
+    cutLines.Representation = 'Wireframe'
+
     # Set scalar bar name and lookup table
     barTitle = theFieldName + ", " + str(timeValue)
     if (nbComponents > 1):
@@ -562,9 +566,6 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     # Show scalar bar
     GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
 
     return cutLines
 
