@@ -1117,6 +1117,23 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
 
                     # Show and record the presentation
                     ProcessPrsForTest(aPrs, theView, aPictureName)
+                    
+        if HasValue(thePrsTypeList, PrsTypeEnum.PLOT3D):
+            # Create  Plot 3d for all timestamps if possible
+            for timeStampNb in xrange(1, len(aTimeStamps)+1):
+                timeValue = aTimeStamps[timeStampNb-1]
+                print "          Creating Plot 3D on %s, time = %s... " % (aFieldName, str(timeValue)),
+                aPrs = Plot3DOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                if aPrs is None :
+                    print "Error: can't create Plot 3d." 
+                else:
+                    print "OK" 
+
+                # Construct image file name
+                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_VECTORS." + thePictureExt
+
+                # Show and record the presentation
+                ProcessPrsForTest(aPrs, theView, aPictureName)
 
     # Delete the proxy if necessary
     if (theIsAutoDelete):
