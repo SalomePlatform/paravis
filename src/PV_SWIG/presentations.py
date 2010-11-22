@@ -596,6 +596,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, th
     glyphFilter = Glyph()
     glyphFilter.Vectors = theFieldName
     glyphFilter.ScaleMode = 'vector'
+    glyphFilter.MaskPoints = 0
 
     glyphFilter.GlyphType = "2D Glyph"
     glyphFilter.GlyphType.GlyphType = 'Arrow'
