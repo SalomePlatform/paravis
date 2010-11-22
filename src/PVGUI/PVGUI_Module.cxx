@@ -741,6 +741,7 @@ void PVGUI_Module::openFile(const char* theName)
 /*!
   \brief Returns trace string
 */
+static const QString MYReplaceStr("paraview.simple");
 QString PVGUI_Module::getTraceString()
 {
   pqPythonDialog* pyDiag = 0;
@@ -767,6 +768,13 @@ QString PVGUI_Module::getTraceString()
       traceString = string_ptr;
     }
     pyDiag->shell()->releaseControl();
+  }
+  if (traceString.length() != 0) {
+    int aPos = traceString.indexOf(MYReplaceStr);
+    while (aPos != -1) {
+      traceString = traceString.replace(aPos, MYReplaceStr.length(), "pvsimple");
+      aPos = traceString.indexOf(MYReplaceStr, aPos);
+    }
   }
   return traceString;
 }
