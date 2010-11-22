@@ -1130,7 +1130,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                     print "OK" 
 
                 # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_VECTORS." + thePictureExt
+                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_PLOT3D." + thePictureExt
 
                 # Show and record the presentation
                 ProcessPrsForTest(aPrs, theView, aPictureName)
