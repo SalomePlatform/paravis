@@ -2923,6 +2923,3 @@ _defUpdater = __DefinitionUpdater()
 if hasattr(sys, "ps1"):
     # session is interactive.
     print vtkSMProxyManager.GetParaViewSourceVersion();
-
-#print vtkSMProxyManager.GetParaViewSourceVersion();
-
