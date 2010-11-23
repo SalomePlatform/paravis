@@ -34,6 +34,7 @@ class PrsTypeEnum:
     VECTORS = 7
     PLOT3D = 8
     STREAMLINES = 9
+    GAUSSPOINTS = 10
 
 class Orientation:
     """
@@ -72,6 +73,7 @@ def ProcessPrsForTest(thePrs, theView, thePictureName):
         
     # Save picture
     WriteImage(aPictureName, view=theView, Magnification=1) 
+    thePrs.Visibility = 0
     
     # Hide all
     HideAll(theView, True)
@@ -110,6 +112,7 @@ def HideAll(theView, toRemove = False):
             rep.Visibility = 0
         if (toRemove):
             theView.Representations.remove(rep)
+    Render(view=theView)
 
 def DisplayOnly(theView, thePrs):
     HideAll(theView)
@@ -794,6 +797,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
 
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
+
     # Hide initial object
     rep = GetRepresentation(theProxy)
     rep.Visibility = 0
@@ -801,7 +808,6 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Do merge
     mergeBlocks = MergeBlocks(theProxy)
     mergeBlocks.UpdatePipeline()
-    #Show()
     
     aPolyData = None
 
@@ -896,9 +902,6 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
 
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    
     return plot3d
 
 def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
@@ -907,6 +910,10 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     """Creates iso surfaces on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
+    
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
     
     # Hide initial object
     rep = GetRepresentation(theProxy)
@@ -960,9 +967,6 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
         barTitle += "\n" + theVectorMode
     scalarBar = GetStdScalarBar(barTitle, lookupTable)
     GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
 
     return isosurfaces
 
