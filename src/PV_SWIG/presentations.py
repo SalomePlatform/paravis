@@ -972,9 +972,13 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
 
 def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                        theVectorMode='Magnitude'):
-    """Creates gauss points on the given field."""
+    """Creates Gauss points on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
     
     # Hide initial object
     rep = GetRepresentation(theProxy)
@@ -983,6 +987,24 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     gausspnt = None
 
     return gausspnt
+
+def StreamLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
+                       theIsColored=False, theVectorMode='Magnitude'):
+    """Creates Stream Lines on the given field."""
+    # Get time value
+    timeValue = GetTime(theProxy, theTimeStampNumber)
+
+    # Set timestamp
+    GetRenderView().ViewTime = timeValue
+    UpdatePipeline(timeValue, theProxy)
+    
+    # Hide initial object
+    rep = GetRepresentation(theProxy)
+    rep.Visibility = 0
+
+    streamlines = None
+    
+    return streamlines
 
 def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete = 0):
     """Build presentations of the given types for all fields of the given file."""
@@ -1104,7 +1126,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                     ProcessPrsForTest(aPrs, theView, aPictureName)
 
         if HasValue(thePrsTypeList, PrsTypeEnum.VECTORS):
-            # Create  Vectors for all timestamps if possible
+            # Create Vectors for all timestamps if possible
             aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.VECTORS)
             if (aIsPossible):
                 for timeStampNb in xrange(1, len(aTimeStamps)+1):
@@ -1123,18 +1145,35 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
                     ProcessPrsForTest(aPrs, theView, aPictureName)
                     
         if HasValue(thePrsTypeList, PrsTypeEnum.PLOT3D):
-            # Create  Plot 3d for all timestamps if possible
+            # Create  Plot 3D for all timestamps if possible
             for timeStampNb in xrange(1, len(aTimeStamps)+1):
                 timeValue = aTimeStamps[timeStampNb-1]
                 print "          Creating Plot 3D on %s, time = %s... " % (aFieldName, str(timeValue)),
                 aPrs = Plot3DOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
                 if aPrs is None :
-                    print "Error: can't create Plot 3d." 
+                    print "Error: can't create Plot 3D." 
                 else:
                     print "OK" 
 
                 # Construct image file name
                 aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_PLOT3D." + thePictureExt
+
+                # Show and record the presentation
+                ProcessPrsForTest(aPrs, theView, aPictureName)
+
+        if HasValue(thePrsTypeList, PrsTypeEnum.ISOSURFACES):
+            # Create Iso Surfaces for all timestamps
+            for timeStampNb in xrange(1, len(aTimeStamps)+1):
+                timeValue = aTimeStamps[timeStampNb-1]
+                print "          Creating Iso Surfaces on %s, time = %s... " % (aFieldName, str(timeValue)),
+                aPrs = IsoSurfacesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
+                if aPrs is None :
+                    print "Error: can't create Iso Surfaces." 
+                else:
+                    print "OK" 
+
+                # Construct image file name
+                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_ISOSURFACES." + thePictureExt
 
                 # Show and record the presentation
                 ProcessPrsForTest(aPrs, theView, aPictureName)
