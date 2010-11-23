@@ -42,7 +42,8 @@ def _wrap_property(proxy, smproperty):
     property = None
     if smproperty.IsA("vtkSMStringVectorProperty"):
         al = smproperty.GetDomain("array_list")
-        if  al and al.IsA("vtkSMArraySelectionDomain") and smproperty.GetRepeatable():
+        if  al and al.IsA("vtkSMArraySelectionDomain") and \
+            smproperty.GetRepeatable():
             property = ArrayListProperty(proxy, smproperty)
         elif al and al.IsA("vtkSMArrayListDomain") and smproperty.GetNumberOfElements() == 5:
             property = ArraySelectionProperty(proxy, smproperty)
@@ -50,7 +51,10 @@ def _wrap_property(proxy, smproperty):
             iter = smproperty.NewDomainIterator()
             isFileName = False
             while not iter.IsAtEnd():
-                if iter.GetDomain().IsA("vtkSMFileListDomain"):
+                # Refer to BUG #9710 to see why optional domains need to be
+                # ignored.
+                if iter.GetDomain().IsA("vtkSMFileListDomain") and \
+                  iter.GetDomain().GetIsOptional() == 0 :
                     isFileName = True
                     break
                 iter.Next()
@@ -62,7 +66,8 @@ def _wrap_property(proxy, smproperty):
             else:
                 property = VectorProperty(proxy, smproperty)
     elif smproperty.IsA("vtkSMVectorProperty"):
-        if smproperty.IsA("vtkSMIntVectorProperty") and smproperty.GetDomain("enum"):
+        if smproperty.IsA("vtkSMIntVectorProperty") and \
+          smproperty.GetDomain("enum"):
             property = EnumerationProperty(proxy, smproperty)
         else:
             property = VectorProperty(proxy, smproperty)
@@ -159,9 +164,15 @@ class Proxy(object):
                 del args['registrationName']
             pxm = ProxyManager()
             pxm.RegisterProxy(registrationGroup, registrationName, self.SMProxy)
+        update = True
+        if 'no_update' in args:
+            if args['no_update']:
+                update = False
+            del args['no_update']
+        if update:
+            self.UpdateVTKObjects()
         for key in args.keys():
             setattr(self, key, args[key])
-        self.UpdateVTKObjects()
         # Visit all properties so that they are created
         for prop in self:
             pass
@@ -211,7 +222,12 @@ class Proxy(object):
     def __eq__(self, other):
         "Returns true if the underlying SMProxies are the same."
         if isinstance(other, Proxy):
-            ## VSV using IsSame instead
+            try:
+                if self.Port != other.Port:
+                    return False
+            except:
+                pass
+            ## VSV using IsSame instead ==
             return self.SMProxy.IsSame(other.SMProxy)
         return self.SMProxy.IsSame(other)
 
@@ -347,7 +363,7 @@ class SourceProxy(Proxy):
         """This method updates the server-side VTK pipeline and the associated
         data information. Make sure to update a source to validate the output
         meta-data."""
-        if time:
+        if time != None:
             self.SMProxy.UpdatePipeline(time)
         else:
             self.SMProxy.UpdatePipeline()
@@ -368,7 +384,7 @@ class SourceProxy(Proxy):
     def GetDataInformation(self, idx=None):
         """This method returns a DataInformation wrapper around a
         vtkPVDataInformation"""
-        if not idx:
+        if idx == None:
             idx = self.Port
         if self.SMProxy:
             return DataInformation( \
@@ -505,6 +521,9 @@ class Property(object):
     def __getattr__(self, name):
         "Unknown attribute requests get forwarded to SMProperty."
         return getattr(self.SMProperty, name)
+
+    Name = property(_FindPropertyName, None, None,
+           "Returns the name for the property")
 
 class GenericIterator(object):
     """Iterator for container type objects"""
@@ -767,6 +786,10 @@ class ArraySelectionProperty(VectorProperty):
         elif len(values) == 2:
             if isinstance(values[0], str):
                 val = str(ASSOCIATIONS[values[0]])
+            else:
+                # In case user didn't specify valid association,
+                # just pick POINTS.
+                val = str(ASSOCIATIONS['POINTS'])
             self.SMProperty.SetElement(3,  str(val))
             self.SMProperty.SetElement(4, values[1])
         else:
@@ -1980,11 +2003,9 @@ def _create_view(view_xml_name, connection=None, **extraArgs):
     if not connection:
         raise RuntimeError, "Cannot create view without connection."
     pxm = ProxyManager()
-    prototype = pxm.GetPrototypeProxy("views", view_xml_name)
-    proxy_xml_name = prototype.GetSuggestedViewType(connection.ID)
     view_module = None
-    if proxy_xml_name:
-        view_module = CreateProxy("views", proxy_xml_name, connection)
+    if view_xml_name:
+        view_module = CreateProxy("views", view_xml_name, connection)
     if not view_module:
         return None
     extraArgs['proxy'] = view_module
@@ -2130,50 +2151,53 @@ def Fetch(input, arg1=None, arg2=None, idx=0):
 
     import types
 
-    #create the pipeline that reduces and transmits the data
-    gvd = rendering.ClientDeliveryRepresentationBase()
-    gvd.AddInput(0, input, idx, "DONTCARE")
+    reducer = filters.ReductionFilter(Input=OutputPort(input,idx))
 
+    #create the pipeline that reduces and transmits the data
     if arg1 == None:
         print "getting appended"
 
         cdinfo = input.GetDataInformation(idx).GetCompositeDataInformation()
         if cdinfo.GetDataIsComposite():
             print "use composite data append"
-            gvd.SetReductionType(5)
+            reducer.PostGatherHelperName = "vtkMultiBlockDataGroupFilter"
 
         elif input.GetDataInformation(idx).GetDataClassName() == "vtkPolyData":
             print "use append poly data filter"
-            gvd.SetReductionType(1)
+            reducer.PostGatherHelperName = "vtkAppendPolyData"
 
         elif input.GetDataInformation(idx).GetDataClassName() == "vtkRectilinearGrid":
             print "use append rectilinear grid filter"
-            gvd.SetReductionType(4)
+            reducer.PostGatherHelperName = "vtkAppendRectilinearGrid"
 
         elif input.GetDataInformation(idx).IsA("vtkDataSet"):
             print "use unstructured append filter"
-            gvd.SetReductionType(2)
-
+            reducer.PostGatherHelperName = "vtkAppendFilter"
 
     elif type(arg1) is types.IntType:
         print "getting node %d" % arg1
-        gvd.SetReductionType(3)
-        gvd.SetPreGatherHelper(None)
-        gvd.SetPostGatherHelper(None)
-        gvd.SetPassThrough(arg1)
+        reducer.PassThrough = arg1
 
     else:
         print "applying operation"
-        gvd.SetReductionType(6) # CUSTOM
-        gvd.SetPreGatherHelper(arg1)
-        gvd.SetPostGatherHelper(arg2)
-        gvd.SetPassThrough(-1)
+        reducer.PreGatherHelper = arg1
+        reducer.PostGatherHelper = arg2
 
-    #go!
-    gvd.UpdateVTKObjects()
-    gvd.Update()
-    op = gvd.GetOutput()
-    opc = gvd.GetOutput().NewInstance()
+    # reduce
+    reducer.UpdatePipeline()
+    dataInfo = reducer.GetDataInformation(0)
+    dataType = dataInfo.GetDataSetType()
+    if dataInfo.GetCompositeDataSetType() > 0:
+      dataType = dataInfo.GetCompositeDataSetType()
+
+    fetcher = filters.ClientServerMoveData(Input=reducer)
+    fetcher.OutputDataType = dataType
+    fetcher.WholeExtent = dataInfo.GetExtent()[:]
+    #fetch
+    fetcher.UpdatePipeline()
+
+    op = fetcher.GetClientSideObject().GetOutputDataObject(0)
+    opc = op.NewInstance()
     opc.ShallowCopy(op)
     opc.UnRegister(None)
     return opc
@@ -2393,6 +2417,7 @@ def updateModules():
     createModule("views", rendering)
     createModule("lookup_tables", rendering)
     createModule("textures", rendering)
+    createModule('cameramanipulators', rendering)
     createModule("animation", animation)
     createModule("misc", misc)
     createModule('animation_keyframes', animation)
@@ -2414,6 +2439,7 @@ def _createModules():
     createModule('views', rendering)
     createModule("lookup_tables", rendering)
     createModule("textures", rendering)
+    createModule('cameramanipulators', rendering)
     animation = createModule('animation')
     createModule('animation_keyframes', animation)
     implicit_functions = createModule('implicit_functions')
@@ -2537,6 +2563,8 @@ def __determineGroup(proxy):
         return "implicit_functions"
     elif xmlgroup == "piecewise_functions":
         return "piecewise_functions"
+    elif xmlgroup == "animation" or xmlgroup == "animation_keyframes":
+        return "animation"
     return None
 
 __nameCounter = {}
@@ -2562,6 +2590,10 @@ def __getName(proxy, group):
 class MissingRegistrationInformation(Exception):
     """Exception for missing registration information. Raised when a name or group 
     is not specified or when a group cannot be deduced."""
+    pass
+
+class MissingProxy(Exception):
+    """Exception fired when the requested proxy is missing."""
     pass
     
 def Register(proxy, **extraArgs):
@@ -2825,7 +2857,13 @@ ActiveConnection = None
 # Needs to be called when paraview module is loaded from python instead
 # of pvpython, pvbatch or GUI.
 if not vtkSMObject.GetProxyManager():
-    vtkInitializationHelper.Initialize(sys.executable)
+#    pvoptions = None Not applicable for SALOME Python console
+#    if paraview.options.batch:
+#      pvoptions = vtkPVOptions();
+#      pvoptions.SetProcessType(0x40)
+#      if paraview.options.symmetric:
+#        pvoptions.SetSymmetricMPIMode(True)
+    vtkInitializationHelper.Initialize(sys.executable, pvoptions)
 
 # Initialize progress printing. Can be turned off by calling
 # ToggleProgressPrinting() again.
@@ -2844,6 +2882,30 @@ _createModules()
 loader = _ModuleLoader()
 sys.meta_path.append(loader)
 
+def _proxyDefinitionsUpdated(caller, event):
+    """callback that gets called when RegisterEvent or UnRegisterEvent gets
+       fired from the proxy manager. These events are fired when definitions are
+       added or proxys are registered. We need to ensure that we update the
+       modules only when definitions have changed."""
+    if vtkSMObject.GetProxyManager().GetProxyDefinitionsUpdated():
+        updateModules()
+
+class __DefinitionUpdater(object):
+    """Internal class used to add observer to the proxy manager to handle
+       addition of new definitions."""
+    def __init__(self):
+        # Setup observer to update the modules when new proxy definitions are
+        # added. Unfortunately, we don't have a specific even when a definition
+        # is added. So this callback will get called even when proxy is
+        # registered :(
+        ## VSV: Observers are not supported
+        ##self.Tag = vtkSMObject.GetProxyManager().AddObserver("RegisterEvent", _proxyDefinitionsUpdated)
+        pass
+
+    def __del__(self):
+        if vtkSMObject.GetProxyManager():
+            vtkSMObject.GetProxyManager().RemoveObserver(self.Tag)
+
 # Definitions for working in SALOME GUI mode
 aParams = myParavis.GetConnectionParameters()
 ActiveConnection = Connection(aParams[0])
@@ -2851,5 +2913,16 @@ ActiveConnection.SetHost(aParams[1], aParams[2], aParams[3], aParams[4], aParams
 ToggleProgressPrinting()
 fromGUI = True
 
-print vtkSMProxyManager.GetParaViewSourceVersion();
+## Not applicable for SALOME Python console. fromFilter is alwais FALSE in console
+##if not paraview.fromFilter:
+    # fromFilter is set when this module is imported from the programmable
+    # filter
+global _defUpdater
+_defUpdater = __DefinitionUpdater()
+
+if hasattr(sys, "ps1"):
+    # session is interactive.
+    print vtkSMProxyManager.GetParaViewSourceVersion();
+
+#print vtkSMProxyManager.GetParaViewSourceVersion();
 

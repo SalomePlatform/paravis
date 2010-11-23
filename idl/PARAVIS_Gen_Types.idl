@@ -42,6 +42,7 @@ module PARAVIS {
   typedef sequence<long> long_array;
   typedef sequence<float> float_array;
   typedef sequence<double> double_array;
+  typedef sequence<char>   char_array;
 
 };
 

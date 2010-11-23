@@ -100,7 +100,7 @@ void PVGUI_Module::pvCreateActions()
 
   // Open File
   aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_OPEN_FILE"), false );
-  anAction = new QAction(QIcon(aPixmap), tr("MEN_OPEN"), this);
+  anAction = new QAction(QIcon(aPixmap), tr("MEN_OPEN_FILE"), this);
   anAction->setToolTip(tr("TOP_OPEN_FILE"));
   anAction->setStatusTip(tr("STB_OPEN_FILE"));
   registerAction(OpenFileId, anAction);

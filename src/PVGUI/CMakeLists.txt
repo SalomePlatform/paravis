@@ -137,7 +137,14 @@ TARGET_LINK_LIBRARIES(PARAVIS ${PLATFORM_LIBADD} ${PLATFORM_LDFLAGS} ${KERNEL_LD
 INSTALL(TARGETS PARAVIS DESTINATION lib/salome)
 
 FOREACH(name ${bin_PROGRAMS})
-  ADD_EXECUTABLE(${name} ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParse.tab.c ${CMAKE_SOURCE_DIR}/idl/vtkWrapIDL.c)
+  ADD_EXECUTABLE(${name} 
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParse.tab.c 
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParsePreprocess.c
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseHierarchy.c
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseMain.c
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrap.c
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrapText.c
+    ${CMAKE_SOURCE_DIR}/idl/vtkWrapIDL.c)
   ADD_DEPENDENCIES(${name} generate_txt)
   
   SET(flags)

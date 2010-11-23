@@ -38,7 +38,10 @@ def Connect(ds_host=None, ds_port=11111, rs_host=None, rs_port=11111):
     > Connect("amber", 11111, "vis_cluster", 11111) # connect to data server, render server pair"""
     _disconnect()
     cid = servermanager.Connect(ds_host, ds_port, rs_host, rs_port)
-    servermanager.ProxyManager().RegisterProxy("timekeeper", "tk", servermanager.misc.TimeKeeper())
+    tk =  servermanager.misc.TimeKeeper()
+    servermanager.ProxyManager().RegisterProxy("timekeeper", "tk", tk)
+    scene = AnimationScene()
+    scene.TimeKeeper = tk
     return cid
 
 def ReverseConnect(port=11111):
@@ -46,7 +49,10 @@ def ReverseConnect(port=11111):
     an incoming connection from the server."""
     _disconnect()
     cid = servermanager.ReverseConnect(port)
-    servermanager.ProxyManager().RegisterProxy("timekeeper", "tk", servermanager.misc.TimeKeeper())
+    tk =  servermanager.misc.TimeKeeper()
+    servermanager.ProxyManager().RegisterProxy("timekeeper", "tk", tk)
+    scene = AnimationScene()
+    scene.TimeKeeper = tk
     return cid
 
 def _create_view(view_xml_name):
@@ -61,7 +67,12 @@ def _create_view(view_xml_name):
     views = tk.Views
     if not view in views:
         views.append(view)
-
+    try:
+        scene = GetAnimationScene()
+        if not view in scene.ViewModules:
+            scene.ViewModules.append(view)
+    except servermanager.MissingProxy:
+        pass
     return view
 
 def CreateRenderView():
@@ -90,15 +101,38 @@ def OpenDataFile(filename, **extraArgs):
     if  reader_factor.GetNumberOfRegisteredPrototypes() == 0:
       reader_factor.RegisterPrototypes("sources")
     cid = servermanager.ActiveConnection.ID
-    if not reader_factor.TestFileReadability(filename, cid):
-        raise RuntimeError, "File not readable: %s " % filename
-    if not reader_factor.CanReadFile(filename, cid):
-        raise RuntimeError, "File not readable. No reader found for '%s' " % filename
+    first_file = filename
+    if type(filename) == list:
+        first_file = filename[0]
+    if not reader_factor.TestFileReadability(first_file, cid):
+        raise RuntimeError, "File not readable: %s " % first_file
+    if not reader_factor.CanReadFile(first_file, cid):
+        raise RuntimeError, "File not readable. No reader found for '%s' " % first_file
     prototype = servermanager.ProxyManager().GetPrototypeProxy(
       reader_factor.GetReaderGroup(), reader_factor.GetReaderName())
     xml_name = paraview.make_name_valid(prototype.GetXMLLabel())
-    reader = globals()[xml_name](FileName=filename, **extraArgs)
+    if prototype.GetProperty("FileNames"):
+      reader = globals()[xml_name](FileNames=filename, **extraArgs)
+    else :
+      reader = globals()[xml_name](FileName=filename, **extraArgs)
     return reader
+
+def CreateWriter(filename, proxy=None, **extraArgs):
+    """Creates a writer that can write the data produced by the source proxy in
+       the given file format (identified by the extension). If no source is
+       provided, then the active source is used. This doesn't actually write the
+       data, it simply creates the writer and returns it."""
+    if not filename:
+       raise RuntimeError, "filename must be specified"
+    writer_factory = servermanager.ProxyManager().GetWriterFactory()
+    if writer_factory.GetNumberOfRegisteredPrototypes() == 0:
+        writer_factory.RegisterPrototypes("writers")
+    if not proxy:
+        proxy = GetActiveSource()
+    if not proxy:
+        raise RuntimeError, "Could not locate source to write"
+    writer_proxy = writer_factory.CreateWriter(filename, proxy.SMProxy, proxy.Port)
+    return servermanager._getPyProxy(writer_proxy)
 
 def GetRenderView():
     "Returns the active view if there is one. Else creates and returns a new view."
@@ -175,6 +209,12 @@ def ResetCamera(view=None):
         view = active_objects.view
     view.ResetCamera()
     Render(view)
+
+def _DisableFirstRenderCameraReset():
+    """Disable the first render camera reset.  Normally a ResetCamera is called
+    automatically when Render is called for the first time after importing
+    this module."""
+    _funcs_internals.first_render = False
 
 def SetProperties(proxy=None, **params):
     """Sets one or more properties of the given pipeline object. If an argument
@@ -312,7 +352,8 @@ def Delete(proxy=None):
     servermanager.UnRegister(proxy)
     
     # If this is a representation, remove it from all views.
-    if proxy.SMProxy.IsA("vtkSMRepresentationProxy"):
+    if proxy.SMProxy.IsA("vtkSMRepresentationProxy") or \
+        proxy.SMProxy.IsA("vtkSMNewWidgetRepresentationProxy"):
         for view in GetRenderViews():
             view.Representations.remove(proxy)
     # If this is a source, remove the representation iff it has no consumers
@@ -576,7 +617,8 @@ def _func_name_valid(name):
     return valid
 
 def _add_functions(g):
-    for m in [servermanager.filters, servermanager.sources, servermanager.writers]:
+    for m in [servermanager.filters, servermanager.sources,
+              servermanager.writers, servermanager.animation]:
         dt = m.__dict__
         for key in dt.keys():
             cl = dt[key]
@@ -605,6 +647,139 @@ def GetActiveCamera():
     """Returns the active camera for the active view. The returned object
     is an instance of vtkCamera."""
     return GetActiveView().GetActiveCamera()
+
+def GetAnimationScene():
+    """Returns the application-wide animation scene. ParaView has only one
+    global animation scene. This method provides access to that. Users are
+    free to create additional animation scenes directly, but those scenes
+    won't be shown in the ParaView GUI."""
+    animation_proxies = servermanager.ProxyManager().GetProxiesInGroup("animation")
+    scene = None
+    for aProxy in animation_proxies.values():
+        if aProxy.GetXMLName() == "AnimationScene":
+            scene = aProxy
+            break
+    if not scene:
+        raise servermanager.MissingProxy, "Could not locate global AnimationScene."
+    return scene
+
+def WriteAnimation(filename):
+    """Helper to automate saving an animation."""
+    scene = GetAnimationScene()
+    iw = servermanager.vtkSMAnimationSceneImageWriter()
+    iw.SetAnimationScene(scene.SMProxy)
+    iw.SetFileName(filename)
+    iw.Save()
+
+def _GetRepresentationAnimationHelper(sourceproxy):
+    """Internal method that returns the representation animation helper for a
+       source proxy. It creates a new one if none exists."""
+    # ascertain that proxy is a source proxy
+    if not sourceproxy in GetSources().values():
+        return None
+    for proxy in servermanager.ProxyManager():
+        if proxy.GetXMLName() == "RepresentationAnimationHelper" and\
+           proxy.GetProperty("Source").IsProxyAdded(sourceproxy.SMProxy):
+             return proxy
+    # create a new helper
+    proxy = servermanager.misc.RepresentationAnimationHelper(
+      Source=sourceproxy)
+    servermanager.ProxyManager().RegisterProxy(
+      "pq_helper_proxies.%s" % sourceproxy.GetSelfIDAsString(),
+      "RepresentationAnimationHelper", proxy)
+    return proxy
+
+def GetAnimationTrack(propertyname_or_property, index=None, proxy=None):
+    """Returns an animation cue for the property. If one doesn't exist then a
+    new one will be created.
+    Typical usage:
+        track = GetAnimationTrack("Center", 0, sphere) or
+        track = GetAnimationTrack(sphere.GetProperty("Radius")) or
+
+        # this returns the track to animate visibility of the active source in
+        # all views.
+        track = GetAnimationTrack("Visibility")
+
+     For animating properties on implicit planes etc., use the following
+     signatures:
+        track = GetAnimationTrack(slice.SliceType.GetProperty("Origin"), 0) or
+        track = GetAnimationTrack("Origin", 0, slice.SliceType)
+
+    """
+    if not proxy:
+        proxy = GetActiveSource()
+    if not isinstance(proxy, servermanager.Proxy):
+        raise TypeError, "proxy must be a servermanager.Proxy instance"
+    if isinstance(propertyname_or_property, str):
+        propertyname = propertyname_or_property
+    elif isinstance(propertyname_or_property, servermanager.Property):
+        prop = propertyname_or_property
+        propertyname = prop.Name
+        proxy = prop.Proxy
+    else:
+        raise TypeError, "propertyname_or_property must be a string or servermanager.Property"
+
+    # To handle the case where the property is actually a "display" property, in
+    # which case we are actually animating the "RepresentationAnimationHelper"
+    # associated with the source.
+    if propertyname in ["Visibility", "Opacity"]:
+        proxy = _GetRepresentationAnimationHelper(proxy)
+    if not proxy or not proxy.GetProperty(propertyname):
+        raise AttributeError, "Failed to locate property %s" % propertyname
+
+    scene = GetAnimationScene()
+    for cue in scene.Cues:
+        try:
+            if cue.AnimatedProxy.IsSame(proxy) and\
+               cue.AnimatedPropertyName == propertyname:
+                if index == None or index.IsSame(cue.AnimatedElement): ##index == cue.AnimatedElement:
+                    return cue
+        except AttributeError:
+            pass
+
+    # matching animation track wasn't found, create a new one.
+    cue = KeyFrameAnimationCue()
+    cue.AnimatedProxy = proxy
+    cue.AnimatedPropertyName = propertyname
+    if index != None:
+        cue.AnimatedElement = index
+    scene.Cues.append(cue)
+    return cue
+
+def GetCameraTrack(view=None):
+    """Returns the camera animation track for the given view. If no view is
+    specified, active view will be used. If no exisiting camera animation track
+    is found, a new one will be created."""
+    if not view:
+        view = GetActiveView()
+    if not view:
+        raise ValueError, "No view specified"
+    scene = GetAnimationScene()
+    for cue in scene.Cues:
+        if cue.AnimatedProxy.IsSame(view) and\
+           cue.GetXMLName() == "CameraAnimationCue":
+            return cue
+    # no cue was found, create a new one.
+    cue = CameraAnimationCue()
+    cue.AnimatedProxy = view
+    scene.Cues.append(cue)
+    return cue
+
+def GetTimeTrack():
+    """Returns the animation track used to control the time requested from all
+    readers/filters during playback.
+    This is the "TimeKeeper - Time" track shown in ParaView's 'Animation View'.
+    If none exists, a new one will be created."""
+    scene = GetAnimationScene()
+    tk = scene.TimeKeeper
+    for cue in scene.Cues:
+        if cue.GetXMLName() == "TimeAnimationCue" and cue.AnimatedProxy.IsSame(tk):
+            return cue
+    # no cue was found, create a new one.
+    cue = TimeAnimationCue()
+    cue.AnimatedProxy = tk
+    scene.Cues.append(cue)
+    return cue
 
 def LoadXML(xmlstring, ns=None):
     """Given a server manager XML as a string, parse and process it.

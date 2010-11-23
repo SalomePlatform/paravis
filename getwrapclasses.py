@@ -24,12 +24,18 @@ for a in l2:
     if (a not in l1) and a.startswith("vtk"):
         classeslistvtk.append(a)
 
-dic=dict();
+dic=dict()
+
+non_wrap_list = ["vtkVariant", "vtkTimeStamp"]
+
 pv_classes_new=classeslistsm
 while len(pv_classes_new):
     pv_classes_cur=pv_classes_new
     pv_classes_new=[]
     for c in pv_classes_cur:
+        ## ignore non wrappable classes
+        if c in non_wrap_list:
+            continue
         filename=sys.argv[1]+"/"+c+".h"
         if os.path.isfile(filename):
             c_new=[]
@@ -64,6 +70,9 @@ while len(pv_classes_new):
                     if len(cm) == 0:
                         continue
                     for cn in cm:
+                        ## do not extract Call Back classes
+                        if cn.count('vtkClassMemberCallback'):
+                            continue
                         if cn not in dic.keys() and cn not in pv_classes_new:
                             pv_classes_new.append(cn)
                         if cn not in c_new:
@@ -71,11 +80,14 @@ while len(pv_classes_new):
             f.close()
             dic[c]=[0, c_new]
 
+
 pv_classes_sort=[]
 
 def collect_dic(cc):
     ret=[]
     for c in cc:
+        if c not in dic.keys():
+            continue
         if len(dic[c][1]) and dic[c][0] == 0:
              ret+=collect_dic(dic[c][1])
         if dic[c][0] == 0:
