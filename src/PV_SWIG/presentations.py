@@ -776,9 +776,7 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
     defshapeandmap.ColorArrayName = theScalarFieldName
     defshapeandmap.LookupTable = lookupTable
     defshapeandmap.ColorAttributeType = theScalarEntityType
-
-    #Render()
-    
+     
     # Set scalar bar name and lookup table
     barTitle = theScalarFieldName + ", " + str(timeValue)
     nbComponents = GetNbComponents(theProxy, theScalarEntityType, theScalarFieldName)
@@ -800,14 +798,13 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Set timestamp
     GetRenderView().ViewTime = timeValue
     UpdatePipeline(timeValue, theProxy)
-
+    
     # Hide initial object
     rep = GetRepresentation(theProxy)
     rep.Visibility = 0
 
     # Do merge
     mergeBlocks = MergeBlocks(theProxy)
-    mergeBlocks.UpdatePipeline()
     
     aPolyData = None
 
@@ -846,19 +843,29 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     
     warpByScalar = None
     plot3d = None
-
+    
     if (IsDataOnCells(aPolyData, theFieldName)):
         # Cell data to point data
         cellDataToPointData = CellDatatoPointData(aPolyData)
         cellDataToPointData.PassCellData = 1
-        # Warp by scalar
-        warpByScalar = WarpByScalar(cellDataToPointData)
-    else:
-        # Warp by scalar
-        warpByScalar = WarpByScalar(aPolyData)
+      
+    scalars = ['POINTS', theFieldName]
 
-    # Warp by scalar settings
-    warpByScalar.Scalars = ['POINTS', theFieldName]
+    # Check number of components
+    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
+    if (nbComponents > 1):
+        calculator = Calculator()
+        calculator.AttributeMode = 'point_data'
+        component0 = theFieldName + '_X'
+        calculator.Function = component0
+        calculator.ResultArrayName = component0
+        calculator.UpdatePipeline()
+        scalars = ['POINTS', component0]
+        aPolyData = calculator
+
+    # Warp by scalar
+    warpByScalar = WarpByScalar()
+    warpByScalar.Scalars = scalars
     warpByScalar.Normal = normal
     if (theScaleFactor > 0):
         warpByScalar.ScaleFactor = theScaleFactor
@@ -867,6 +874,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         warpByScalar.ScaleFactor = aDefScale
         
     warpByScalar.UpdatePipeline()
+
+    #@MZN
+    print "theFieldName = ", theFieldName
+    print "warpByScalar.Scalars = ", warpByScalar.Scalars
 
     if (theIsContourPrs):
         # Contours
@@ -881,7 +892,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         plot3d = GetRepresentation(warpByScalar)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
+    # nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName) #@MZN DEL?
     theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
     lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
 
