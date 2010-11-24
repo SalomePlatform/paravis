@@ -16,8 +16,7 @@ except:
 EPS = 1E-3
 FLT_MIN = 1E-37
 VTK_LARGE_FLOAT = 1E+38
-
-DEBUG_ON = True
+GAP_COEFFICIENT = 0.0001
 
 # Enumerations
 class PrsTypeEnum:
@@ -614,7 +613,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, th
         glyphFilter.SetScaleFactor = theScaleFactor
     else:
         aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
-        #@MZN
+        #@MZN DEBUG
         print "DEFAULT SCALE FACTOR = ", aDefScale
         glyphFilter.SetScaleFactor = aDefScale
 
@@ -685,7 +684,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
         warpByVector.ScaleFactor = theScaleFactor
     else:
         aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
-        #@MZN
+        #@MZN DEBUG
         print "DEFAULT SCALE FACTOR = ", aDefScale
         warpByVector.ScaleFactor = aDefScale
         
@@ -756,7 +755,7 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
         warpByVector.ScaleFactor = theScaleFactor
     else:
         aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
-        #@MZN
+        #@MZN DEBUG
         print "DEFAULT SCALE FACTOR = ", aDefScale
         warpByVector.ScaleFactor = aDefScale
     
@@ -856,11 +855,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     if (nbComponents > 1):
         calculator = Calculator()
         calculator.AttributeMode = 'point_data'
-        component0 = theFieldName + '_X'
-        calculator.Function = component0
-        calculator.ResultArrayName = component0
+        calculator.Function = "mag(%s)" % theFieldName
+        calculator.ResultArrayName = theFieldName + "_magnitude"
         calculator.UpdatePipeline()
-        scalars = ['POINTS', component0]
+        scalars = ['POINTS', calculator.ResultArrayName]
         aPolyData = calculator
 
     # Warp by scalar
@@ -875,7 +873,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         
     warpByScalar.UpdatePipeline()
 
-    #@MZN
+    #@MZN DEBUG
     print "theFieldName = ", theFieldName
     print "warpByScalar.Scalars = ", warpByScalar.Scalars
 
@@ -930,24 +928,47 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     rep = GetRepresentation(theProxy)
     rep.Visibility = 0
 
-    contourFilter = None
+    aSource = theProxy
 
     if (IsDataOnCells(theProxy, theFieldName)):
         # Cell data to point data
         cellDataToPointData = CellDatatoPointData(theProxy)
         cellDataToPointData.PassCellData = 1
-        # Contour
-        contourFilter = Contour(cellDataToPointData)
-    else:
-        contourFilter = Contour(theProxy)
+        aSource = cellDataToPointData
+
+    contourBy = ['POINTS', theFieldName]
+
+    # Check number of components
+    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
+    if (nbComponents > 1):
+        calculator = Calculator(aSource)
+        calculator.AttributeMode = 'point_data'
+        calculator.Function = "mag(%s)" % theFieldName
+        calculator.ResultArrayName = theFieldName + "_magnitude"
+        calculator.UpdatePipeline()
+        contourBy = ['POINTS', calculator.ResultArrayName]
+        aSource = calculator
 
     # Contour filter settings
-    contourFilter.PointMergeMethod = "Uniform Binning"
-    contourFilter.ContourBy = ['POINTS', theFieldName]
+    #@MZN: contourFilter.PointMergeMethod = "Uniform Binning"
+    contourFilter = Contour(aSource)
+    contourFilter.ComputeScalars = 1
+    contourFilter.ContourBy = contourBy
     scalarRange = theRange
     if (scalarRange is None):
-        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    contourFilter.Isosurfaces = GetPositions(scalarRange, theNbOfSurfaces, 0)
+        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName)
+        if (scalarRange[0] <= scalarRange[1]):
+            aDelta = abs(scalarRange[1] - scalarRange[0]) * GAP_COEFFICIENT
+            scalarRange[0] += aDelta
+            scalarRange[1] -= aDelta
+
+    surfaces = []
+    for i in range(theNbOfSurfaces):
+        pos = scalarRange[0] + i*(scalarRange[1] - scalarRange[0])/(theNbOfSurfaces - 1)
+        surfaces.append(pos)
+
+    contourFilter.Isosurfaces = surfaces
+    #@MZN contourFilter.Isosurfaces = GetPositions(scalarRange, theNbOfSurfaces, 0)
     contourFilter.UpdatePipeline()
 
     isosurfaces = GetRepresentation(contourFilter)
