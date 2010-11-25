@@ -6,6 +6,7 @@ typical for Post-Pro module (Scalar Map, Deformed Shape, Vectors, etc.)
 import os
 import re
 from math import sqrt
+from string import upper
 
 try:
     pvsimple
@@ -332,7 +333,26 @@ def GetDefaultScale(thePrsType, theProxy, theEntityType, theFieldName):
             return aLength / aDataRange[1] * EPS
         
     return 0
+
+def GetCalcMagnitude(theProxy, theAttributeMode, theArrayName):
+    """Auxiliary function. Compute magnitude for the given vector array via Calculator.
+    Return the calculator."""
+    calculator = None
     
+    # Transform vector array to scalar array if possible
+    nbComponents = GetNbComponents(theProxy, upper(theAttributeMode), theArrayName)
+    if (nbComponents > 1):
+        calculator = Calculator(theProxy)
+        calculator.AttributeMode = theAttributeMode
+        if (nbComponents == 2):
+            # Workaroud: calculator unable to compute magnitude if number of components equal to 2
+            calculator.Function = "sqrt(%s_X^2+%s_Y^2)" % (theArrayName, theArrayName)
+        else:
+            calculator.Function = "mag(%s)" % theArrayName
+        calculator.ResultArrayName = theArrayName + "_magnitude"
+        calculator.UpdatePipeline()
+            
+    return calculator
 
 def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
     """Auxiliary function. Check if the presentation is possible on the given field."""
@@ -804,9 +824,11 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     # Do merge
     mergeBlocks = MergeBlocks(theProxy)
-    
+
     aPolyData = None
 
+    # Cutting plane
+    
     # Define orientation if necessary (auto mode)
     anOrientation = theOrientation
     if (anOrientation == Orientation.AUTO):
@@ -814,8 +836,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     # Get cutting plane normal
     normal = GetNormalByOrientation(anOrientation)
-   
-    # Cutting plane
+      
     if (not IsPlanarInput(theProxy)):
         # Create slice filter
         sliceFilter=Slice(mergeBlocks)
@@ -844,32 +865,25 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     
     warpByScalar = None
     plot3d = None
+    aSource = aPolyData
     
     if (IsDataOnCells(aPolyData, theFieldName)):
         # Cell data to point data
         cellDataToPointData = CellDatatoPointData(aPolyData)
         cellDataToPointData.PassCellData = 1
-      
+        aSource = cellDataToPointData
+        
     scalars = ['POINTS', theFieldName]
-
-    # Check number of components
+    
+    # Transform vector array to scalar array if necessary
     nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
     if (nbComponents > 1):
-        calculator = Calculator()
-        calculator.AttributeMode = 'point_data'
-        if (nbComponents == 2):
-            # Workaroud: calculator unable to compute magnitude if number of components equal to 2
-            calculator.Function = "sqrt(%s_X^2+%s_Y^2)" % (theFieldName, theFieldName)
-        else:
-            calculator.Function = "mag(%s)" % theFieldName
-        
-        calculator.ResultArrayName = theFieldName + "_magnitude"
-        calculator.UpdatePipeline()
+        calculator = GetCalcMagnitude(aSource, "point_data", theFieldName)
         scalars = ['POINTS', calculator.ResultArrayName]
-        aPolyData = calculator
-
+        aSource = calculator
+    
     # Warp by scalar
-    warpByScalar = WarpByScalar()
+    warpByScalar = WarpByScalar(aSource)
     warpByScalar.Scalars = scalars
     warpByScalar.Normal = normal
     warpByScalar.UseNormal = useNormal
@@ -880,11 +894,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         warpByScalar.ScaleFactor = aDefScale
         
     warpByScalar.UpdatePipeline()
-
-    #@MZN DEBUG
-    print "theFieldName = ", theFieldName
-    print "warpByScalar.Scalars = ", warpByScalar.Scalars
-
+    
     if (theIsContourPrs):
         # Contours
         contour = Contour(warpByScalar)
@@ -898,7 +908,6 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         plot3d = GetRepresentation(warpByScalar)
    
     # Get lookup table
-    # nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName) #@MZN DEL?
     theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
     lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
 
@@ -924,7 +933,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                        theRange = None, theNbOfSurfaces=10, theIsColored = True,
                        theColor = None, theVectorMode='Magnitude'):
-    """Creates iso surfaces on the given field."""
+    """Creates Iso Surfaces on the given field."""
     # Get time value
     timeValue = GetTime(theProxy, theTimeStampNumber)
     
@@ -936,24 +945,22 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     rep = GetRepresentation(theProxy)
     rep.Visibility = 0
 
-    aSource = theProxy
+    # Do merge
+    mergeBlocks = MergeBlocks(theProxy)
+    aSource = mergeBlocks
 
+    # Transform cell data into point data if necessary
     if (IsDataOnCells(theProxy, theFieldName)):
-        # Cell data to point data
-        cellDataToPointData = CellDatatoPointData(theProxy)
+        cellDataToPointData = CellDatatoPointData(aSource)
         cellDataToPointData.PassCellData = 1
         aSource = cellDataToPointData
-
+        
     contourBy = ['POINTS', theFieldName]
 
-    # Check number of components
+    # Transform vector array to scalar array if necessary
     nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
     if (nbComponents > 1):
-        calculator = Calculator(aSource)
-        calculator.AttributeMode = 'point_data'
-        calculator.Function = "mag(%s)" % theFieldName
-        calculator.ResultArrayName = theFieldName + "_magnitude"
-        calculator.UpdatePipeline()
+        calculator = GetCalcMagnitude(aSource, "point_data", theFieldName)
         contourBy = ['POINTS', calculator.ResultArrayName]
         aSource = calculator
 
@@ -962,36 +969,32 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     contourFilter = Contour(aSource)
     contourFilter.ComputeScalars = 1
     contourFilter.ContourBy = contourBy
+
+    # Specify the range
     scalarRange = theRange
     if (scalarRange is None):
         scalarRange = GetDataRange(theProxy, theEntityType, theFieldName)
         print "scalarRange[0] = ", scalarRange[0]
         print "scalarRange[1] = ", scalarRange[1]
+        # Cut off the range
         if (scalarRange[0] <= scalarRange[1]):
             aDelta = abs(scalarRange[1] - scalarRange[0]) * GAP_COEFFICIENT
-            print "DELTA = ", aDelta #@MZN
             scalarRange[0] += aDelta
             scalarRange[1] -= aDelta
 
-
-    print "scalarRange[0] = ", scalarRange[0]
-    print "scalarRange[1] = ", scalarRange[1]
-    
+    # Calculate contour values for the range
     surfaces = []
     for i in range(theNbOfSurfaces):
         pos = scalarRange[0] + i*(scalarRange[1] - scalarRange[0])/(theNbOfSurfaces - 1)
         surfaces.append(pos)
 
+    # Set contour values
     contourFilter.Isosurfaces = surfaces
-    #@MZN contourFilter.Isosurfaces = GetPositions(scalarRange, theNbOfSurfaces, 0)
-    contourFilter.UpdatePipeline()
-    contourFilter.UpdatePipelineInformation()
-    UpdatePipeline(timeValue, contourFilter)
-
+    
+    # Get Iso Surfaces representation
     isosurfaces = GetRepresentation(contourFilter)
 
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
     theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
     lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
 
@@ -1000,7 +1003,7 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     lookupTable.LockScalarRange = 1
     lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
 
-    # Set properties
+    # Set display properties
     if (theIsColored):
         isosurfaces.ColorAttributeType = theEntityType
         isosurfaces.ColorArrayName = theFieldName
