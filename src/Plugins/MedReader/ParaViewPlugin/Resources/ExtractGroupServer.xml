@@ -1,0 +1,162 @@
+<ServerManagerConfiguration>
+  <ProxyGroup
+    name="filters">
+    <ExtractGroupProxy
+      name="ExtractGroup"
+      class="vtkExtractGroup"
+      label="Extract Group">
+
+     <InputProperty
+        name="Input"
+        command="SetInputConnection">
+           <ProxyGroupDomain name="groups">
+             <Group name="sources"/>
+             <Group name="filters"/>
+           </ProxyGroupDomain>
+           <DataTypeDomain name="input_type">
+             <DataType value="vtkMultiBlockDataSet"/>
+           </DataTypeDomain>
+           <Documentation>
+             This property specifies the input to the Level Scalars filter.
+           </Documentation>
+     </InputProperty>
+
+      <StringVectorProperty
+        name="CellTypes"
+        label="CellTypes"
+        command="SetCellTypeStatus"
+        number_of_elements="2"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="CellTypeInfo">
+        <SILDomain
+          name="array_list"
+          subtree="CellTypes">
+          <RequiredProperties>
+            <Property
+              name="CellTypeInfo"
+              function="ArrayList" />
+          </RequiredProperties>
+        </SILDomain>
+        <Hints>
+          <!--
+            This overrides the GUI's default mechanism to not set the default value for this property using the domain
+            when the proxy is created
+          -->
+          <NoDefault />
+        </Hints>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="CellTypeInfo"
+        information_only="1">
+        <SILInformationHelper
+          timestamp_command="GetSILUpdateStamp"
+          subtree="CellTypes">
+        </SILInformationHelper>
+      </StringVectorProperty>
+      
+      <StringVectorProperty
+        name="Families"
+        label="Families"
+        command="SetFamilyStatus"
+        number_of_elements="2"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="FamilyInfo">
+        <SILDomain
+          name="array_list"
+          subtree="Families">
+          <RequiredProperties>
+            <Property
+              name="FamilyInfo"
+              function="ArrayList" />
+          </RequiredProperties>
+        </SILDomain>
+        <Hints>
+          <!--
+            This overrides the GUI's default mechanism to not set the default value for this property using the domain
+            when the proxy is created
+          -->
+          <NoDefault />
+        </Hints>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="FamilyInfo"
+        information_only="1">
+        <SILInformationHelper
+          timestamp_command="GetSILUpdateStamp"
+          subtree="Families">
+        </SILInformationHelper>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Groups"
+        label="Groups"
+        command="SetGroupStatus"
+        number_of_elements="2"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        update_self="1"
+        information_property="GroupInfo">
+        <SILDomain
+          name="array_list"
+          subtree="Groups">
+          <RequiredProperties>
+            <Property
+              name="GroupInfo"
+              function="ArrayList" />
+          </RequiredProperties>
+        </SILDomain>
+        <Hints>
+          <!--
+            This overrides the GUI's default mechanism to not set the default value for this property using the domain
+            when the proxy is created
+          -->
+          <NoDefault />
+        </Hints>
+        <Documentation>
+          Set the groups on cells to be loaded.
+        </Documentation>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="GroupInfo"
+        information_only="1">
+        <SILInformationHelper
+          timestamp_command="GetSILUpdateStamp"
+          subtree="Groups">
+        </SILInformationHelper>
+      </StringVectorProperty>
+
+      <IntVectorProperty
+        name="SILUpdateStamp"
+        command="GetSILUpdateStamp"
+        information_only="1">
+        <SimpleIntInformationHelper />
+        <Documentation>
+          Information property indicating the update stamp of the SIL. Every
+          time the SIL is rebuild, this
+          time stamp is changed.
+        </Documentation>
+      </IntVectorProperty>
+      
+      <IntVectorProperty
+        name="PruneOutput"
+        command="SetPruneOutput"
+        number_of_elements="1"
+        default_values="1">
+        <BooleanDomain name="bool" />
+        <Documentation>
+          If set to true, this filter will prune the empty parts in the output.
+          If not, empty datasets will be kept.
+        </Documentation>
+      </IntVectorProperty>
+
+    </ExtractGroupProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>
