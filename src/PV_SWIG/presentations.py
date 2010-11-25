@@ -835,10 +835,12 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         sliceFilter.UpdatePipeline()
         aPolyData = sliceFilter
 
+    useNormal = 0
     # Geometry filter
     if (not aPolyData or aPolyData.GetDataInformation().GetNumberOfCells() == 0):
         geometryFilter = GeometryFilter(mergeBlocks)
         aPolyData = geometryFilter
+        useNormal = 1 #MZN: temporary workaround
     
     warpByScalar = None
     plot3d = None
@@ -855,7 +857,12 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     if (nbComponents > 1):
         calculator = Calculator()
         calculator.AttributeMode = 'point_data'
-        calculator.Function = "mag(%s)" % theFieldName
+        if (nbComponents == 2):
+            # Workaroud: calculator unable to compute magnitude if number of components equal to 2
+            calculator.Function = "sqrt(%s_X^2+%s_Y^2)" % (theFieldName, theFieldName)
+        else:
+            calculator.Function = "mag(%s)" % theFieldName
+        
         calculator.ResultArrayName = theFieldName + "_magnitude"
         calculator.UpdatePipeline()
         scalars = ['POINTS', calculator.ResultArrayName]
@@ -865,6 +872,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     warpByScalar = WarpByScalar()
     warpByScalar.Scalars = scalars
     warpByScalar.Normal = normal
+    warpByScalar.UseNormal = useNormal
     if (theScaleFactor > 0):
         warpByScalar.ScaleFactor = theScaleFactor
     else:
@@ -957,11 +965,18 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     scalarRange = theRange
     if (scalarRange is None):
         scalarRange = GetDataRange(theProxy, theEntityType, theFieldName)
+        print "scalarRange[0] = ", scalarRange[0]
+        print "scalarRange[1] = ", scalarRange[1]
         if (scalarRange[0] <= scalarRange[1]):
             aDelta = abs(scalarRange[1] - scalarRange[0]) * GAP_COEFFICIENT
+            print "DELTA = ", aDelta #@MZN
             scalarRange[0] += aDelta
             scalarRange[1] -= aDelta
 
+
+    print "scalarRange[0] = ", scalarRange[0]
+    print "scalarRange[1] = ", scalarRange[1]
+    
     surfaces = []
     for i in range(theNbOfSurfaces):
         pos = scalarRange[0] + i*(scalarRange[1] - scalarRange[0])/(theNbOfSurfaces - 1)
@@ -970,6 +985,8 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     contourFilter.Isosurfaces = surfaces
     #@MZN contourFilter.Isosurfaces = GetPositions(scalarRange, theNbOfSurfaces, 0)
     contourFilter.UpdatePipeline()
+    contourFilter.UpdatePipelineInformation()
+    UpdatePipeline(timeValue, contourFilter)
 
     isosurfaces = GetRepresentation(contourFilter)
 
