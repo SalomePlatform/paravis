@@ -361,6 +361,13 @@ void PVGUI_Module::pvCreateActions()
   registerAction(PythonShellId, anAction);
   new pqPythonShellReaction(anAction << pqSetName("actionToolsPythonShell"));
 
+  //Show Trace
+  anAction = new QAction(tr("MEN_SHOW_TRACE"), this);
+  anAction->setToolTip(tr("TOP_SHOW_TRACE"));
+  anAction->setStatusTip(tr("STB_SHOW_TRACE"));
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onShowTrace()));
+  registerAction(ShowTraceId, anAction);
+
   // --- Menu "Help"
 
   // About
@@ -505,6 +512,8 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( separator(), aToolsMnu );
 
   createMenu( PythonShellId, aToolsMnu );
+  createMenu( separator(), aToolsMnu );
+  createMenu( ShowTraceId, aToolsMnu );
 
   // --- Menu "Help"
 

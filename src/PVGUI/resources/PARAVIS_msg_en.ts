@@ -157,6 +157,18 @@
         <source>MEN_EDIT_LINE</source>
         <translation>Edit selected line</translation>
     </message>
+    <message>
+        <source>MEN_SHOW_TRACE</source>
+        <translation>Show Trace...</translation>
+    </message>
+    <message>
+        <source>TOP_SHOW_TRACE</source>
+        <translation>Show Trace</translation>
+    </message>
+    <message>
+        <source>STB_SHOW_TRACE</source>
+        <translation>Show Trace</translation>
+    </message>
 </context>
 <context>
     <name>PVGUI_ViewManager</name>

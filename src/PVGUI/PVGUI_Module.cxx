@@ -103,6 +103,7 @@
 #include <pqBrandPluginsLoader.h>
 #include <pqLoadDataReaction.h>
 #include <vtkEventQtSlotConnect.h>
+#include <pqPythonScriptEditor.h>
 
 /*
  * Make sure all the kits register their classes with vtkInstantiator.
@@ -229,7 +230,8 @@ PVGUI_Module::PVGUI_Module()
     myFiltersMenuId( -1 ),
     myMacrosMenuId(-1),
     myToolbarsMenuId(-1),
-    myOldMsgHandler(0)
+    myOldMsgHandler(0),
+    myTraceWindow(0)
 {
   ParavisModule = this;
 }
@@ -400,18 +402,17 @@ void PVGUI_Module::activateTrace()
     return;
   }
 
-  pqPythonDialog* pyDiag = 0;
   pqPythonManager* manager = qobject_cast<pqPythonManager*>(
                              pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
   if (manager)  {
-    pyDiag = manager->pythonShellDialog();
-  }
-  if (pyDiag) {
-    pyDiag->runString("try:\n"
-                      "  from paraview import smtrace\n"
-                      "  smtrace.start_trace()\n"
-                      "  print 'Trace started.'\n"
-                      "except: raise RuntimeError('could not import paraview.smtrace')\n");
+    pqPythonDialog* pyDiag = manager->pythonShellDialog();
+    if (pyDiag) {
+      pqPythonShell* shell = pyDiag->shell();
+      if(shell) {
+        QString script = "from paraview import smtrace\nsmtrace.start_trace()\n";
+        shell->executeScript(script);    
+      }
+    }
   }
 }
 
@@ -744,32 +745,26 @@ void PVGUI_Module::openFile(const char* theName)
 static const QString MYReplaceStr("paraview.simple");
 QString PVGUI_Module::getTraceString()
 {
-  pqPythonDialog* pyDiag = 0;
+  QString traceString;
   pqPythonManager* manager = qobject_cast<pqPythonManager*>(
                              pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
   if (manager)  {
-    pyDiag = manager->pythonShellDialog();
-  }
-
-  QString traceString;
-  if (pyDiag) {
-    pyDiag->runString("try:\n"
-                      "  from paraview import smtrace\n"
-                      "  __smtraceString = smtrace.get_trace_string()\n"
-                      "except:\n"
-                      "  __smtraceString = str()\n"
-                      "  raise RuntimeError('could not import paraview.smtrace')\n");
-    pyDiag->shell()->makeCurrent();
-    PyObject* main_module = PyImport_AddModule((char*)"__main__");
-    PyObject* global_dict = PyModule_GetDict(main_module);
-    PyObject* string_object = PyDict_GetItemString(global_dict, "__smtraceString");
-    char* string_ptr = PyString_AsString(string_object);
-    if (string_ptr) {
-      traceString = string_ptr;
+    pqPythonDialog* pyDiag = manager->pythonShellDialog();
+    if (pyDiag) {
+      pyDiag->runString("from paraview import smtrace\n"
+                        "__smtraceString = smtrace.get_trace_string()\n");
+      pyDiag->shell()->makeCurrent();
+      PyObject* main_module = PyImport_AddModule((char*)"__main__");
+      PyObject* global_dict = PyModule_GetDict(main_module);
+      PyObject* string_object = PyDict_GetItemString(global_dict, "__smtraceString");
+      char* string_ptr = string_object ? PyString_AsString(string_object) : 0;
+      if (string_ptr)  {
+        traceString = string_ptr;
+      }
+      pyDiag->shell()->releaseControl();
     }
-    pyDiag->shell()->releaseControl();
   }
-  if (traceString.length() != 0) {
+  if ((!traceString.isNull()) && traceString.length() != 0) {
     int aPos = traceString.indexOf(MYReplaceStr);
     while (aPos != -1) {
       traceString = traceString.replace(aPos, MYReplaceStr.length(), "pvsimple");
@@ -918,6 +913,16 @@ void PVGUI_Module::createPreferences()
   setPreferenceProperty(aSaveType, "indexes", aIndices);
 }
 
+void PVGUI_Module::onShowTrace()
+{
+  if (!myTraceWindow) {
+    myTraceWindow = new pqPythonScriptEditor(getApp()->desktop());
+  }
+  myTraceWindow->setText(getTraceString());
+  myTraceWindow->show();
+  myTraceWindow->raise();
+  myTraceWindow->activateWindow();
+}
 
 
 /*!

@@ -41,6 +41,8 @@ class pqServer;
 class pqViewManager;
 class pqMainWindowCore;
 class vtkEventQtSlotConnect;
+class pqPythonScriptEditor;
+
 
 class PVGUI_Module : public SalomeApp_Module
 {
@@ -106,6 +108,7 @@ class PVGUI_Module : public SalomeApp_Module
 	 TimerLogId,
 	 OutputWindowId,
 	 PythonShellId,
+	 ShowTraceId,
 
 	 // Menu "Help" 
 	 AboutParaViewId,
@@ -189,6 +192,7 @@ private slots:
 
   void onStartProgress();
   void onEndProgress();
+  void onShowTrace();
 
 public slots:
   virtual bool           activateModule( SUIT_Study* );
@@ -215,6 +219,8 @@ private:
   QTimer* myTraceTimer;
 
   vtkEventQtSlotConnect *VTKConnect;
+
+  pqPythonScriptEditor* myTraceWindow;
 };
 
 #endif // PVGUI_Module_H
