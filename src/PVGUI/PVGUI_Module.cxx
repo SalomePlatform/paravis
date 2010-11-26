@@ -50,10 +50,8 @@
 
 // SALOME Includes
 #include "SALOME_LifeCycleCORBA.hxx"
-#include "SALOME_ListIteratorOfListIO.hxx"
 #include "SALOMEDS_SObject.hxx"
 
-#include <LightApp_SelectionMgr.h>
 #include <SalomeApp_Application.h>
 #include <SalomeApp_Study.h>
 #include <SALOME_ListIO.hxx>
