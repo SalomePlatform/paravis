@@ -8,7 +8,7 @@ class SalomeSession(object):
         import sys
         sys.argv += ["--show-desktop=1"]
 	sys.argv += ["--splash=0"]
-        sys.argv += ["--modules=VISU,PARAVIS"]
+        sys.argv += ["--modules=PARAVIS"]
         clt, d = runSalome.main()
         port = d['port']
         self.port = port
@@ -81,7 +81,7 @@ salome_session = SalomeSession()
 salome.salome_init()
 
 # Create new study
-import visu_gui #@MZN: to be reimplemented
+#import visu_gui #@MZN: to be reimplemented
 
 # Create new study
 print "Creating new study...",
@@ -90,3 +90,5 @@ if aStudy is None:
     raise RuntimeError, "Error"
 else: 
     print "OK"
+
+salome.myStudy = aStudy

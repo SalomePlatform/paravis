@@ -184,6 +184,10 @@ namespace PARAVIS
     //! Implementation of PARAVIS_Gen interface
     virtual void ActivateModule();
 
+    virtual void SetCurrentStudy(SALOMEDS::Study_ptr theStudy);
+
+    virtual SALOMEDS::Study_ptr GetCurrentStudy();
+
     //! Returns current ORB
     static CORBA::ORB_var GetORB() { return myOrb;}
 

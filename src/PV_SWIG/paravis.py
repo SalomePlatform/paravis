@@ -62,6 +62,7 @@ def Initialize(theORB, theNamingService, theLifeCycleCORBA, theStudyManager, the
     sleep(myDelay)
     myLocalParavis = myLifeCycleCORBA.FindOrLoadComponent("FactoryServer", "PARAVIS")
     myLocalStudy = theStudy
+    myLocalParavis.SetCurrentStudy(myLocalStudy)
     myLocalParavis.ActivateModule()
     return myLocalParavis
 

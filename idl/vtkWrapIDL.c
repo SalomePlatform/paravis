@@ -29,6 +29,7 @@
 #include "vtkParse.h"
 #include "vtkParseType.h"
 #include "vtkWrapIDL.h"
+#include "vtkWrap.h"
 
 char* Copyright[] = {
   "// Copyright (C) 2003  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,",
@@ -73,6 +74,11 @@ void AddReturnArg(char *Result, int *CurrPos) {
   add_to_sig(Result,"virtual ",CurrPos);
 }
 
+int IsIn(ValueInfo* Type) {
+  return 1;
+  //return ((Type % VTK_PARSE_BASE_TYPE)/0x100 < 1 || (Type % VTK_PARSE_BASE_TYPE)/0x100 > 7);
+}
+
 void AddNotReturnArg(ValueInfo* Type, char *Result, int *CurrPos) {
 #if defined(IDL_I_HH) || defined(IDL_I_CC)
   ;
@@ -102,14 +108,21 @@ void AddConst(char *Result, int *CurrPos) {
 #endif
 }
 
+
+int IsClass(ValueInfo* theType) {
+  //return ((theType->Type % 0x10) == 0x9);
+  return vtkWrap_IsObject(theType) || vtkWrap_IsVTKObject(theType);
+}
+
+int IsString(ValueInfo* Type) {
+  //return (IsChar(Type) && IsArray(Type));
+  //return (IsChar(Type) && IsPtr(Type));
+  return vtkWrap_IsCharPointer(Type) || vtkWrap_IsString(Type) || (strcmp(Type->Class, "vtkStdString") == 0);
+}
+
 int IsPtr(ValueInfo* Type) {
   //return ((Type % VTK_PARSE_BASE_TYPE)/0x100 == 0x1);
   return vtkWrap_IsPointer(Type) && (!IsString(Type)) && (!IsClass(Type));
-}
-
-int IsIn(ValueInfo* Type) {
-  return 1;
-  //return ((Type % VTK_PARSE_BASE_TYPE)/0x100 < 1 || (Type % VTK_PARSE_BASE_TYPE)/0x100 > 7);
 }
 
 int IsUnknown(ValueInfo* theType) {
@@ -174,12 +187,6 @@ int IsCharArray(ValueInfo* theType) {
 
 void AddCharAtomArg(int I, ValueInfo* Type, char *Result, int *CurrPos) {
   AddAtomArg(I,Type,"char","Char",Result,CurrPos);
-}
-
-int IsString(ValueInfo* Type) {
-  //return (IsChar(Type) && IsArray(Type));
-  //return (IsChar(Type) && IsPtr(Type));
-  return vtkWrap_IsCharPointer(Type) || vtkWrap_IsString(Type) || (strcmp(Type->Class, "vtkStdString") == 0);
 }
 
 void AddStringArg(int I, char *Result, int *CurrPos) {
@@ -267,11 +274,6 @@ int IsLongArray(ValueInfo* Type) {
 
 void AddLongArrayArg(int I, ValueInfo* Type, char *Result, int *CurrPos) {
   AddArrayArg(I,Type,"long",Result,CurrPos);
-}
-
-int IsClass(ValueInfo* theType) {
-  //return ((theType->Type % 0x10) == 0x9);
-  return vtkWrap_IsObject(theType) || vtkWrap_IsVTKObject(theType);
 }
 
 void AddClassArg(int I, ValueInfo* Type, const char *Class, char *Result, int *CurrPos) {
@@ -562,10 +564,9 @@ void read_class_functions(const char* name, const char* classname, FILE* fp)
 {
   int len=0;
   int curlen=0;
-  int i;
-  int j;
+  int i, j;
   int flen=0;
-  int num=0;
+  //int num=0;
   int ret_str=0;
   FILE *fin;
   char buf[bs];
@@ -711,7 +712,7 @@ void get_signature(const char* num, ClassInfo *data)
   static char result[bs];
   int currPos = 0;
   int currPos_sig = 0;
-  int argtype;
+  //int argtype;
   int i, j;
   static char buf[bs];
   static char buf1[bs];
@@ -1279,8 +1280,8 @@ void get_signature(const char* num, ClassInfo *data)
 
 void outputFunction2(FILE *fp, ClassInfo *data)
 {
-  int i, j, k, is_static, is_vtkobject, fnum, occ, backnum, goto_used;
-  int all_legacy;
+  int i, j, k, is_vtkobject, fnum, backnum;//, is_static, occ, goto_used;
+  //int all_legacy;
   FunctionInfo *theFunc;
   FunctionInfo *backFunc;
   const char *theName;
@@ -1518,7 +1519,7 @@ void outputFunction2(FILE *fp, ClassInfo *data)
 void outputFunction(FILE *fp, ClassInfo *data)
 {
   int i;
-  int args_ok = 1;
+  //int args_ok = 1;
   ValueInfo* aRetVal = NULL;//currentFunction->ReturnValue;
   ValueInfo* aArgVal = NULL;
   uint aType;

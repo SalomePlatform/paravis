@@ -113,6 +113,15 @@ module PARAVIS {
      */
     void ActivateModule();
 
+
+    /*! Sets a definite study to be current.
+     */
+    void SetCurrentStudy(in SALOMEDS::Study theStudy);
+
+    /*! Gets the current study.
+     */
+    SALOMEDS::Study GetCurrentStudy();
+
   };
 
 };

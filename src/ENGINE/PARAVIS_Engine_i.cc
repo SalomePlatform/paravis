@@ -276,4 +276,15 @@ namespace PARAVIS {
   {
     myParaVisGen->ActivateModule();
   }
+
+  //===========================================================================
+  void PARAVIS_Gen_i::SetCurrentStudy(SALOMEDS::Study_ptr theStudy){
+    myParaVisGen->SetCurrentStudy(theStudy);
+  }
+
+
+  //===========================================================================
+  SALOMEDS::Study_ptr PARAVIS_Gen_i::GetCurrentStudy(){
+    return myParaVisGen->GetCurrentStudy();
+  }
 }

@@ -495,7 +495,7 @@ namespace PARAVIS
   //----------------------------------------------------------------------------
   PARAVIS::string_array* PARAVIS_Gen_i::GetClassesList()
   {
-    int k;
+    uint k;
     for (k = 0; strcmp(wrapped_classes[k], "") != 0; k++);
     PARAVIS::string_array_var aNames = new PARAVIS::string_array();
     aNames->length(k);
@@ -557,4 +557,67 @@ namespace PARAVIS
   {
     ProcessVoidEvent(new TActivateModule(mySalomeApp));
   }
+
+  //----------------------------------------------------------------------------
+  struct TSetStudyEvent: public SALOME_Event {
+    std::string myStudyName;
+    typedef SalomeApp_Application* TResult;
+    TResult myResult;
+    
+    TSetStudyEvent(const std::string theStudyName):myStudyName(theStudyName), myResult(0) {}
+    virtual void Execute()
+    {
+      bool isActive = false;
+      SUIT_Session* aSession = SUIT_Session::session();
+        QList<SUIT_Application*> anApplications = aSession->applications();
+        QList<SUIT_Application*>::Iterator anIter = anApplications.begin();
+        SUIT_Application* aFirstApp = *anIter;
+        while (anIter != anApplications.end()) {
+          SUIT_Application* anApp = *anIter;
+          if (SUIT_Study* aSStudy = anApp->activeStudy()) {
+            if (SalomeApp_Study* aStudy = dynamic_cast<SalomeApp_Study*>(aSStudy)) {
+              if (_PTR(Study) aCStudy = aStudy->studyDS()) {
+                if(MYDEBUG) MESSAGE("There is an application with active study : StudyId = "
+                                    << aCStudy->StudyId() << "; Name = '" << aCStudy->Name() << "'");
+                if (myStudyName == aCStudy->Name()) {
+                  isActive = true;
+                  break;
+                }
+              }
+            }
+          }
+          anIter++;
+        }
+        SalomeApp_Application* anApp = dynamic_cast<SalomeApp_Application*>(aFirstApp);
+        if (!isActive) {
+          MESSAGE("!!! anApp->onLoadDoc(myStudyName) !!!");
+          // Has to be loaded in an empty or in a new application
+          anApp->onLoadDoc(myStudyName.c_str());
+        }
+        myResult = anApp;
+    }
+  };
+
+  void PARAVIS_Gen_i::SetCurrentStudy(SALOMEDS::Study_ptr theStudy)
+  {
+    if (!CORBA::is_nil(theStudy)) {
+      CORBA::String_var aName = theStudy->Name();
+      std::string aStudyName (aName.in());
+
+      myStudyDocument = SALOMEDS::Study::_duplicate(theStudy);
+      SalomeApp_Application*  anApp = ProcessEvent(new TSetStudyEvent(aStudyName));
+      if (!mySalomeApp)
+        mySalomeApp = anApp;
+    } else {
+      INFOS("CORBA::is_nil(theStudy)");
+    }
+  }
+  
+  
+  //----------------------------------------------------------------------------
+  SALOMEDS::Study_ptr PARAVIS_Gen_i::GetCurrentStudy()
+  {
+    return SALOMEDS::Study::_duplicate(myStudyDocument);
+  }
+
 }

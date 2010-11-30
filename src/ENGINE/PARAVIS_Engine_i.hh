@@ -114,6 +114,9 @@ namespace PARAVIS
                                          
     virtual void ActivateModule();
 
+
+    virtual void SetCurrentStudy(SALOMEDS::Study_ptr theStudy);
+    virtual SALOMEDS::Study_ptr GetCurrentStudy();
   };
 };
 #endif
