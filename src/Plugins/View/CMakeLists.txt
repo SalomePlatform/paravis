@@ -30,16 +30,21 @@ ADD_PARAVIEW_VIEW_OPTIONS(OPTIONS_IFACE OPTIONS_IFACE_SRCS
                           VIEW_TYPE MyView ACTIVE_VIEW_OPTIONS MyViewActiveOptions)
 
 # create a GUI side plugin with the GUI side code
-ADD_PARAVIEW_PLUGIN(GUISampleView "1.0" GUI_INTERFACES ${IFACES} ${OPTIONS_IFACE}
-                    GUI_SOURCES MyView.cxx MyDisplay.cxx MyViewActiveOptions.cxx MyViewOptions.cxx
-                    ${MOC_SRCS} ${IFACE_SRCS} ${OPTIONS_IFACE_SRCS})
+#ADD_PARAVIEW_PLUGIN(GUISampleView "1.0" GUI_INTERFACES ${IFACES} ${OPTIONS_IFACE}
+#                    GUI_SOURCES MyView.cxx MyDisplay.cxx MyViewActiveOptions.cxx MyViewOptions.cxx
+#                    ${MOC_SRCS} ${IFACE_SRCS} ${OPTIONS_IFACE_SRCS})
 
 # create a server side plugin with the server side code
-ADD_PARAVIEW_PLUGIN(SMSampleView "1.0" SERVER_MANAGER_XML MyViewSM.xml)
+#ADD_PARAVIEW_PLUGIN(SMSampleView "1.0" SERVER_MANAGER_XML MyViewSM.xml)
 
+  ADD_PARAVIEW_PLUGIN(GUISampleView "1.0"
+    SERVER_MANAGER_XML MyViewSM.xml
+    GUI_INTERFACES ${IFACES} ${OPTIONS_IFACE}
+    GUI_SOURCES MyView.cxx MyDisplay.cxx MyViewActiveOptions.cxx MyViewOptions.cxx
+    ${MOC_SRCS} ${IFACE_SRCS} ${OPTIONS_IFACE_SRCS} )
 # one could combine the two plugins into one if desired
 
 INSTALL(
-	TARGETS GUISampleView SMSampleView 
+	TARGETS GUISampleView
 	DESTINATION lib/paraview
 )
