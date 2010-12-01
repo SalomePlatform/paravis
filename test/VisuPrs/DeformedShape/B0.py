@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "carre_en_quad4_seg2.med"
+file = datadir +  "carre_en_quad4_seg2_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "
