@@ -52,7 +52,7 @@ IF (PYTHON_EXECUTABLE)
       G1
       G2
       )
-    ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/ScalarMap/${tfile}.py)
+    ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)
 

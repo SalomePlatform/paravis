@@ -24,6 +24,6 @@ IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
       A2
       )
-    ADD_TEST(VECTORS_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/Vectors/${tfile}.py)
+    ADD_TEST(VECTORS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)

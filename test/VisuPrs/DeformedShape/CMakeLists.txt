@@ -54,6 +54,6 @@ IF (PYTHON_EXECUTABLE)
       F8
       F9            
       )
-    ADD_TEST(DEFORMEDSHAPE_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/DeformedShape/${tfile}.py)
+    ADD_TEST(DEFORMEDSHAPE_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)

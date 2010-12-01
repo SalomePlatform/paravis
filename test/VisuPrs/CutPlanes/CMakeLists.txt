@@ -52,6 +52,6 @@ IF (PYTHON_EXECUTABLE)
       F8
       G1           
       )
-    ADD_TEST(CUTPLANES_${tfile} ${PYTHON_EXECUTABLE} $ENV{PARAVIS_SRC_DIR}/test/VisuPrs/CutPlanes/${tfile}.py)
+    ADD_TEST(CUTPLANES_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)
