@@ -26,6 +26,7 @@ SET(SM_SRCS
     vtkSMInformationKeyDomain.cxx
     vtkSMInformationKeyDomainHelper.cxx
     vtkPVServerInformationKey.cxx
+    vtkSMMedHelper.cxx
     )
 
 IF(PARAVIEW_BUILD_QT_GUI)
@@ -87,7 +88,7 @@ TARGET_LINK_LIBRARIES(MedReaderPlugin vtkMedReader vtkExtractGroup)
 INSTALL(
     TARGETS MedReaderPlugin
     RUNTIME DESTINATION .
-    LIBRARY DESTINATION lib/paraview
+    LIBRARY DESTINATION .
     ARCHIVE DESTINATION .
 )
 

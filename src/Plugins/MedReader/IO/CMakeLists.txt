@@ -67,7 +67,7 @@ endif(MedReader_BUILD_Testing)
 install(
     TARGETS vtkMedReader
     RUNTIME DESTINATION .
-    LIBRARY DESTINATION lib/salome
+    LIBRARY DESTINATION .
     ARCHIVE DESTINATION .
     )
     

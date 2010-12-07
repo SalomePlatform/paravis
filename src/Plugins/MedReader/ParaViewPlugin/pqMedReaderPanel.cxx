@@ -52,7 +52,7 @@ public:
   pqPropertyLinks Links;
   QMap<QTreeWidgetItem*, QString> TreeItemToPropMap;
   pqProxySILModel* entityModel;
-  pqProxySILModel* familyModel;
+  pqProxySILModel* groupModel;
   int SILUpdateStamp;
 };
 
@@ -62,18 +62,16 @@ pqMedReaderPanel::pqMedReaderPanel(pqProxy* object_proxy, QWidget* p) :
   this->UI = new pqUI(this);
   this->UI->setupUi(this);
 
-  this->UI->VTKConnect->Connect(this->proxy(),
-      vtkCommand::UpdateInformationEvent, this, SLOT(updateSIL()));
   pqProxySILModel* proxyModel;
 
-  // connect groups to MeshGroupRoot
+  // connect groups to groupsRoot
   proxyModel = new pqProxySILModel("GroupTree", &this->UI->SILModel);
   proxyModel->setSourceModel(&this->UI->SILModel);
   this->UI->Groups->setModel(proxyModel);
   this->UI->Groups->setHeaderHidden(true);
 
-  this->UI->familyModel = new pqProxySILModel("Families", &this->UI->SILModel);
-  this->UI->familyModel->setSourceModel(&this->UI->SILModel);
+  this->UI->groupModel = new pqProxySILModel("Groups", &this->UI->SILModel);
+  this->UI->groupModel->setSourceModel(&this->UI->SILModel);
 
   // connect cell types to "EntityRoot"
   proxyModel = new pqProxySILModel("CellTypeTree", &this->UI->SILModel);
@@ -103,10 +101,13 @@ pqMedReaderPanel::pqMedReaderPanel(pqProxy* object_proxy, QWidget* p) :
       new pqTreeViewSelectionHelper(tree);
       }
 
-  this->connect(this->UI->familyModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
+  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
   this->connect(this->UI->entityModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
 
   this->UI->tabWidget->setCurrentIndex(0);
+
+  this->UI->VTKConnect->Connect(this->proxy(),
+      vtkCommand::UpdateInformationEvent, this, SLOT(updateSIL()));
 }
 
 pqMedReaderPanel::~pqMedReaderPanel()
@@ -161,9 +162,9 @@ void pqMedReaderPanel::addSelectionToTreeWidget(const QString& name,
 
 void pqMedReaderPanel::linkServerManagerProperties()
 {
-  this->UI->Links.addPropertyLink(this->UI->familyModel, "values",
+  this->UI->Links.addPropertyLink(this->UI->groupModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
-          "Families"));
+          "Groups"));
 
   this->UI->Links.addPropertyLink(this->UI->entityModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
@@ -308,9 +309,6 @@ void pqMedReaderPanel::updateSIL()
     this->UI->Groups->expandAll();
     this->UI->CellTypes->expandAll();
 
-    reader->InitializeSelections();
-
     info->Delete();
     }
 }
-

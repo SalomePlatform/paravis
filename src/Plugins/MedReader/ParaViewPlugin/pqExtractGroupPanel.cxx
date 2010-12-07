@@ -51,9 +51,8 @@ public:
   pqSILModel SILModel;
   vtkSmartPointer<vtkEventQtSlotConnect> VTKConnect;
   pqPropertyLinks Links;
-  QMap<QTreeWidgetItem*, QString> TreeItemToPropMap;
   pqProxySILModel* entityModel;
-  pqProxySILModel* familyModel;
+  pqProxySILModel* groupModel;
   int SILUpdateStamp;
 };
 
@@ -73,8 +72,8 @@ pqExtractGroupPanel::pqExtractGroupPanel(pqProxy* object_proxy, QWidget* p) :
   this->UI->Groups->setModel(proxyModel);
   this->UI->Groups->setHeaderHidden(true);
 
-  this->UI->familyModel = new pqProxySILModel("Families", &this->UI->SILModel);
-  this->UI->familyModel->setSourceModel(&this->UI->SILModel);
+  this->UI->groupModel = new pqProxySILModel("Groups", &this->UI->SILModel);
+  this->UI->groupModel->setSourceModel(&this->UI->SILModel);
 
   // connect cell types to "EntityRoot"
   proxyModel = new pqProxySILModel("CellTypeTree", &this->UI->SILModel);
@@ -104,7 +103,7 @@ pqExtractGroupPanel::pqExtractGroupPanel(pqProxy* object_proxy, QWidget* p) :
       new pqTreeViewSelectionHelper(tree);
       }
 
-  this->connect(this->UI->familyModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
+  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
   this->connect(this->UI->entityModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
 
   this->UI->tabWidget->setCurrentIndex(0);
@@ -116,9 +115,9 @@ pqExtractGroupPanel::~pqExtractGroupPanel()
 
 void pqExtractGroupPanel::linkServerManagerProperties()
 {
-  this->UI->Links.addPropertyLink(this->UI->familyModel, "values",
+  this->UI->Links.addPropertyLink(this->UI->groupModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
-          "Families"));
+          "Groups"));
 
   this->UI->Links.addPropertyLink(this->UI->entityModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
@@ -130,18 +129,18 @@ void pqExtractGroupPanel::linkServerManagerProperties()
 
 void pqExtractGroupPanel::updateSIL()
 {
-  vtkSMExtractGroupProxy* reader = vtkSMExtractGroupProxy::SafeDownCast(
+  vtkSMExtractGroupProxy* filter = vtkSMExtractGroupProxy::SafeDownCast(
       this->proxy());
-  reader->UpdatePropertyInformation(reader->GetProperty("SILUpdateStamp"));
+  filter->UpdatePropertyInformation(filter->GetProperty("SILUpdateStamp"));
 
-  int stamp = vtkSMPropertyHelper(reader, "SILUpdateStamp").GetAsInt();
+  int stamp = vtkSMPropertyHelper(filter, "SILUpdateStamp").GetAsInt();
   if(stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
     vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
-    pm->GatherInformation(reader->GetConnectionID(),
-        vtkProcessModule::DATA_SERVER, info, reader->GetID());
+    pm->GatherInformation(filter->GetConnectionID(),
+        vtkProcessModule::DATA_SERVER, info, filter->GetID());
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
@@ -150,4 +149,3 @@ void pqExtractGroupPanel::updateSIL()
     info->Delete();
     }
 }
-

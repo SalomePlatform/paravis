@@ -9,7 +9,7 @@ target_link_libraries(vtkExtractGroup vtkFiltering vtkMedReader)
 install(
         TARGETS vtkExtractGroup
         RUNTIME DESTINATION .
-        LIBRARY DESTINATION lib/salome
+        LIBRARY DESTINATION .
         ARCHIVE DESTINATION .
         )
 

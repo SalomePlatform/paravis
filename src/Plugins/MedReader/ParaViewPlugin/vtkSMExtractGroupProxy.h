@@ -2,8 +2,7 @@
 #define __vtkSMExtractGroupProxy_h__
 
 #include "vtkSMSourceProxy.h"
-class vtkSMExtractGroupProxyInternal;
-class vtkExtractGroupProxyCommand;
+class vtkSMMedHelper;
 
 class vtkSMExtractGroupProxy : public vtkSMSourceProxy
 {
@@ -12,19 +11,13 @@ public :
   vtkTypeRevisionMacro(vtkSMExtractGroupProxy, vtkSMSourceProxy);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  // Description :
-  // Add all families of the given group to the selected families
-  virtual void SetGroupStatus(const char* key, int status);
+  // Description:
+  // The Helper object deals with the group selections
+  vtkGetObjectMacro(Helper, vtkSMMedHelper);
 
 protected :
 
-  void  updateSIL();
-
-  //BTX
-  friend class vtkSMExtractGroupProxyInternal;
-  friend class vtkExtractGroupProxyCommand;
-  vtkSMExtractGroupProxyInternal* Internal;
-  //ETX
+  vtkSMMedHelper* Helper;
 
   vtkSMExtractGroupProxy();
   ~vtkSMExtractGroupProxy();
