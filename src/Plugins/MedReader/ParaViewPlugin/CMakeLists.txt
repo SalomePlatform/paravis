@@ -88,7 +88,7 @@ TARGET_LINK_LIBRARIES(MedReaderPlugin vtkMedReader vtkExtractGroup)
 INSTALL(
     TARGETS MedReaderPlugin
     RUNTIME DESTINATION .
-    LIBRARY DESTINATION .
+    LIBRARY DESTINATION lib/paraview
     ARCHIVE DESTINATION .
 )
 
