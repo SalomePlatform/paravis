@@ -3,15 +3,16 @@ This module is intended to provide Python API for building presentations
 typical for Post-Pro module (Scalar Map, Deformed Shape, Vectors, etc.)
 """
 
+
+from __future__ import division
+from __future__ import print_function
+
 import os
 import re
 from math import sqrt
 from string import upper
 
-try:
-    pvsimple
-except:
-    from pvsimple import *
+import pvsimple as pv
 
 # Constants
 EPS = 1E-3
@@ -19,10 +20,11 @@ FLT_MIN = 1E-37
 VTK_LARGE_FLOAT = 1E+38
 GAP_COEFFICIENT = 0.0001
 
+
 # Enumerations
 class PrsTypeEnum:
     """
-    Presentation types.
+    Post-Pro presentation types.
     """
     MESH = 0
     SCALARMAP = 1
@@ -35,6 +37,46 @@ class PrsTypeEnum:
     PLOT3D = 8
     STREAMLINES = 9
     GAUSSPOINTS = 10
+
+    _type2name = {MESH: 'Mesh',
+                  SCALARMAP: 'Scalar Map',
+                  ISOSURFACES: 'Iso Surfaces',
+                  CUTPLANES: 'Cut Planes',
+                  CUTLINES: 'Cut Lines',
+                  DEFORMEDSHAPE: 'Deformed Shape',
+                  DEFORMEDSHAPESCALARMAP: 'Deformed Shape And Scalar Map',
+                  VECTORS: 'Vectors',
+                  PLOT3D: 'Plot3D',
+                  STREAMLINES: 'Stream Lines',
+                  GAUSSPOINTS: 'Gauss Points'}
+    
+    @classmethod
+    def get_name(cls, type):
+        """Return presentaion name by its type."""
+        return cls._type2name[type]
+
+class EntityType:
+    """
+    Entity types.
+    """
+    NODE = 0
+    CELL = 1
+
+    _type2name = {NODE: 'OnPoint',
+                  CELL: 'OnCell'}
+    
+    _name2type = {'OnPoint': NODE,
+                  'OnCell': CELL}
+
+    @classmethod
+    def get_name(cls, type):
+        """Return entity name (used in full group names) by its type."""
+        return cls._type2name[type]
+
+    @classmethod
+    def get_type(cls, name):
+        """Return entity type by its name (used in full group names)."""
+        return cls._name2type[name]
 
 class Orientation:
     """
@@ -53,36 +95,64 @@ class GlyphPos:
     TAIL = 1
     HEAD = 2
 
+class GaussType:
+    """
+    Types of Gauss Points representation.
+    """
+    SPRITE = 0 	
+    POINT = 1 	
+    SPHERE = 2
+
+    _type2mode = {SPRITE: 'Texture',
+                  POINT: 'SimplePoint',
+                  SPHERE: 'Sphere'}
+
+    @classmethod
+    def get_mode(cls, type):
+        """Return paraview point sprite mode by the primitive type."""
+        return cls._type2mode[type]
+
+# Internal classes
 class _aux_counter:
     "Internal class."
     first_render = True
 
-def ProcessPrsForTest(thePrs, theView, thePictureName):
-    """Auxiliary function. Used to show presentation and record image."""
-    # Show
+
+def process_prs_for_test(thePrs, theView, thePictureName):
+    """Show presentation and record image.
+    
+    Keyword arguments:
+    thePrs -- the presentation to show
+    theView -- the render view
+    thePictureName -- the full name of a graphics file to save
+    
+    """
+    # Show the presentation
     thePrs.Visibility = 1 
     
-    # Reset view 
+    # Reset the view 
     ResetView(theView) 
            
-    # Create directory for screenshot if necessary
-    aPictureName = re.sub("\s+","_", thePictureName)
-    aPicDir = os.path.dirname(thePictureName)
-    if (not os.path.exists(aPicDir)):
-        os.makedirs(aPicDir)
+    # Create a directory for screenshot if necessary
+    picture_name = re.sub("\s+","_", thePictureName)
+    pic_dir = os.path.dirname(thePictureName)
+    if not os.path.exists(pic_dir):
+        os.makedirs(pic_dir)
         
     # Save picture
-    WriteImage(aPictureName, view=theView, Magnification=1) 
+    pv.WriteImage(picture_name, view=theView, Magnification=1) 
     thePrs.Visibility = 0
     
     # Hide all
     HideAll(theView, True)
 
 def ResetView(theView=None):
-    """Auxiliary function. Resets the view.
-    If an argument is not provided, the active view is used."""
+    """Reset the view.
+    
+    If the view is not passed, the active view is used.
+    """
     if not theView:
-        theView = GetRenderView()
+        theView = pv.GetRenderView()
 
     if _aux_counter.first_render:
         # Camera preferences
@@ -100,137 +170,129 @@ def ResetView(theView=None):
         _aux_counter.first_render = False
 
     theView.ResetCamera()
-    Render(view=theView)
+    pv.Render(view=theView)
 
-def HideAll(theView, toRemove = False):
-    """Auxiliary function. Hide all representations for the given view."""
-    if (theView is None):
+def HideAll(theView, toRemove=False):
+    """Hide all representations in the view."""
+    if not theView:
         return
     aRepLst = theView.Representations
     for rep in aRepLst:
-        if (hasattr(rep, 'Visibility') and rep.Visibility != 0):
+        if hasattr(rep, 'Visibility') and rep.Visibility != 0:
             rep.Visibility = 0
-        if (toRemove):
+        if toRemove:
             theView.Representations.remove(rep)
-    Render(view=theView)
+    pv.Render(view=theView)
 
 def DisplayOnly(theView, thePrs):
+    """Display the presentation in the view.
+
+    Hides all other presentations in the view.
+    """
     HideAll(theView)
     if (hasattr(thePrs, 'Visibility') and thePrs.Visibility != 1):
         thePrs.Visibility = 1
-
-def HasValue(theList, theValue):
-    """Auxiliary function."""
-    try :
-        return theList.index(theValue) + 1
-    except StandardError, e :
-        return 0
     
-def CheckVectorMode(theVectorMode, theNbComponents):
-    """Auxiliary function. Check vector mode."""
-    vectorMode = theVectorMode
-    if (theNbComponents == 1 and (theVectorMode=='Magnitude' or
-                                  theVectorMode=='Y' or
-                                  theVectorMode=='Z')):
-        vectorMode = 'X'
-    elif (theNbComponents == 2 and  theVectorMode=='Z'):
-        vectorMode = 'X'
-
-    if (vectorMode != theVectorMode and theVectorMode != 'Magnitude'):
-        print "Set vector mode to \"%s\"" % vectorMode
-
-    return vectorMode
+def _check_vector_mode(theVectorMode, theNbComponents):
+    """Check vector mode."""
+    if theVectorMode not in ('Magnitude', 'X', 'Y', 'Z'):
+        raise ValueError("Unexistent vector mode: {0}".format(theVectorMode))
+    
+    if ((theNbComponents == 1 and (theVectorMode=='Y' or theVectorMode=='Z')) or
+        (theNbComponents == 2 and  theVectorMode=='Z')):
+        raise ValueError("Incorrect vector mode {0} for {1}-component field".
+                         format(theVectorMode, theNbComponents))
 
 def GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode='Magnitude'):
-    """Auxiliary function. Get data range for the field."""
-    entityDataInfo = None
+    """Get data range for the field."""
+    entity_data_info = None
     if (theEntityType == 'CELL_DATA'):
-        entityDataInfo = theProxy.GetCellDataInformation()
+        entity_data_info = theProxy.GetCellDataInformation()
     else:
-        entityDataInfo = theProxy.GetPointDataInformation()
+        entity_data_info = theProxy.GetPointDataInformation()
 
-    dataRange = []
+    data_range = []
     
     if (theVectorMode=='Magnitude'):
-        dataRange = entityDataInfo[theFieldName].GetComponentRange(-1)
+        data_range = entity_data_info[theFieldName].GetComponentRange(-1)
     elif (theVectorMode=='X'):
-        dataRange = entityDataInfo[theFieldName].GetComponentRange(0)
+        data_range = entity_data_info[theFieldName].GetComponentRange(0)
     elif (theVectorMode=='Y'):
-        dataRange = entityDataInfo[theFieldName].GetComponentRange(1)
+        data_range = entity_data_info[theFieldName].GetComponentRange(1)
     elif (theVectorMode=='Z'):
-        dataRange = entityDataInfo[theFieldName].GetComponentRange(2)
+        data_range = entity_data_info[theFieldName].GetComponentRange(2)
     else:
-        raise RuntimeError, "Vector mode is incorrect: %s " % theVectorMode
+        raise ValueError("Incorrect vector mode: {0}".format(theVectorMode))
 
-    return dataRange
+    return data_range
 
 def GetBounds(theProxy):
-    """Auxiliary function. Get bounds of the proxy."""
+    """Get bounds of the proxy."""
     dataInfo = theProxy.GetDataInformation()
-    boundsInfo = dataInfo.GetBounds()
+    bounds_info = dataInfo.GetBounds()
 
-    return boundsInfo
+    return bounds_info
 
 def GetXRange(theProxy):
-    """Auxiliary function. Get X range."""
-    boundsInfo = GetBounds(theProxy)
-    return boundsInfo[0:2]
+    """Get X range."""
+    bounds_info = GetBounds(theProxy)
+    return bounds_info[0:2]
 
 def GetYRange(theProxy):
-    """Auxiliary function. Get Y range."""
-    boundsInfo = GetBounds(theProxy)
-    return boundsInfo[2:4]
+    """Get Y range."""
+    bounds_info = GetBounds(theProxy)
+    return bounds_info[2:4]
 
 def GetZRange(theProxy):
-    """Auxiliary function. Get Z range."""
-    boundsInfo = GetBounds(theProxy)
-    return boundsInfo[4:6]
+    """Get Z range."""
+    bounds_info = GetBounds(theProxy)
+    return bounds_info[4:6]
 
 def IsPlanarInput(theProxy):
-    """Auxiliary function. Check if the given input is planar."""
-    boundsInfo = GetBounds(theProxy)
+    """Check if the given input is planar."""
+    bounds_info = GetBounds(theProxy)
 
-    if ( abs(boundsInfo[0] - boundsInfo[1]) <= FLT_MIN or
-         abs(boundsInfo[2] - boundsInfo[3]) <= FLT_MIN or
-         abs(boundsInfo[4] - boundsInfo[5]) <= FLT_MIN ):
+    if ( abs(bounds_info[0] - bounds_info[1]) <= FLT_MIN or
+         abs(bounds_info[2] - bounds_info[3]) <= FLT_MIN or
+         abs(bounds_info[4] - bounds_info[5]) <= FLT_MIN ):
         return True
 
     return False
 
 def IsDataOnCells(theProxy, theFieldName):
-    """Auxiliary function. Check if the field data is on cells."""
-    cellDataInfo = theProxy.GetCellDataInformation()
-    return (theFieldName in cellDataInfo.keys())
+    """Check if the field data is on cells."""
+    cell_data_info = theProxy.GetCellDataInformation()
+    return (theFieldName in cell_data_info.keys())
 
 def GetOrientation(theProxy):
-    """Auxiliary function. Get the optimum cutting plane orientation for Plot3d."""
-    anOrientation = Orientation.XY
+    """Get the optimum cutting plane orientation for Plot3d."""
+    orientation = Orientation.XY
 
-    aBounds = GetBounds(theProxy)
-    aDelta = [aBounds[1] - aBounds[0],
-              aBounds[3] - aBounds[2],
-              aBounds[5] - aBounds[4] ]
+    bounds = GetBounds(theProxy)
+    delta = [bounds[1] - bounds[0],
+              bounds[3] - bounds[2],
+              bounds[5] - bounds[4] ]
 
-    if (aDelta[0] >= aDelta[1] and aDelta[0] >= aDelta[2]):
-        if (aDelta[1] >= aDelta[2]):
-            anOrientation = Orientation.XY
+    if (delta[0] >= delta[1] and delta[0] >= delta[2]):
+        if (delta[1] >= delta[2]):
+            orientation = Orientation.XY
         else:
-            anOrientation = Orientation.ZX
-    elif (aDelta[1] >= aDelta[0] and aDelta[1] >= aDelta[2]):
-        if (aDelta[0] >= aDelta[2]):
-            anOrientation = Orientation.XY
+            orientation = Orientation.ZX
+    elif (delta[1] >= delta[0] and delta[1] >= delta[2]):
+        if (delta[0] >= delta[2]):
+            orientation = Orientation.XY
         else:
-            anOrientation = Orientation.YZ
-    elif (aDelta[2] >= aDelta[0] and aDelta[2] >= aDelta[1]):
-        if (aDelta[0] >= aDelta[1]):
-            anOrientation = Orientation.ZX
+            orientation = Orientation.YZ
+    elif (delta[2] >= delta[0] and delta[2] >= delta[1]):
+        if (delta[0] >= delta[1]):
+            orientation = Orientation.ZX
         else:
-            anOrientation = Orientation.YZ
+            orientation = Orientation.YZ
 
-    return anOrientation
+    return orientation
 
 def GetNormalByOrientation(theOrientation):
-    """Auxiliary function. Get normal for the plane by its orientation."""
+    """Get normal for the plane by its orientation."""
     normal = [0.0, 0.0, 0.0]
     if (theOrientation == Orientation.XY):
         normal[2] = 1.0
@@ -242,270 +304,327 @@ def GetNormalByOrientation(theOrientation):
     return normal
 
 def GetRangeForOrientation(theProxy, theOrientation):
-    """Auxiliary function. Get source range for cutting plane orientation."""
-    valRange = []
+    """Get source range for cutting plane orientation."""
+    val_range = []
     if (theOrientation == Orientation.XY):
-        valRange = GetZRange(theProxy)
+        val_range = GetZRange(theProxy)
     elif (theOrientation == Orientation.ZX):
-        valRange = GetYRange(theProxy)
+        val_range = GetYRange(theProxy)
     elif (theOrientation == Orientation.YZ):
-        valRange = GetXRange(theProxy)
+        val_range = GetXRange(theProxy)
 
-    return valRange
+    return val_range
 
-def GetPositions(valRange, theNbPlanes, theDisplacement):
+def GetPositions(val_range, theNbPlanes, theDisplacement):
     """Compute plane positions."""
     positions = []
     if (theNbPlanes > 1):
-        aDistance = valRange[1] - valRange[0]
-        valRange[1] = valRange[0] + (1.0 - EPS)*aDistance
-        valRange[0] = valRange[0] + EPS*aDistance
+        aDistance = val_range[1] - val_range[0]
+        val_range[1] = val_range[0] + (1.0 - EPS)*aDistance
+        val_range[0] = val_range[0] + EPS*aDistance
         
-        aDistance = valRange[1] - valRange[0]
+        aDistance = val_range[1] - val_range[0]
         step = aDistance/(theNbPlanes-1)
         aDisplacement = step*theDisplacement
-        startPos = valRange[0] - 0.5*step + aDisplacement
+        startPos = val_range[0] - 0.5*step + aDisplacement
         
-        for i in range(theNbPlanes):
+        for i in xrange(theNbPlanes):
             pos = startPos + i*step
             positions.append(pos)
     elif (theNbPlanes == 1):
-        pos = valRange[0] + (valRange[1] - valRange[0])*theDisplacement
+        pos = val_range[0] + (val_range[1] - val_range[0])*theDisplacement
         positions.append(pos)
         
     return positions
     
 def GetNbComponents(theProxy, theEntityType, theFieldName):
-    """Auxiliary function. Return number of components for the field."""
-    entityDataInfo = None
+    """Return number of components for the field."""
+    entity_data_info = None
     if (theEntityType == 'CELL_DATA'):
-        entityDataInfo = theProxy.GetCellDataInformation()
+        entity_data_info = theProxy.GetCellDataInformation()
     else:
-        entityDataInfo = theProxy.GetPointDataInformation()
-    nbComponents = entityDataInfo[theFieldName].GetNumberOfComponents()
-    return nbComponents
+        entity_data_info = theProxy.GetPointDataInformation()
+    nb_components = entity_data_info[theFieldName].GetNumberOfComponents()
+    return nb_components
 
 def GetScaleFactor(theProxy):
-    """Auxiliary function. Get scale factor."""
-    aDataInfo = theProxy.GetDataInformation()
+    """Compute scale factor."""
+    data_info = theProxy.GetDataInformation()
 
-    aNbCells = aDataInfo.GetNumberOfCells()
-    aNbPoints = aDataInfo.GetNumberOfPoints()
-    aNbElements = aNbCells
-    if (aNbElements < 1):
-        aNbElements = aNbPoints
+    nb_cells = data_info.GetNumberOfCells()
+    nb_points = data_info.GetNumberOfPoints()
+    nb_elements = nb_cells
+    if (nb_elements < 1):
+        nb_elements = nb_points
 
-    aBounds = GetBounds(theProxy)
+    bounds = GetBounds(theProxy)
 
-    aVolume = 1
-    aVol = aDim = 0
+    volume = 1
+    vol = dim = 0
     
     for i in xrange(0, 6, 2):
-        aVol = abs(aBounds[i+1] - aBounds[i])
-        if (aVol > 0):
-            aDim += 1
-            aVolume *= aVol
+        vol = abs(bounds[i+1] - bounds[i])
+        if (vol > 0):
+            dim += 1
+            volume *= vol
 
-    if (aNbElements == 0 or aDim < 1):
+    if (nb_elements == 0 or dim < 1):
         return 0
 
-    aVolume /= aNbElements
-    return pow(aVolume, 1.0/aDim)
+    volume /= nb_elements
+    return pow(volume, 1.0/dim)
             
 def GetDefaultScale(thePrsType, theProxy, theEntityType, theFieldName):
-    """Auxiliary function. Get default scale factor."""
-    aDataRange = GetDataRange(theProxy, theEntityType, theFieldName)
+    """Get default scale factor."""
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName)
     
-    if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE):
+    if thePrsType == PrsTypeEnum.DEFORMEDSHAPE:
         EPS = 1.0 / VTK_LARGE_FLOAT
-        if ( abs(aDataRange[1]) > EPS ):
-            aScaleFactor = GetScaleFactor(theProxy)
-            return aScaleFactor / aDataRange[1]
-    elif (thePrsType == PrsTypeEnum.PLOT3D):
-        aBounds = GetBounds(theProxy)
-        aLength = sqrt( (aBounds[1]-aBounds[0])**2 +
-                        (aBounds[3]-aBounds[2])**2 +
-                        (aBounds[5]-aBounds[4])**2 )
+        if ( abs(data_range[1]) > EPS ):
+            scale_factor = GetScaleFactor(theProxy)
+            return scale_factor / data_range[1]
+    elif thePrsType == PrsTypeEnum.PLOT3D:
+        bounds = GetBounds(theProxy)
+        length = sqrt( (bounds[1]-bounds[0])**2 +
+                        (bounds[3]-bounds[2])**2 +
+                        (bounds[5]-bounds[4])**2 )
         
         EPS = 0.3
-        aRange = aDataRange[1]
-        if ( aDataRange[1] > 0 ):
-            return aLength / aDataRange[1] * EPS
+        if data_range[1] > 0:
+            return length / data_range[1] * EPS
         
     return 0
 
 def GetCalcMagnitude(theProxy, theAttributeMode, theArrayName):
-    """Auxiliary function. Compute magnitude for the given vector array via Calculator.
-    Return the calculator."""
+    """Compute magnitude for the given vector array via Calculator.
+    
+    Return the calculator object.
+    """
     calculator = None
     
     # Transform vector array to scalar array if possible
-    nbComponents = GetNbComponents(theProxy, upper(theAttributeMode), theArrayName)
-    if (nbComponents > 1):
-        calculator = Calculator(theProxy)
+    nb_components = GetNbComponents(theProxy, upper(theAttributeMode), theArrayName)
+    if (nb_components > 1):
+        calculator = pv.Calculator(theProxy)
         calculator.AttributeMode = theAttributeMode
-        if (nbComponents == 2):
-            # Workaroud: calculator unable to compute magnitude if number of components equal to 2
-            calculator.Function = "sqrt(%s_X^2+%s_Y^2)" % (theArrayName, theArrayName)
+        if (nb_components == 2):
+            # Workaroud: calculator unable to compute magnitude
+            # if number of components equal to 2
+            calculator.Function = "sqrt({0}_X^2+{0}_Y^2)".format(theArrayName)
         else:
-            calculator.Function = "mag(%s)" % theArrayName
+            calculator.Function = "mag({0})".format(theArrayName)
         calculator.ResultArrayName = theArrayName + "_magnitude"
         calculator.UpdatePipeline()
             
     return calculator
 
-def IfPossible(theProxy, theEntityType, theFieldName, thePrsType):
-    """Auxiliary function. Check if the presentation is possible on the given field."""
-    result = False
+def IfPossible(theProxy, theFieldName, theEntityType, thePrsType):
+    """Check if the presentation is possible on the given field."""
+    result = True
     if (thePrsType == PrsTypeEnum.DEFORMEDSHAPE or
         thePrsType == PrsTypeEnum.DEFORMEDSHAPESCALARMAP or
-        thePrsType == PrsTypeEnum.VECTORS):
+        thePrsType == PrsTypeEnum.VECTORS or
+        thePrsType == PrsTypeEnum.STREAMLINES):
         nbComp = GetNbComponents(theProxy, theEntityType, theFieldName)
         result = (nbComp > 1)
-        
+    elif (thePrsType == PrsTypeEnum.GAUSSPOINTS):
+        result = (theEntityType == "CELL_DATA")
+    elif (thePrsType == PrsTypeEnum.MESH):
+        result = len(_get_group_names(theProxy, theFieldName, theEntityType)) > 0
+                
     return result
 
 def GetStdScalarBar(theTitle, theLookupTable):
-    """Auxiliary function. Create scalar bar."""
-    scalarBar = CreateScalarBar(Enabled=1, LabelFontSize=10, TitleFontSize=8, NumberOfLabels=5)
+    """Create scalar bar."""
+    scalarBar = pv.CreateScalarBar(Enabled=1, LabelFontSize=10, TitleFontSize=8,
+                                   NumberOfLabels=5)
     scalarBar.Title = theTitle
     scalarBar.LookupTable = theLookupTable
     return scalarBar
 
 def GetStdLookupTable(theFieldName, theNbComp, theVectorMode='Magnitude'):
-    """Auxiliary function. Get lookup table for the given field."""
-    lookupTable = GetLookupTableForArray(theFieldName, theNbComp)
+    """Get lookup table for the given field."""
+    lookup_table = pv.GetLookupTableForArray(theFieldName, theNbComp)
 
     if (theVectorMode=='Magnitude'):
-        lookupTable.VectorMode=theVectorMode
+        lookup_table.VectorMode=theVectorMode
     elif (theVectorMode=='X'):
-        lookupTable.VectorMode = 'Component'
-        lookupTable.VectorComponent = 0
+        lookup_table.VectorMode = 'Component'
+        lookup_table.VectorComponent = 0
     elif (theVectorMode=='Y'):
-        lookupTable.VectorMode = 'Component'
-        lookupTable.VectorComponent = 1
+        lookup_table.VectorMode = 'Component'
+        lookup_table.VectorComponent = 1
     elif (theVectorMode=='Z'):
-        lookupTable.VectorMode = 'Component'
-        lookupTable.VectorComponent = 2
+        lookup_table.VectorMode = 'Component'
+        lookup_table.VectorComponent = 2
     else:
-        raise RuntimeError, "Vector mode is incorrect: %s " % theVectorMode
+        raise ValueError("Incorrect vector mode: {0}".format(theVectorMode))
         
-    lookupTable.Discretize = 0
-    lookupTable.ColorSpace = 'HSV'
-    lookupTable.LockScalarRange = 0
+    lookup_table.Discretize = 0
+    lookup_table.ColorSpace = 'HSV'
+    lookup_table.LockScalarRange = 0
     
-    return lookupTable
+    return lookup_table
+
+def _get_group_mesh_name(full_group_name):
+    """Return mesh name of the group by its full name."""
+    group_name = full_group_name.split('/')[1]
+
+    return group_name
+
+def _get_group_entity(full_group_name):
+    """Return entity type of the group by its full name."""
+    entity = full_group_name.split('/')[2]
+
+    entity_type = EntityType.get_type(entity)
+    
+    return entity_type
+
+def _get_mesh_names(proxy):
+    """Return all mesh names in the given proxy as a set."""
+    groups = proxy.Groups.Available
+    mesh_names = set([_get_group_mesh_name(item) for item in groups])
+    
+    return mesh_names
+
+def _get_group_names(proxy, mesh_name, entity_type):
+    """Return full names of all groups of the given entity type
+    from the mesh with the given name as a list.
+    """
+    groups = proxy.Groups.Available
+
+    condition = lambda item: _get_group_mesh_name(item) == mesh_name and\
+                _get_group_entity(item) == entity_type
+    group_names = [item for item in groups if condition(item)]
+    
+    return group_names
 
 def GetTime(theProxy, theTimeStampNumber):
-    """Auxiliary function. Get time value by timestamp number."""
+    """Get time value by timestamp number."""
     # Check timestamp number
-    timeStamps = theProxy.TimestepValues.GetData()
-    nbTimeStamps = len(timeStamps)
-    if (theTimeStampNumber < 1 or theTimeStampNumber > nbTimeStamps):
-        raise RuntimeError, "Timestamp number is out of range: %s " % theTimeStampNumber
+    timestamps = theProxy.TimestepValues.GetData()
+    if ((theTimeStampNumber - 1) not in xrange(len(timestamps))):
+        raise ValueError("Timestamp number is out of range: {0}".format(theTimeStampNumber))
 
     # Return time value
-    return timeStamps[theTimeStampNumber-1]
+    return timestamps[theTimeStampNumber-1]
     
-def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theVectorMode='Magnitude'):
-    """Creates scalar map on the given field."""
-    # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
+                     theVectorMode='Magnitude'):
+    """Creates Scalar Map presentation on the field.
 
-    # Show pipeline object
-    scalarMap = GetRepresentation(theProxy)
+    Keyword arguments:
+    theProxy -- the pipeline object, containig data
+    theEntityType -- the entity type
+    theFieldName -- the field name
+    theTimeStampNumber -- the number of time step (1, 2, ...)
+    theVectorMode -- the mode of transformation of vector values into scalar values,
+    applicable only if the field contains vector values.
+    Possible modes: 'Magnitude' - vector module; 'X', 'Y', 'Z' - vector components.
+    
+    """
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
+    # Get time value
+    time_value = GetTime(theProxy, theTimeStampNumber)
     
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
+
+    # Show pipeline object
+    scalarmap = pv.GetRepresentation(theProxy)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
-    scalarMap.ColorAttributeType = theEntityType
-    scalarMap.ColorArrayName = theFieldName
-    scalarMap.LookupTable = lookupTable
+    scalarmap.ColorAttributeType = theEntityType
+    scalarmap.ColorArrayName = theFieldName
+    scalarmap.LookupTable = lookup_table
     # Commented by @MZN:
     #if (not IsPlanarInput(theProxy)):
-    #    scalarMap.BackfaceRepresentation = 'Cull Frontface'
+    #    scalarmap.BackfaceRepresentation = 'Cull Frontface'
 
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
     
-    return scalarMap
+    return scalarmap
 
 def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                      theNbPlanes=10, theOrientation = Orientation.YZ, theDisplacement=0.5,
                      theVectorMode='Magnitude'):
     """Creates cut planes on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
     
     # Create slice filter
-    sliceFilter=Slice(theProxy)
-    sliceFilter.SliceType="Plane"
+    slice = pv.Slice(theProxy)
+    slice.SliceType="Plane"
 
     # Set cut planes normal and get range
     normal = [0.0, 0.0, 0.0]
-    valRange = []
+    val_range = []
     if (theOrientation == Orientation.XY):
         normal[2] = 1.0
-        valRange = GetZRange(theProxy)
+        val_range = GetZRange(theProxy)
     elif (theOrientation == Orientation.ZX):
         normal[1] = 1.0
-        valRange = GetYRange(theProxy)
+        val_range = GetYRange(theProxy)
     elif (theOrientation == Orientation.YZ):
         normal[0] = 1.0
-        valRange = GetXRange(theProxy)
+        val_range = GetXRange(theProxy)
         
-    sliceFilter.SliceType.Normal = normal
+    slice.SliceType.Normal = normal
 
     # Set cut planes positions
-    sliceFilter.SliceOffsetValues = GetPositions(valRange, theNbPlanes, theDisplacement)
-    cutPlanes = GetRepresentation(sliceFilter)
+    slice.SliceOffsetValues = GetPositions(val_range, theNbPlanes, theDisplacement)
+    cut_planes = pv.GetRepresentation(slice)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
-    cutPlanes.ColorAttributeType = theEntityType
-    cutPlanes.ColorArrayName = theFieldName
-    cutPlanes.LookupTable = lookupTable
+    cut_planes.ColorAttributeType = theEntityType
+    cut_planes.ColorArrayName = theFieldName
+    cut_planes.LookupTable = lookup_table
 
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
     
-    return cutPlanes
+    return cut_planes
 
 def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                     theNbLines=10,
@@ -513,212 +632,219 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                     theDisplacement1=0.5, theDisplacement2=0.5,
                     theVectorMode='Magnitude'):
     """Creates cut lines on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Create base plane
-    basePlane=Slice(theProxy)
-    basePlane.SliceType="Plane"
+    base_plane = pv.Slice(theProxy)
+    base_plane.SliceType="Plane"
 
     # Set base plane normal and get position
-    normalBase = [0.0, 0.0, 0.0]
-    valRangeBase = []
+    base_normal = [0.0, 0.0, 0.0]
+    valrange_base = []
     if (theOrientation1 == Orientation.XY):
-        normalBase[2] = 1.0
-        valRangeBase = GetZRange(theProxy)
+        base_normal[2] = 1.0
+        valrange_base = GetZRange(theProxy)
     elif (theOrientation1 == Orientation.ZX):
-        normalBase[1] = 1.0
-        valRangeBase = GetYRange(theProxy)
+        base_normal[1] = 1.0
+        valrange_base = GetYRange(theProxy)
     elif (theOrientation1 == Orientation.YZ):
         if (theOrientation2 == theOrientation1):
-            theOrientation2=Orientation.ZX
-        normalBase[0] = 1.0
-        valRangeBase = GetXRange(theProxy)
+            theOrientation2 = Orientation.ZX
+        base_normal[0] = 1.0
+        valrange_base = GetXRange(theProxy)
         
-    basePlane.SliceType.Normal = normalBase
+    base_plane.SliceType.Normal = base_normal
 
     # Set base plane position
-    basePlane.SliceOffsetValues = GetPositions(valRangeBase, 1, theDisplacement1)
+    base_plane.SliceOffsetValues = GetPositions(valrange_base, 1, theDisplacement1)
 
     # Check base plane
-    basePlane.UpdatePipeline()
-    if (basePlane.GetDataInformation().GetNumberOfCells() == 0):
-        basePlane = theProxy
+    base_plane.UpdatePipeline()
+    if (base_plane.GetDataInformation().GetNumberOfCells() == 0):
+        base_plane = theProxy
     
     # Create cutting planes
-    cutPlanes=Slice(basePlane)
-    cutPlanes.SliceType="Plane"
+    cut_planes = pv.Slice(base_plane)
+    cut_planes.SliceType="Plane"
 
     # Set cutting planes normal and get positions
-    normalCut = [0.0, 0.0, 0.0]
-    valRangeCut = []
+    cut_normal = [0.0, 0.0, 0.0]
+    valrange_cut = []
     if (theOrientation2 == Orientation.XY):
-        normalCut[2] = 1.0
-        valRangeCut = GetZRange(theProxy)
+        cut_normal[2] = 1.0
+        valrange_cut = GetZRange(theProxy)
     elif (theOrientation2 == Orientation.ZX):
-        normalCut[1] = 1.0
-        valRangeCut = GetYRange(basePlane)
+        cut_normal[1] = 1.0
+        valrange_cut = GetYRange(base_plane)
     elif (theOrientation2 == Orientation.YZ):
-        normalCut[0] = 1.0
-        valRangeCut = GetXRange(basePlane)
+        cut_normal[0] = 1.0
+        valrange_cut = GetXRange(base_plane)
         
-    cutPlanes.SliceType.Normal = normalCut
+    cut_planes.SliceType.Normal = cut_normal
 
     # Set cutting planes position
-    cutPlanes.SliceOffsetValues = GetPositions(valRangeCut, theNbLines, theDisplacement2)
-    cutLines = GetRepresentation(cutPlanes)
+    cut_planes.SliceOffsetValues = GetPositions(valrange_cut, theNbLines, theDisplacement2)
+    cut_lines = pv.GetRepresentation(cut_planes)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
     
     # Set properties
-    cutLines.ColorAttributeType = theEntityType
-    cutLines.ColorArrayName = theFieldName
-    cutLines.LookupTable = lookupTable
+    cut_lines.ColorAttributeType = theEntityType
+    cut_lines.ColorArrayName = theFieldName
+    cut_lines.LookupTable = lookup_table
 
     # Set wireframe represenatation mode
-    cutLines.Representation = 'Wireframe'
+    cut_lines.Representation = 'Wireframe'
 
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    # Show scalar bar
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
 
-    return cutLines
+    return cut_lines
 
 def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
                    theGlyphPos=GlyphPos.TAIL, theIsColored=False, theVectorMode='Magnitude'):
     """Creates vectors on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
+
+    # Set timestamp
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
 
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
     
     # Cell centers
     if (IsDataOnCells(theProxy, theFieldName)):
-        cellCenters = CellCenters(theProxy)
-        cellCenters.VertexCells = 1
+        cell_centers = pv.CellCenters(theProxy)
+        cell_centers.VertexCells = 1
 
     # Vectors
-    glyphFilter = Glyph()
-    glyphFilter.Vectors = theFieldName
-    glyphFilter.ScaleMode = 'vector'
-    glyphFilter.MaskPoints = 0
+    glyph = pv.Glyph()
+    glyph.Vectors = theFieldName
+    glyph.ScaleMode = 'vector'
+    glyph.MaskPoints = 0
 
-    glyphFilter.GlyphType = "2D Glyph"
-    glyphFilter.GlyphType.GlyphType = 'Arrow'
+    glyph.GlyphType = "2D Glyph"
+    glyph.GlyphType.GlyphType = 'Arrow'
     if (theGlyphPos == GlyphPos.TAIL):
-        glyphFilter.GlyphType.Center = [0.5, 0.0, 0.0]
+        glyph.GlyphType.Center = [0.5, 0.0, 0.0]
     elif (theGlyphPos == GlyphPos.HEAD):
-        glyphFilter.GlyphType.Center = [-0.5, 0.0, 0.0]
+        glyph.GlyphType.Center = [-0.5, 0.0, 0.0]
     elif (theGlyphPos == GlyphPos.CENTER):
-        glyphFilter.GlyphType.Center = [0.0, 0.0, 0.0]
+        glyph.GlyphType.Center = [0.0, 0.0, 0.0]
         
     if (theScaleFactor > 0):
-        glyphFilter.SetScaleFactor = theScaleFactor
+        glyph.SetScaleFactor = theScaleFactor
     else:
-        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        def_scale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
         #@MZN DEBUG
-        print "DEFAULT SCALE FACTOR = ", aDefScale
-        glyphFilter.SetScaleFactor = aDefScale
+        print("DEFAULT SCALE FACTOR = ", def_scale)
+        glyph.SetScaleFactor = def_scale
 
-    glyphFilter.UpdatePipeline()
+    glyph.UpdatePipeline()
 
-    vectors = GetRepresentation(glyphFilter)
+    vectors = pv.GetRepresentation(glyph)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
     if (theIsColored):
         vectors.ColorArrayName = 'GlyphVector'
     else:
         vectors.ColorArrayName = ''
-    vectors.LookupTable = lookupTable
+    vectors.LookupTable = lookup_table
     
     vectors.LineWidth = 1.0
 
     # Set wireframe represenatation mode
     vectors.Representation = 'Wireframe'
 
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
-
-    # Set timestamp
-    GetRenderView().ViewTime = timeValue
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
     
     return vectors
 
 def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
                          theIsColored=False, theVectorMode='Magnitude'):
     """Creates Defromed shape on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks(theProxy)
+    merge_blocks = pv.MergeBlocks(theProxy)
     
     # Cell data to point data
     if (IsDataOnCells(theProxy, theFieldName)):
-        cellDataToPointData = CellDatatoPointData()
-        cellDataToPointData.PassCellData = 1
+        cell_to_point = pv.CellDatatoPointData()
+        cell_to_point.PassCellData = 1
         
     # Warp by vector
-    warpByVector = WarpByVector()
-    warpByVector.Vectors = [theFieldName]
+    warp_vector = pv.WarpByVector()
+    warp_vector.Vectors = [theFieldName]
     if (theScaleFactor > 0):
-        warpByVector.ScaleFactor = theScaleFactor
+        warp_vector.ScaleFactor = theScaleFactor
     else:
-        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        def_scale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
         #@MZN DEBUG
-        print "DEFAULT SCALE FACTOR = ", aDefScale
-        warpByVector.ScaleFactor = aDefScale
+        print("DEFAULT SCALE FACTOR = ", def_scale)
+        warp_vector.ScaleFactor = def_scale
         
-    defshape = GetRepresentation(warpByVector)
+    defshape = pv.GetRepresentation(warp_vector)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
     if (theIsColored):
@@ -726,17 +852,17 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
         defshape.ColorArrayName = theFieldName
     else:
         defshape.ColorArrayName = ''
-    defshape.LookupTable = lookupTable
-
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    defshape.LookupTable = lookup_table
 
     # Set wireframe represenatation mode
     defshape.Representation = 'Wireframe'
+
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if nb_components > 1:
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
     
     return defshape
 
@@ -744,65 +870,67 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName, theT
                                      theScalarEntityType=None, theScalarFieldName=None,
                                      theVectorMode='Magnitude'):
     """Creates Defromed shape And Scalar Map on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Set scalar field by default
     if ((theScalarEntityType is None) or (theScalarFieldName is None)):
         theScalarEntityType = theEntityType
         theScalarFieldName = theFieldName
 
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks(theProxy)
+    merge_blocks = pv.MergeBlocks(theProxy)
 
     # Cell data to point data
     if (IsDataOnCells(theProxy, theFieldName)):
-        cellDataToPointData = CellDatatoPointData()
-        cellDataToPointData.PassCellData = 1
+        cell_to_point = pv.CellDatatoPointData()
+        cell_to_point.PassCellData = 1
         
     # Warp by vector
-    warpByVector = WarpByVector()
-    warpByVector.Vectors = [theFieldName]
+    warp_vector = pv.WarpByVector()
+    warp_vector.Vectors = [theFieldName]
     if (theScaleFactor > 0):
-        warpByVector.ScaleFactor = theScaleFactor
+        warp_vector.ScaleFactor = theScaleFactor
     else:
-        aDefScale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+        def_scale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
         #@MZN DEBUG
-        print "DEFAULT SCALE FACTOR = ", aDefScale
-        warpByVector.ScaleFactor = aDefScale
+        print("DEFAULT SCALE FACTOR = ", def_scale)
+        warp_vector.ScaleFactor = def_scale
     
-    defshapeandmap = GetRepresentation(warpByVector)
+    defshapeandmap = pv.GetRepresentation(warp_vector)
    
     # Get lookup table
-    nbComponents = GetNbComponents(theProxy, theScalarEntityType, theScalarFieldName)
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theScalarFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theScalarFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theScalarEntityType, theScalarFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theScalarEntityType, theScalarFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
     
     # Set properties
     defshapeandmap.ColorArrayName = theScalarFieldName
-    defshapeandmap.LookupTable = lookupTable
+    defshapeandmap.LookupTable = lookup_table
     defshapeandmap.ColorAttributeType = theScalarEntityType
      
-    # Set scalar bar name and lookup table
-    barTitle = theScalarFieldName + ", " + str(timeValue)
-    nbComponents = GetNbComponents(theProxy, theScalarEntityType, theScalarFieldName)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theScalarFieldName + ", " + str(time_value)
+    nb_components = GetNbComponents(theProxy, theScalarEntityType, theScalarFieldName)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
        
     return defshapeandmap
 
@@ -811,122 +939,124 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                   theScaleFactor=-1, theIsContourPrs=False, theNbOfContours=32,
                   theVectorMode='Magnitude'):
     """Creates plot 3d on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks(theProxy)
+    merge_blocks = pv.MergeBlocks(theProxy)
 
-    aPolyData = None
+    poly_data = None
 
     # Cutting plane
     
     # Define orientation if necessary (auto mode)
-    anOrientation = theOrientation
-    if (anOrientation == Orientation.AUTO):
-        anOrientation = GetOrientation(theProxy)
+    orientation = theOrientation
+    if (orientation == Orientation.AUTO):
+        orientation = GetOrientation(theProxy)
 
     # Get cutting plane normal
-    normal = GetNormalByOrientation(anOrientation)
+    normal = GetNormalByOrientation(orientation)
       
     if (not IsPlanarInput(theProxy)):
         # Create slice filter
-        sliceFilter=Slice(mergeBlocks)
-        sliceFilter.SliceType="Plane"
+        slice=Slice(merge_blocks)
+        slice.SliceType="Plane"
 
         # Set cutting plane normal
-        sliceFilter.SliceType.Normal = normal
+        slice.SliceType.Normal = normal
 
         # Set cutting plane position
-        valRange = GetRangeForOrientation(theProxy, anOrientation)
+        val_range = GetRangeForOrientation(theProxy, orientation)
         
         if (theIsRelative):
-            sliceFilter.SliceOffsetValues = GetPositions(valRange, 1, thePosition)
+            slice.SliceOffsetValues = GetPositions(val_range, 1, thePosition)
         else:
-            sliceFilter.SliceOffsetValues = thePosition
+            slice.SliceOffsetValues = thePosition
 
-        sliceFilter.UpdatePipeline()
-        aPolyData = sliceFilter
+        slice.UpdatePipeline()
+        poly_data = slice
 
-    useNormal = 0
+    use_normal = 0
     # Geometry filter
-    if (not aPolyData or aPolyData.GetDataInformation().GetNumberOfCells() == 0):
-        geometryFilter = GeometryFilter(mergeBlocks)
-        aPolyData = geometryFilter
-        useNormal = 1 #MZN: temporary workaround
+    if (not poly_data or poly_data.GetDataInformation().GetNumberOfCells() == 0):
+        geometry_filter = pv.GeometryFilter(merge_blocks)
+        poly_data = geometry_filter
+        use_normal = 1 #MZN: temporary workaround
     
-    warpByScalar = None
+    warp_scalar = None
     plot3d = None
-    aSource = aPolyData
+    source = poly_data
     
-    if (IsDataOnCells(aPolyData, theFieldName)):
+    if (IsDataOnCells(poly_data, theFieldName)):
         # Cell data to point data
-        cellDataToPointData = CellDatatoPointData(aPolyData)
-        cellDataToPointData.PassCellData = 1
-        aSource = cellDataToPointData
+        cell_to_point = pv.CellDatatoPointData(poly_data)
+        cell_to_point.PassCellData = 1
+        source = cell_to_point
         
     scalars = ['POINTS', theFieldName]
     
     # Transform vector array to scalar array if necessary
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    if (nbComponents > 1):
-        calculator = GetCalcMagnitude(aSource, "point_data", theFieldName)
+    if (nb_components > 1):
+        calculator = GetCalcMagnitude(source, "point_data", theFieldName)
         scalars = ['POINTS', calculator.ResultArrayName]
-        aSource = calculator
+        source = calculator
     
     # Warp by scalar
-    warpByScalar = WarpByScalar(aSource)
-    warpByScalar.Scalars = scalars
-    warpByScalar.Normal = normal
-    warpByScalar.UseNormal = useNormal
+    warp_scalar = pv.WarpByScalar(source)
+    warp_scalar.Scalars = scalars
+    warp_scalar.Normal = normal
+    warp_scalar.UseNormal = use_normal
     if (theScaleFactor > 0):
-        warpByScalar.ScaleFactor = theScaleFactor
+        warp_scalar.ScaleFactor = theScaleFactor
     else:
-        aDefScale = GetDefaultScale(PrsTypeEnum.PLOT3D, theProxy, theEntityType, theFieldName)
-        warpByScalar.ScaleFactor = aDefScale
+        def_scale = GetDefaultScale(PrsTypeEnum.PLOT3D, theProxy, theEntityType, theFieldName)
+        warp_scalar.ScaleFactor = def_scale
         
-    warpByScalar.UpdatePipeline()
+    warp_scalar.UpdatePipeline()
     
     if (theIsContourPrs):
         # Contours
-        contour = Contour(warpByScalar)
+        contour = pv.Contour(warp_scalar)
         contour.PointMergeMethod = "Uniform Binning"
         contour.ContourBy = ['POINTS', theFieldName]
-        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-        contour.Isosurfaces = GetPositions(scalarRange, theNbOfContours, 0)
+        scalar_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+        contour.Isosurfaces = GetPositions(scalar_range, theNbOfContours, 0)
         contour.UpdatePipeline()
-        plot3d = GetRepresentation(contour)
+        plot3d = pv.GetRepresentation(contour)
     else:
-        plot3d = GetRepresentation(warpByScalar)
+        plot3d = pv.GetRepresentation(warp_scalar)
    
     # Get lookup table
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
     plot3d.ColorAttributeType = theEntityType
     plot3d.ColorArrayName = theFieldName
-    plot3d.LookupTable = lookupTable
+    plot3d.LookupTable = lookup_table
   
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
 
     return plot3d
 
@@ -934,74 +1064,76 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
                        theRange = None, theNbOfSurfaces=10, theIsColored = True,
                        theColor = None, theVectorMode='Magnitude'):
     """Creates Iso Surfaces on the given field."""
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
     
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
     # Do merge
-    mergeBlocks = MergeBlocks(theProxy)
-    aSource = mergeBlocks
+    merge_blocks = pv.MergeBlocks(theProxy)
+    source = merge_blocks
 
     # Transform cell data into point data if necessary
     if (IsDataOnCells(theProxy, theFieldName)):
-        cellDataToPointData = CellDatatoPointData(aSource)
-        cellDataToPointData.PassCellData = 1
-        aSource = cellDataToPointData
+        cell_to_point = pv.CellDatatoPointData(source)
+        cell_to_point.PassCellData = 1
+        source = cell_to_point
         
-    contourBy = ['POINTS', theFieldName]
+    contour_by = ['POINTS', theFieldName]
 
     # Transform vector array to scalar array if necessary
-    nbComponents = GetNbComponents(theProxy, theEntityType, theFieldName)
-    if (nbComponents > 1):
-        calculator = GetCalcMagnitude(aSource, "point_data", theFieldName)
-        contourBy = ['POINTS', calculator.ResultArrayName]
-        aSource = calculator
+    if (nb_components > 1):
+        calculator = GetCalcMagnitude(source, "point_data", theFieldName)
+	contour_by = ['POINTS', calculator.ResultArrayName]
+        source = calculator
 
     # Contour filter settings
-    #@MZN: contourFilter.PointMergeMethod = "Uniform Binning"
-    contourFilter = Contour(aSource)
-    contourFilter.ComputeScalars = 1
-    contourFilter.ContourBy = contourBy
+    contour = pv.Contour(source)
+    contour.ComputeScalars = 1
+    contour.ContourBy = contour_by
 
     # Specify the range
-    scalarRange = theRange
-    if (scalarRange is None):
-        scalarRange = GetDataRange(theProxy, theEntityType, theFieldName)
-        print "scalarRange[0] = ", scalarRange[0]
-        print "scalarRange[1] = ", scalarRange[1]
+    scalar_range = theRange
+    if (scalar_range is None):
+        scalar_range = GetDataRange(theProxy, theEntityType, theFieldName)
+        #@MZN: debug
+        print("scalar_range[0] = ", scalar_range[0])
+        print("scalar_range[1] = ", scalar_range[1])
         # Cut off the range
-        if (scalarRange[0] <= scalarRange[1]):
-            aDelta = abs(scalarRange[1] - scalarRange[0]) * GAP_COEFFICIENT
-            scalarRange[0] += aDelta
-            scalarRange[1] -= aDelta
+        if (scalar_range[0] <= scalar_range[1]):
+            delta = abs(scalar_range[1] - scalar_range[0]) * GAP_COEFFICIENT
+            scalar_range[0] += delta
+            scalar_range[1] -= delta
 
     # Calculate contour values for the range
     surfaces = []
-    for i in range(theNbOfSurfaces):
-        pos = scalarRange[0] + i*(scalarRange[1] - scalarRange[0])/(theNbOfSurfaces - 1)
+    for i in xrange(theNbOfSurfaces):
+        pos = scalar_range[0] + i*(scalar_range[1] - scalar_range[0])/(theNbOfSurfaces - 1)
         surfaces.append(pos)
 
     # Set contour values
-    contourFilter.Isosurfaces = surfaces
+    contour.Isosurfaces = surfaces
     
     # Get Iso Surfaces representation
-    isosurfaces = GetRepresentation(contourFilter)
+    isosurfaces = pv.GetRepresentation(contour)
 
     # Get lookup table
-    theVectorMode = CheckVectorMode(theVectorMode, nbComponents)
-    lookupTable = GetStdLookupTable(theFieldName, nbComponents, theVectorMode)
+    lookup_table = GetStdLookupTable(theFieldName, nb_components, theVectorMode)
 
     # Set field range if necessary
-    dataRange = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
-    lookupTable.LockScalarRange = 1
-    lookupTable.RGBPoints = [dataRange[0], 0, 0, 1, dataRange[1], 1, 0, 0]
+    data_range = GetDataRange(theProxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set display properties
     if (theIsColored):
@@ -1011,32 +1143,114 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
         isosurfaces.ColorArrayName = ''
         if (theColor is not None):
             isosurfaces.DiffuseColor = theColor
-    isosurfaces.LookupTable = lookupTable
+    isosurfaces.LookupTable = lookup_table
   
-    # Set scalar bar name and lookup table
-    barTitle = theFieldName + ", " + str(timeValue)
-    if (nbComponents > 1):
-        barTitle += "\n" + theVectorMode
-    scalarBar = GetStdScalarBar(barTitle, lookupTable)
-    GetRenderView().Representations.append(scalarBar)
+    # Add scalar bar
+    bar_title = theFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
 
     return isosurfaces
 
 def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                       theVectorMode='Magnitude'):
-    """Creates Gauss points on the given field."""
+                       theIsDeformed = False, theScaleFactor=-1,
+                       theIsColored = True, theColor = None,
+                       thePrimitiveType = GaussType.SPRITE, theVectorMode='Magnitude'):
+    """Creates Gauss points on the given field.
+    
+    If scale factor is defined deformation will be applied.
+    """
+    # Check vector mode
+    nb_components = GetNbComponents(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+    
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
-    gausspnt = None
+    # Quadrature point arrays
+    qp_arrays = theProxy.QuadraturePointArrays
+
+    # If no gauss points are defined, use cell centers
+    source = None
+    if qp_arrays:
+        generate_qp = pv.GenerateQuadraturePoints(theProxy)
+        generate_qp.SelectSourceArray = ['CELLS', theFieldName] #@MZN
+        source = generate_qp
+    else:
+        cell_centers = pv.CellCenters(theProxy)
+        cell_centers.VertexCells = 1 #@MZN: necessary?
+        source = cell_centers
+
+    source.UpdatePipeline()
+
+    # Check if deformation enabled
+    if (theIsDeformed and (nb_components > 1)):
+        # Warp by vector
+        warp_vector = pv.WarpByVector(source)
+        warp_vector.Vectors = [theFieldName]
+        if (theScaleFactor > 0):
+            warp_vector.ScaleFactor = theScaleFactor
+        else:
+            def_scale = GetDefaultScale(PrsTypeEnum.DEFORMEDSHAPE, theProxy, theEntityType, theFieldName)
+            warp_vector.ScaleFactor = def_scale
+        warp_vector.UpdatePipeline()
+        source = warp_vector
+
+    # Point sprite settings
+    radius_array = theFieldName
+    # Transform vector array to scalar array if necessary
+    if (nb_components > 1):
+        on_cells = IsDataOnCells(theProxy, theFieldName)
+        data_type = "cell_data" if on_cells else "point_data"
+        calculator = GetCalcMagnitude(source, data_type, theFieldName)
+        radius_array = calculator.ResultArrayName
+        source = calculator
+    array_range = GetDataRange(theProxy, theEntityType, radius_array)
+    #@MZN: Add magnification etc.
+    gausspnt = pv.GetRepresentation(source)
+    gausspnt.Representation = 'Point Sprite'
+    gausspnt.RenderMode = GaussType.get_mode(thePrimitiveType)
+    gausspnt.RadiusTransferFunctionEnabled = 1
+    gausspnt.RadiusMode = 'Scalar'
+    gausspnt.RadiusScalarRange = array_range
+    gausspnt.RadiusArray = [None, radius_array]
+    gausspnt.RadiusIsProportional = 1
+    
+    # Get lookup table
+    lookup_table = GetStdLookupTable(theScalarFieldName, nb_components, theVectorMode)
+
+    # Set field range if necessary
+    data_range = GetDataRange(theProxy, theScalarEntityType, theScalarFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
+    
+    # Set display properties
+    if (theIsColored):
+        gausspnt.ColorAttributeType = theEntityType
+        gausspnt.ColorArrayName = theFieldName
+    else:
+        gausspnt.ColorArrayName = ''
+        if (theColor is not None):
+            gausspnt.DiffuseColor = theColor
+            
+    gausspnt.LookupTable = lookup_table
+    
+    # Add scalar bar
+    bar_title = theScalarFieldName + ", " + str(time_value)
+    if (nb_components > 1):
+        bar_title += "\n" + theVectorMode
+    scalarBar = GetStdScalarBar(bar_title, lookup_table)
+    pv.GetRenderView().Representations.append(scalarBar)
 
     return gausspnt
 
@@ -1044,192 +1258,259 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
                        theIsColored=False, theVectorMode='Magnitude'):
     """Creates Stream Lines on the given field."""
     # Get time value
-    timeValue = GetTime(theProxy, theTimeStampNumber)
+    time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
-    GetRenderView().ViewTime = timeValue
-    UpdatePipeline(timeValue, theProxy)
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, theProxy)
     
     # Hide initial object
-    rep = GetRepresentation(theProxy)
+    rep = pv.GetRepresentation(theProxy)
     rep.Visibility = 0
 
+    # Cell centers
+    if (IsDataOnCells(theProxy, theFieldName)):
+        cell_centers = pv.CellCenters(theProxy)
+        cell_centers.VertexCells = 1
+    
     streamlines = None
     
     return streamlines
 
-def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete = 0):
+def MeshOnEntity(theProxy, theMeshName, theEntityType):
+    """Creates submesh of the entity type for the mesh.
+
+    Keyword arguments:
+    theProxy -- the pipeline object, containig data
+    theMeshName -- the mesh name
+    theEntityType -- the entity type
+    
+    """
+    # Get subset of groups on the given entity
+    subset = _get_group_names(theProxy, theMeshName, theEntityType)
+
+    # Select only groups of the given entity type
+    theProxy.Groups = subset
+    theProxy.UpdatePipeline()
+
+    # Get representation object if the submesh is not empty
+    prs = None
+    if (theProxy.GetDataInformation().GetNumberOfPoints() or
+        theProxy.GetDataInformation().GetNumberOfCells()):
+        prs = pv.GetRepresentation(theProxy)
+    
+    return prs
+
+def MeshOnGroup(theProxy, theGroupName):
+    """Creates submesh on the group.
+
+    Keyword arguments:
+    theProxy -- the pipeline object, containig data
+    theGroupName -- the full group name
+    
+    """
+    # Select only the group with the given name
+    #@MZN: DEBUG
+    print ("theProxy.Groups = ", [theGroupName])
+    one_group = [theGroupName]
+    theProxy.Groups = one_group
+    theProxy.UpdatePipeline()
+    
+    # Get representation object if the submesh is not empty
+    prs = None
+
+    #@MZN: DEBUG
+    print ("theProxy.GetDataInformation().GetNumberOfPoints() = ", theProxy.GetDataInformation().GetNumberOfPoints())
+    print ("theProxy.GetDataInformation().GetNumberOfCells() = ", theProxy.GetDataInformation().GetNumberOfCells())
+    print ("theProxy.Groups.GetData() = : ", theProxy.Groups.GetData())  #@MZN
+
+    # Check if the group was set
+    if theProxy.Groups.GetData() == one_group:
+        group_entity = _get_group_entity(theGroupName)
+        # Check if the submesh is not empty
+        nb_nodes = theProxy.GetDataInformation().GetNumberOfPoints()
+        nb_cells = theProxy.GetDataInformation().GetNumberOfCells()
+        on_nodes = group_entity == EntityType.NODE
+        on_cells = group_entity == EntityType.CELL
+        if (on_nodes and nb_points) or (on_cells and nb_cells):
+            prs = pv.GetRepresentation(theProxy)
+        
+    return prs
+
+def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir,
+                     thePictureExt, theIsAutoDelete = 0):
     """Build presentations of the given types for all fields of the given file."""
-    print "Import %s..." % theFileName.split('/')[-1],
+    print("Import {0}...".format(theFileName.split('/')[-1]), end='')
     theParavis.ImportFile(theFileName)
-    aProxy = GetActiveSource()
-    if aProxy is None:
-        raise RuntimeError, "Error: can't import file."
-    else: print "OK"
+    proxy = pv.GetActiveSource()
+    if proxy is None:
+        print("FAILED")
+        raise RuntimeError("Error: can't import file.")
+    else: print("OK")
 
     # Get view
-    aView = GetRenderView()
+    view = pv.GetRenderView()
 
     # Create required presentations for the proxy
-    CreatePrsForProxy(aProxy, aView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
+    CreatePrsForProxy(proxy, view, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
 
-def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete):
-    """Build presentations of the given types for all fields of the given proxy."""
-    aFieldNames = theProxy.PointArrays.GetData()
-    aNbOnNodes = len(aFieldNames)
-    aFieldNames.extend(theProxy.CellArrays.GetData())
-    aTimeStamps = theProxy.TimestepValues.GetData()
-
-    for i in xrange(len(aFieldNames)):
-        aFieldName = aFieldNames[i]
-        aFieldEntity = 'POINT_DATA'
-        if (i >= aNbOnNodes):
-            aFieldEntity = 'CELL_DATA'
+def _create_prs(thePrsType, theProxy, theFieldEntity, theFieldName, theTimeStampNb):
+    """Internal method. Build presentation of the given type on the given field and
+    timestamp number. Set the presentation properties like visu.CreatePrsForResult() do.
+    """
+    prs = None
+    
+    if thePrsType == PrsTypeEnum.SCALARMAP:
+        prs = ScalarMapOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.CUTPLANES:
+        prs = CutPlanesOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb,
+                               theOrientation = Orientation.ZX)
+    elif thePrsType == PrsTypeEnum.CUTLINES:
+        prs = CutLinesOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb,
+                              theOrientation1 = Orientation.XY, theOrientation2 = Orientation.ZX)
+    elif thePrsType == PrsTypeEnum.DEFORMEDSHAPE:
+        prs = DeformedShapeAndScalarMapOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.DEFORMEDSHAPESCALARMAP:
+        prs = DeformedShapeAndScalarMapOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.VECTORS:
+        prs = VectorsOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.PLOT3D:
+        prs = Plot3DOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.ISOSURFACES:
+        prs = IsoSurfacesOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.GAUSSPOINTS:
+        prs = GaussPointsOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    elif thePrsType == PrsTypeEnum.STREAMLINES:
+        prs = StreamLinesOnField(theProxy, theFieldEntity, theFieldName, theTimeStampNb)
+    else:
+        raise ValueError("Unexistent presentation type.")
         
-        if HasValue(thePrsTypeList, PrsTypeEnum.SCALARMAP):
-            # Create Scalar Map for all timestamps
-            for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Scalar Map on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = ScalarMapOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                if aPrs is None :
-                    print "Error: can't create Scalar Map." 
-                else:
-                    print "OK"
+    return prs
+        
+def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete):
+    """Build presentations of the given types for all fields of the given proxy.
+    Save snapshots in graphics files (type depends on the given extension).
+    Stores the files in the given directory.
+    
+    Keyword arguments:
+    theProxy -- the pipeline object, containig data arrays
+    theView  -- the render view
+    thePrsTypeList  -- the list of presentation types to build
+    thePictureDir   -- the directory path for saving snapshots
+    thePictureExt   -- graphics files extension (determines file type)
+    
+    """
+    
+    field_names = theProxy.PointArrays.GetData()
+    nb_on_nodes = len(field_names)
+    field_names.extend(theProxy.CellArrays.GetData())
 
-                # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_SCALARMAP." + thePictureExt 
+    # Add path separator to the end of picture path if necessery
+    if not thePictureDir.endswith(os.sep):
+        thePictureDir += os.sep
+        
+    # Mesh Presentation
+    if PrsTypeEnum.MESH in thePrsTypeList:
+        # Create Mesh presentation. Build all possible submeshes.
 
-                # Show and record the presentation
-                ProcessPrsForTest(aPrs, theView, aPictureName)
-                
-        if HasValue(thePrsTypeList, PrsTypeEnum.CUTPLANES):
-            # Create Cut Planes for all timestamps
-            for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Cut Planes on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = CutPlanesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb,
-                                        theOrientation = Orientation.ZX)
-                if aPrs is None :
-                    print "Error: can't create Cut Planes." 
-                else:
-                    print "OK" 
+        # Remember the current state
+        groups = list(theProxy.Groups)
 
-                # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_CUTPLANES." + thePictureExt
-
-                # Show and record the presentation
-                ProcessPrsForTest(aPrs, theView, aPictureName)
-
-        if HasValue(thePrsTypeList, PrsTypeEnum.CUTLINES):
-            # Create Cut Lines for all timestamps
-            for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Cut Lines on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = CutLinesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb,
-                                       theOrientation1 = Orientation.XY, theOrientation2 = Orientation.ZX)
-                if aPrs is None :
-                    print "Error: can't create Cut Lines." 
-                else:
-                    print "OK" 
-
-                # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_CUTLINES." + thePictureExt
-
-                # Show and record the presentation
-                ProcessPrsForTest(aPrs, theView, aPictureName)
-
-        if HasValue(thePrsTypeList, PrsTypeEnum.DEFORMEDSHAPE):
-            # Create  Deformed Shape for all timestamps if possible
-            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.DEFORMEDSHAPE)
-            if (aIsPossible):
-                for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                    timeValue = aTimeStamps[timeStampNb-1]
-                    print "          Creating Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
-                    aPrs = DeformedShapeOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                    if aPrs is None :
-                        print "Error: can't create Deformed Shape." 
+        # Iterate on meshes
+        mesh_names = _get_mesh_names(theProxy)
+        for mesh_name in mesh_names:
+            # Build mesh on nodes and cells
+            for entity_type in (EntityType.NODE, EntityType.CELL):
+                entity_name = EntityType.get_name(entity_type)
+                if IfPossible(theProxy, mesh_name, entity_type, PrsTypeEnum.MESH):
+                    print("Creating submesh on {0} for '{1}' mesh... ".format(entity_name,
+                                                                              mesh_name),
+                          end='')
+                    prs = MeshOnEntity(theProxy, mesh_name, entity_type)
+                    if prs is None :
+                        print("FAILED")
+                        continue
                     else:
-                        print "OK" 
-
+                        print("OK")
                     # Construct image file name
-                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPE." + thePictureExt
+                    pic_name = "{folder}{mesh}_{type}.{ext}".format(folder=thePictureDir,
+                                                                    mesh=mesh_name,
+                                                                    type=entity_name,
+                                                                    ext=thePictureExt)
 
-                    # Show and record the presentation
-                    ProcessPrsForTest(aPrs, theView, aPictureName)
-
-        if HasValue(thePrsTypeList, PrsTypeEnum.DEFORMEDSHAPESCALARMAP):
-            # Create Scalar Map on Deformed Shape for all timestamps if possible
-            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.DEFORMEDSHAPESCALARMAP)
-            if (aIsPossible):
-                for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                    timeValue = aTimeStamps[timeStampNb-1]
-                    print "          Creating Scalar Map on Deformed Shape on %s, time = %s... " % (aFieldName, str(timeValue)),
-                    aPrs = DeformedShapeAndScalarMapOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                    if aPrs is None :
-                        print "Error: can't create Scalar Map on Deformed Shape." 
-                    else:
-                        print "OK" 
-
-                    # Construct image file name
-                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_DEFORMEDSHAPESCALARMAP." + thePictureExt
-
-                    # Show and record the presentation
-                    ProcessPrsForTest(aPrs, theView, aPictureName)
-
-        if HasValue(thePrsTypeList, PrsTypeEnum.VECTORS):
-            # Create Vectors for all timestamps if possible
-            aIsPossible = IfPossible(theProxy, aFieldEntity, aFieldName, PrsTypeEnum.VECTORS)
-            if (aIsPossible):
-                for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                    timeValue = aTimeStamps[timeStampNb-1]
-                    print "          Creating Vectors on %s, time = %s... " % (aFieldName, str(timeValue)),
-                    aPrs = VectorsOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                    if aPrs is None :
-                        print "Error: can't create Vectors." 
-                    else:
-                        print "OK" 
-
-                    # Construct image file name
-                    aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_VECTORS." + thePictureExt
-
-                    # Show and record the presentation
-                    ProcessPrsForTest(aPrs, theView, aPictureName)
+                    # Show and dump the presentation into a graphics file
+                    process_prs_for_test(prs, theView, pic_name)
                     
-        if HasValue(thePrsTypeList, PrsTypeEnum.PLOT3D):
-            # Create  Plot 3D for all timestamps if possible
-            for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Plot 3D on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = Plot3DOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                if aPrs is None :
-                    print "Error: can't create Plot 3D." 
-                else:
-                    print "OK" 
+                # Build submesh on all groups of the mesh
+                mesh_groups = _get_group_names(theProxy, mesh_name, entity_type)
+                for group in mesh_groups:
+                    print("Creating submesh on group {0}... ".format(group), end='')
+                    prs = MeshOnGroup(theProxy, group)
+                    if prs is None :
+                        print("FAILED")
+                        continue
+                    else:
+                        print("OK")
+                    # Construct image file name
+                    pic_name = "{folder}{group}.{ext}".format(folder=thePictureDir,
+                                                              group=group.replace('/','_'),
+                                                              ext=thePictureExt)
+                
+                    # Show and dump the presentation into a graphics file
+                    process_prs_for_test(prs, theView, pic_name)
+                
+        # Restore the state
+        theProxy.Groups = groups
+        theProxy.UpdatePipeline()
+ 
+    # Presentations on fields
+    for (i, field_name) in enumerate(field_names):
+        # Select only the current field: necessary for getting the right timestamps
+        field_entity = None
+        if (i >= nb_on_nodes):
+            field_entity = 'CELL_DATA'
+            theProxy.PointArrays.DeselectAll()
+            theProxy.CellArrays = [field_name]
+        else:
+            field_entity = 'POINT_DATA'
+            theProxy.CellArrays.DeselectAll()
+            theProxy.PointArrays = [field_name]
 
-                # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_PLOT3D." + thePictureExt
+        # Get timestamps
+        theProxy.UpdatePipeline()
+        timestamps = theProxy.TimestepValues.GetData()
+    
+        for prs_type in thePrsTypeList:
+            # Ignore mesh presentation
+            if prs_type == PrsTypeEnum.MESH:
+                continue
+            
+            # Get name of presentation type
+            prs_name = PrsTypeEnum.get_name(prs_type)
 
-                # Show and record the presentation
-                ProcessPrsForTest(aPrs, theView, aPictureName)
+            # Build the presentation if possible
+            possible = IfPossible(theProxy, field_name, field_entity, prs_type)
+            if possible:
+                # Presentation type for graphics file name
+                f_prs_type = prs_name.replace(' ', '').upper()
+                
+                for timestamp_nb in xrange(1, len(timestamps)+1):
+                    time = timestamps[timestamp_nb-1]
+                    print("Creating {0} on {1}, time = {2}... ".format(prs_name, field_name, time),
+                          end='')
+                    prs = _create_prs(prs_type, theProxy, field_entity, field_name, timestamp_nb)
+                    if prs is None :
+                        print("FAILED")
+                        continue
+                    else:
+                        print("OK")
+            
+                    # Construct image file name
+                    pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=thePictureDir,
+                                                                            field=field_name,
+                                                                            time=time,
+                                                                            type=f_prs_type,
+                                                                            ext=thePictureExt)
 
-        if HasValue(thePrsTypeList, PrsTypeEnum.ISOSURFACES):
-            # Create Iso Surfaces for all timestamps
-            for timeStampNb in xrange(1, len(aTimeStamps)+1):
-                timeValue = aTimeStamps[timeStampNb-1]
-                print "          Creating Iso Surfaces on %s, time = %s... " % (aFieldName, str(timeValue)),
-                aPrs = IsoSurfacesOnField(theProxy, aFieldEntity, aFieldName, timeStampNb)
-                if aPrs is None :
-                    print "Error: can't create Iso Surfaces." 
-                else:
-                    print "OK" 
-
-                # Construct image file name
-                aPictureName = thePictureDir + aFieldName + "_" + str(timeValue) + "_ISOSURFACES." + thePictureExt
-
-                # Show and record the presentation
-                ProcessPrsForTest(aPrs, theView, aPictureName)
-
-    # Delete the proxy if necessary
-    if (theIsAutoDelete):
-        Delete(proxy=theProxy)
+                    # Show and dump the presentation into a graphics file
+                    process_prs_for_test(prs, theView, pic_name)
