@@ -1,4 +1,12 @@
+"""
+This module provides auxiliary classes, functions and variables for testing.
+"""
+
+from __future__ import print_function
+
 import os
+from datetime import date
+
 import salome
 
 # Auxiliary classes
@@ -20,75 +28,74 @@ class SalomeSession(object):
     pass
 
 # Auxiliary functions
-def TestValues(Value, Etvalue, CHECK_ERROR=0):
+def test_values(value, et_value, check_error=0):
+    """Test values."""
     error=0
-    length = len (Value)
-    Etlength = len (Etvalue)
-    if (length != Etlength):
-        print "ERROR!!! There is different number of created ",length, " and etalon ", Etlength, " values!!!"
+    length = len(value)
+    et_length = len(et_value)
+    if (length != et_length):
+        err_msg = "ERROR!!! There is different number of created {0} and\
+        etalon {1} values!!!".format(length, et_length)
+        print(err_msg)
 	error = error+1
     else:
-        for i in range(Etlength):
-	    if abs(Etvalue[i]) > 1:
-	        MAX = abs(0.001*Etvalue[i])
-		if abs(Etvalue[i] -  Value[i]) > MAX: 
-		    print "ERROR!!! Got value ", Value[i], " is not equal to etalon value!!!", Etvalue[i]
+        for i in range(et_length):
+	    if abs(et_value[i]) > 1:
+	        max_val = abs(0.001*et_value[i])
+		if abs(et_value[i] -  value[i]) > max_val:
+                    err_msg = "ERROR!!! Got value {0} is not equal\
+                    to etalon value {1}!!!".format(value[i],  et_value[i])
+		    print(err_msg)
 		    error=error+1
 	    else:
-	        MAX = 0.001
-		if abs(Etvalue[i] -  Value[i])> MAX:
-		    print "ERROR!!! Got value", Value[i], " is not equal to etalon value!!!", Etvalue[i]
+	        max_val = 0.001
+		if abs(et_value[i] -  value[i])> max_val:
+		    err_msg = "ERROR!!! Got value {0} is not equal\
+                    to etalon value {1}!!!".format(value[i],  et_value[i])
 		    error=error+1
-    if CHECK_ERROR and error > 0:
-       raise RuntimeError, "There is(are) some error(s) was(were) found... For more info see ERRORs above..."
+    if check_error and error > 0:
+        err_msg = "There is(are) some error(s) was(were) found... For more info see ERRORs above..."
+        raise RuntimeError(err_msg)
     return error
+
+def get_picture_dir(pic_dir, subdir):
+    res_dir = pic_dir
+    if not res_dir:
+        res_dir = "/tmp/pic"
+
+    # Add current date and subdirectory for the case to the directory path
+    cur_date = date.today().strftime("%d%m%Y")
+    res_dir += "/test_{date}/{subdir}".format(date=cur_date, subdir=subdir)
+    # Create the directory if doesn't exist
+    res_dir = os.path.normpath(res_dir)
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+
+    return res_dir
+    
 
 # Auxiliary variables
 
-# Set directories
+# Data directory
 datadir = os.getenv("DATA_DIR")
 if datadir is not None:
     datadir=datadir+ "/MedFiles/"
 
-output = os.getenv("CASE_LOG_FILE")
-
-pic_dir_suf = os.getenv("PIC_DIR_SUFFICS")
-
-if pic_dir_suf == None:
-    pic_dir_suf = "_dat"
-
-if output is not None:
-    picturedir = output + pic_dir_suf + "/"
-else:
-    picturedir = "/tmp/pic/"
-
-if not os.path.exists(picturedir) :
-    os.mkdir(picturedir)
-#MZN:
-#else:   #clear the old pictures in the dir
-#   	dir = os.listdir(picturedir)
-#	for item in dir :
-#		fitem = picturedir + "/" + item
-#		if os.path.isfile(fitem):
-#			os.remove(fitem)
-
+# Graphica files extension
 pictureext = os.getenv("PIC_EXT");
 if pictureext == None:
-    pictureext="bmp"
+    pictureext="png"
 
 # Run Salome
 salome_session = SalomeSession()
 salome.salome_init()
 
 # Create new study
-#import visu_gui #@MZN: to be reimplemented
-
-# Create new study
-print "Creating new study...",
+print ("Creating new study...", end="")
 aStudy = salome.myStudyManager.NewStudy("Study1")
 if aStudy is None: 
-    raise RuntimeError, "Error"
+    raise RuntimeError("Error")
 else: 
-    print "OK"
+    print("OK")
 
 salome.myStudy = aStudy
