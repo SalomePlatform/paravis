@@ -20,13 +20,23 @@
 #  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SUBDIRS(Aux 
-	2D_viewer 
-	ScalarMap 
-	DeformedShape 
-	ScalarMap_On_DeformedShape 
-	CutPlanes 
-	CutLines 
-	Vectors 
-	MeshPresentation)
+IF (PYTHON_EXECUTABLE)
+  FOREACH ( tfile
+      A1	
+      A2
+      )
+    ADD_TEST(MESH_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${TEST_PICTURE_DIR})
+    SET_TESTS_PROPERTIES(MESH_${tfile} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+  ENDFOREACH( tfile )
+ENDIF (PYTHON_EXECUTABLE)
+
+
+
+
+
+
+
+
+
+
 
