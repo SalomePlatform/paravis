@@ -101,6 +101,7 @@ ENDFOREACH(dir ${SUBDIRS})
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/PARAVIS_version.h DESTINATION include/salome)
 
 # Configure Testing
+SET(TEST_PICTURE_DIR /tmp/pic CACHE PATH "Directory for saving test pictures.")
 OPTION(BUILD_TESTING "Build ParaVis Testing" ON)
 IF(BUILD_TESTING)
    SET(PARAVIS_TEST_DIR ${ParaVis_BINARY_DIR}/Test/Temporary)
