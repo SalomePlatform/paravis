@@ -7,10 +7,11 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 	
 	# Setup output directories.
-set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL
-	  "Single output directory for building all libraries.")
-set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL
-	  "Single output directory for building all executables.")
+## !!! This definition corrupts wrapping process
+#set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL
+#	  "Single output directory for building all libraries.")
+#set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL
+#	  "Single output directory for building all executables.")
 	
 SET(MED_READER_MAJOR_VERSION 3)
 SET(MED_READER_MINOR_VERSION 0)
