@@ -22,8 +22,41 @@
 
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
+      A0
+      A1
       A2
+      A3
+      A4
+      A5
+      A6      
+      A7
+      A8
+      A9
+      B0
+      B1
+      B2
+      B3
+      E0
+      E1
+      E2
+      E3      
+      E4
+      E5
+      E6
+      E7
+      E8
+      E9
+      F0
+      F1
+      F2
+      F3
+      F4
+      F5
+      F6
+      F7      
+      F8
+      F9
       )
-    ADD_TEST(VECTORS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
+    ADD_TEST(VECTORS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${TEST_PICTURE_DIR})
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)

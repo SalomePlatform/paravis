@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "homard_ASTER_OSF_MEDV2.1.5_1_v2.2.med"
+file = datadir +  "homard_ASTER_OSF_MEDV2.1.5_1_v2.2_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "hydro_sea_alv.med"
+file = datadir +  "hydro_sea_alv_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

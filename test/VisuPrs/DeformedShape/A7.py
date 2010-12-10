@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "Tetra4.med"
+file = datadir +  "Tetra4_246_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

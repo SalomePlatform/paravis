@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "cas2_2d_couplage_chess_castem.med"
+file = datadir +  "cas2_2d_couplage_chess_castem_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

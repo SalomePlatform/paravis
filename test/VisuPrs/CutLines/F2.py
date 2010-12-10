@@ -8,7 +8,7 @@ import paravis
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "T_COUPLEX1.med"
+file = datadir +  "T_COUPLEX1_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

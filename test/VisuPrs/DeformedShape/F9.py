@@ -1,14 +1,18 @@
 #This case corresponds to: /visu/DeformedShape/F9 case
 #%Create Deformed Shape for field of the the given MED file for 10 timestamps%
 
-from paravistest import * 
+import sys
+from paravistest import datadir, pictureext, get_picture_dir
 from presentations import *
+from pvsimple import *
 import paravis
 
 # Create presentations
 myParavis = paravis.myParavis
 
-theFileName = datadir +  "Bug829_resu_mode.med"
+picturedir = get_picture_dir(sys.argv[1], "DeformedShape/F9")
+
+theFileName = datadir +  "Bug829_resu_mode_236.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "
@@ -31,33 +35,37 @@ aFieldNames.extend(aProxy.CellArrays.GetData())
 aTimeStamps = aProxy.TimestepValues.GetData()
 aFieldEntity = 'POINT_DATA'
 aFieldName = "MODES_DEPL"
-#create list to store picture files sizes
-sizes=[]
 
-picturedir += "DeformedShape/G2/"
+#Creation of a set of non-colored DeformedShape presentations, based on time stamps of MODES_DEPL field
 
 for i in range(1,11):
-
-	aPrs = DeformedShapeOnField(aProxy, aFieldEntity,aFieldName , i)	
-	
-	if aPrs is None : 
-        	raise RuntimeError, "Presentation is None!!!"
-	
-	# display only current deformed shape
-    	DisplayOnly(aView,aPrs)
-    	#aView.FitAll()
-	
-    	picture_name = picturedir + "time_stamp_"+str(i)+"."+pictureext
-	
-    	# Show and record the presentation
-        ProcessPrsForTest(aPrs, aView, picture_name)
-
-    	sizes.append(os.path.getsize(picture_name))
-	
-# check sizes of pictures	
-if abs(max(sizes)-min(sizes)) > 0.01*max(sizes):
-    print "<b>WARNING!!! Pictures have different sizes!!!</b>"; errors+=1
-    for i in range(1,11):
-	picture_name = "time_stamp_"+str(i)+"."+pictureext
-	print "Picture: "+picture_name+"; size: "+str(sizes[i-1]) 
-    raise RuntimeError	
+    HideAll(aView, True)
+    aPrs = DeformedShapeOnField(aProxy, aFieldEntity,aFieldName , i)	
+    if aPrs is None:
+        raise RuntimeError, "Presentation is None!!!"
+    # display only current deformed shape
+    DisplayOnly(aView,aPrs)
+    #Prs.Visibility =1	
+    #ResetView(aView)
+    #Render(aView)
+    picture_name = picturedir + "time_stamp_1_"+str(i)+"."+pictureext
+    # Show and record the presentation
+    process_prs_for_test(aPrs, aView, picture_name)
+    
+#^Creation of a set of colored DeformedShape presentations, based on time stamps of MODES_DEPL field
+aView = CreateRenderView()
+#ResetView(aView)
+#Render(aView)
+for j in range(1,11):
+    HideAll(aView, True)
+    aPrs2 = DeformedShapeOnField(aProxy, aFieldEntity,aFieldName , j,theIsColored=True)	
+    if aPrs2 is None:
+        raise RuntimeError, "Presentation is None!!!"
+    # display only current deformed shap
+    DisplayOnly(aView,aPrs2)
+   # aPrs2.Visibility =1	
+    #ResetView(aView)
+    #Render(aView)
+    picture_name = picturedir + "time_stamp_2_"+str(j)+"."+pictureext
+    # Show and record the presentation
+    process_prs_for_test(aPrs2, aView, picture_name)
