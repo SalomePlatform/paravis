@@ -16,14 +16,13 @@ class SalomeSession(object):
         import sys
         sys.argv += ["--show-desktop=1"]
 	sys.argv += ["--splash=0"]
-        sys.argv += ["--modules=PARAVIS"]
+        sys.argv += ["--modules=VISU,PARAVIS"]
         clt, d = runSalome.main()
         port = d['port']
         self.port = port
         return
     def __del__(self):
-        from os import system
-        system('killSalomeWithPort.py %s'%(self.port))
+        os.system('killSalomeWithPort.py %s'%(self.port))
         return
     pass
 
@@ -70,6 +69,11 @@ def get_picture_dir(pic_dir, subdir):
     res_dir = os.path.normpath(res_dir)
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
+    else:
+        # Clean the directory
+        for root, dirs, files in os.walk(res_dir):
+            for f in files:
+                os.remove(os.path.join(root, f))
 
     return res_dir
     
@@ -79,8 +83,9 @@ def get_picture_dir(pic_dir, subdir):
 # Data directory
 datadir = os.getenv("DATA_DIR")
 if datadir is not None:
-    datadir=datadir+ "/MedFiles/"
-
+    datadir =  os.path.normpath(datadir)
+    datadir = datadir+ "/MedFiles/"
+    
 # Graphica files extension
 pictureext = os.getenv("PIC_EXT");
 if pictureext == None:
