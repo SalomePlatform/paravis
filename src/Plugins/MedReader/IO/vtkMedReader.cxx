@@ -2822,14 +2822,15 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
       // if I use the med2VTKIndex, then the index to insert this value is given by the map.
       if(useMed2VTKIndex)
         {
-        if(med2VTKIndex.find(destIndex)==med2VTKIndex.end())
+	map<vtkIdType, vtkIdType>::const_iterator itr = med2VTKIndex.find(destIndex);
+        if(itr==med2VTKIndex.end())
           {
           // this point is not used by this familyOnEntity, skip it.
           continue;
           }
         else
           {
-          destIndex=med2VTKIndex.at(destIndex);
+          destIndex=(*itr).second;
           }
         }
       data->InsertTuple(destIndex, id, stepOnMesh->GetData());
