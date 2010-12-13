@@ -41,6 +41,7 @@ public:
   {
     this->VTKConnect = vtkSmartPointer<vtkEventQtSlotConnect>::New();
     this->SILUpdateStamp = -1;
+    this->Links.setAutoUpdateVTKObjects(false);
   }
 
   ~pqUI()
