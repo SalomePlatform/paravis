@@ -32,7 +32,8 @@ IF (PYTHON_EXECUTABLE)
       A7
       A8
       A9
-      B0     
+      B0
+      B1
       B2
       E0
       E1
@@ -53,11 +54,12 @@ IF (PYTHON_EXECUTABLE)
       F6
       F7
       F8
-      F9            
+      F9
+      G0            
       G1
       G2      
       )
-    ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${TEST_PICTURE_DIR})
+    ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)
 

@@ -1,11 +1,13 @@
-#This case corresponds to: /visu/ScalarMap/G2 case
-#%Create Scalar Map for field of the the given MED file for 10 timestamps%
+# This case corresponds to: /visu/ScalarMap/G2 case
+# Create Scalar Map for field of the the given MED file for 10 timestamps%
 
 import sys
+
 from paravistest import datadir, pictureext, get_picture_dir
-from presentations import *
-from pvsimple import *
 import paravis
+from pvsimple GetActiveSource, GetRenderView, Render, ResetView
+from presentations import ScalarMapOnField, HideAll
+
 
 # Create presentations
 myParavis = paravis.myParavis
@@ -20,19 +22,19 @@ print " --------------------------------- "
 """Build presentations of the given types for all fields of the given file."""
 #print "Import %s..." % theFileName.split('/')[-1],
 result = myParavis.ImportFile(theFileName)
-aProxy = GetActiveSource()
-if aProxy is None:
+proxy = GetActiveSource()
+if proxy is None:
 	raise RuntimeError, "Error: can't import file."
 else: print "OK"
 # Get view
 aView = GetRenderView()
 
 # Create required presentations for the proxy
-# CreatePrsForProxy(aProxy, aView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
-aFieldNames = aProxy.PointArrays.GetData()
+# CreatePrsForProxy(proxy, aView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
+aFieldNames = proxy.PointArrays.GetData()
 aNbOnNodes = len(aFieldNames)
-aFieldNames.extend(aProxy.CellArrays.GetData())
-aTimeStamps = aProxy.TimestepValues.GetData()
+aFieldNames.extend(proxy.CellArrays.GetData())
+aTimeStamps = proxy.TimestepValues.GetData()
 aFieldEntity = 'POINT_DATA'
 aFieldName = "MODES_DEPL"
 #create list to store picture files sizes
@@ -40,7 +42,7 @@ sizes=[]
 
 for i in range(1,11):
     HideAll(aView, True)
-    aPrs = ScalarMapOnField(aProxy, aFieldEntity,aFieldName , i)
+    aPrs = ScalarMapOnField(proxy, aFieldEntity,aFieldName , i)
     if aPrs is None:
         raise RuntimeError, "Presentation is None!!!"
     #display only current scalar map

@@ -1,5 +1,5 @@
-#This case corresponds to: /visu/IsoSurface/G2 case
-#%Create Iso surfaces for field of the the given MED file for 10 timestamps%
+# This case corresponds to: /visu/IsoSurface/G2 case
+# Create Iso surfaces for field of the the given MED file for 10 timestamps%
 
 import sys
 from paravistest import datadir, pictureext, get_picture_dir

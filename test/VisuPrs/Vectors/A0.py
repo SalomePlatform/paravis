@@ -1,14 +1,20 @@
-#This case corresponds to: /visu/Vectors/A0 case
-#%Create Vectors for all fields of the the given MED file%
+# This case corresponds to: /visu/Vectors/A0 case
+# Create Vectors for all fields of the the given MED file
 
-from paravistest import * 
-from presentations import *
+import sys
+
+from paravistest import datadir, pictureext, get_picture_dir
+from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
+
+
+# Directory for saving snapshots
+picturedir = get_picture_dir(sys.argv[1], "Vectors/A0")
 
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "fra.med"
+file = datadir +  "fra_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

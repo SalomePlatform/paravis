@@ -1,5 +1,5 @@
-#This case corresponds to: /visu/Vectors/F9 case
-#%Create Vectors for field of the the given MED file for 10 timestamps%
+# This case corresponds to: /visu/Vectors/F9 case
+# Create Vectors for field of the the given MED file for 10 timestamps%
 
 import sys
 from paravistest import datadir, pictureext, get_picture_dir

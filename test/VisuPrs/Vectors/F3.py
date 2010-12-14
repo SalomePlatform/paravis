@@ -1,9 +1,15 @@
-#This case corresponds to: /visu/Vectors/F3 case
-#%Create Vectors for all fields of the the given MED file%
+# This case corresponds to: /visu/Vectors/F3 case
+# Create Vectors for all fields of the the given MED file
 
-from paravistest import * 
-from presentations import *
+import sys
+
+from paravistest import datadir, pictureext, get_picture_dir
+from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
+
+
+# Directory for saving snapshots
+picturedir = get_picture_dir(sys.argv[1], "Vectors/F3")
 
 # Create presentations
 myParavis = paravis.myParavis

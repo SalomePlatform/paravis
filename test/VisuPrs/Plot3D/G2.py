@@ -1,5 +1,5 @@
-#This case corresponds to: /visu/Plot3D/G2 case
-#%Create Plot 3D for field of the the given MED file for 10 timestamps%
+# This case corresponds to: /visu/Plot3D/G2 case
+# Create Plot 3D for field of the the given MED file for 10 timestamps%
 
 import sys
 from paravistest import datadir, pictureext, get_picture_dir

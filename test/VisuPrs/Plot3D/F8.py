@@ -1,11 +1,14 @@
-#This case corresponds to: /visu/Plot3D/F8 case
-#%Create Plot 3D for all fields of the the given MED file%
+# This case corresponds to: /visu/Plot3D/F8 case
+# Create Plot 3D for all fields of the the given MED file
 
 import sys
-from paravistest import * 
-from presentations import *
+
+from paravistest import datadir, pictureext, get_picture_dir
+from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
 
+
+# Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1], "Plot3D/F8")
 
 # Create presentations
