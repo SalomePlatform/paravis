@@ -1,13 +1,15 @@
-#This case corresponds to: /visu/IsoSurface/F9 case
-#%Create Iso Surface for all fields of the the given MED file%
+# This case corresponds to: /visu/IsoSurface/F9 case
+# Create Iso Surface for all fields of the the given MED file
 
 import sys
-from paravistest import * 
-from presentations import *
+
+from paravistest import datadir, pictureext, get_picture_dir
+from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
 
 
-picturedir = get_picture_dir(sys.argv[1], "IsoSurface/F9")
+# Directory for saving snapshots
+picturedir = get_picture_dir(sys.argv[1], "IsoSurfaces/F9")
 
 # Create presentations
 myParavis = paravis.myParavis
