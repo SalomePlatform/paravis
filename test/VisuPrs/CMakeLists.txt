@@ -21,14 +21,15 @@
 #
 
 SUBDIRS(Aux 
-	2D_viewer 
-	ScalarMap 
-	DeformedShape 
-	ScalarMap_On_DeformedShape 
-	CutPlanes 
-	CutLines 
-	Vectors 
-    Plot3D
-    IsoSurface
-	MeshPresentation)
+        2D_viewer 
+        ScalarMap 
+        DeformedShape 
+        ScalarMap_On_DeformedShape 
+        CutPlanes 
+        CutLines 
+        Vectors 
+        Plot3D
+        IsoSurface
+        MeshPresentation
+	GaussPoints)
 
