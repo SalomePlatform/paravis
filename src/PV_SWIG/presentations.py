@@ -13,6 +13,8 @@ from math import sqrt
 from string import upper
 
 import pvsimple as pv
+# TODO: to be removed (issue with Point Sprite texture)
+import paravisSM as sm
 
 # Constants
 EPS = 1E-3
@@ -239,7 +241,9 @@ def _get_vector_component(vector_mode):
 def get_data_range(proxy, entity_type, field_name, vector_mode='Magnitude'):
     """Get data range for the field."""
     entity_data_info = None
-    if entity_type == EntityType.CELL:
+    if field_name in proxy.QuadraturePointArrays:
+        entity_data_info = proxy.GetFieldDataInformation()
+    elif entity_type == EntityType.CELL:
         entity_data_info = proxy.GetCellDataInformation()
     elif entity_type == EntityType.NODE:
         entity_data_info = proxy.GetPointDataInformation()
@@ -375,7 +379,10 @@ def GetPositions(val_range, theNbPlanes, theDisplacement):
 def get_nb_components(proxy, entity_type, field_name):
     """Return number of components for the field."""
     entity_data_info = None
-    if entity_type == EntityType.CELL:
+
+    if field_name in proxy.QuadraturePointArrays:
+        entity_data_info = proxy.GetFieldDataInformation()
+    elif entity_type == EntityType.CELL:
         entity_data_info = proxy.GetCellDataInformation()
     elif entity_type == EntityType.NODE:
         entity_data_info = proxy.GetPointDataInformation()
@@ -542,7 +549,9 @@ def extract_groups_for_field(proxy, field_name, field_entity):
 
     # Get data information for the field entity
     entity_data_info = None
-    if field_entity == EntityType.CELL:
+    if field_name in proxy.QuadraturePointArrays:
+        entity_data_info = proxy.GetFieldDataInformation()
+    elif field_entity == EntityType.CELL:
         entity_data_info = proxy.GetCellDataInformation()
     elif field_entity == EntityType.NODE:
         entity_data_info = proxy.GetPointDataInformation()
@@ -569,6 +578,7 @@ def extract_groups_for_field(proxy, field_name, field_entity):
 
     return source
 
+
 def if_possible(proxy, field_name, entity_type, prs_type):
     """Check if the presentation is possible on the given field."""
     result = True
@@ -581,7 +591,6 @@ def if_possible(proxy, field_name, entity_type, prs_type):
     elif (prs_type == PrsTypeEnum.GAUSSPOINTS):
         result = (entity_type == EntityType.CELL or 
                   field_name in proxy.QuadraturePointArrays.Available)
-        #@MZN: quadrature points arrays
     elif (prs_type == PrsTypeEnum.MESH):
         result = len(_get_group_names(proxy, field_name, entity_type)) > 0
                 
@@ -764,14 +773,15 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
     pv.UpdatePipeline(time_value, theProxy)
-    
+
+    #@MZN
     # Hide initial object
-    rep = pv.GetRepresentation(theProxy)
-    rep.Visibility = 0
+    #rep = pv.GetRepresentation(theProxy)
+    #rep.Visibility = 0
     
     # Create slice filter
-    slice = pv.Slice(theProxy)
-    slice.SliceType="Plane"
+    slice_filter = pv.Slice(theProxy)
+    slice_filter.SliceType="Plane"
 
     # Set cut planes normal and get range
     normal = [0.0, 0.0, 0.0]
@@ -786,11 +796,11 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         normal[0] = 1.0
         val_range = get_x_range(theProxy)
         
-    slice.SliceType.Normal = normal
+    slice_filter.SliceType.Normal = normal
 
     # Set cut planes positions
-    slice.SliceOffsetValues = GetPositions(val_range, theNbPlanes, theDisplacement)
-    cut_planes = pv.GetRepresentation(slice)
+    slice_filter.SliceOffsetValues = GetPositions(val_range, theNbPlanes, theDisplacement)
+    cut_planes = pv.GetRepresentation(slice_filter)
    
     # Get lookup table
     lookup_table = get_lookup_table(theFieldName, nb_components, theVectorMode)
@@ -918,9 +928,10 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     pv.GetRenderView().ViewTime = time_value
     pv.UpdatePipeline(time_value, theProxy)
 
+    #@MZN
     # Hide initial object
-    rep = pv.GetRepresentation(theProxy)
-    rep.Visibility = 0
+    #rep = pv.GetRepresentation(theProxy)
+    #rep.Visibility = 0
 
     # Extract only groups with data for the field
     new_proxy = extract_groups_for_field(theProxy, theFieldName, theEntityType)
@@ -1001,10 +1012,11 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
     pv.UpdatePipeline(time_value, theProxy)
-    
+
+    #@MZN
     # Hide initial object
-    rep = pv.GetRepresentation(theProxy)
-    rep.Visibility = 0
+    #rep = pv.GetRepresentation(theProxy)
+    #rep.Visibility = 0
 
     # Extract only groups with data for the field
     new_proxy = extract_groups_for_field(theProxy, theFieldName, theEntityType)
@@ -1189,22 +1201,22 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
       
     if (not is_planar_input(theProxy)):
         # Create slice filter
-        slice = pv.Slice(merge_blocks)
-        slice.SliceType="Plane"
+        slice_filter = pv.Slice(merge_blocks)
+        slice_filter.SliceType="Plane"
 
         # Set cutting plane normal
-        slice.SliceType.Normal = normal
+        slice_filter.SliceType.Normal = normal
 
         # Set cutting plane position
         val_range = GetRangeForOrientation(theProxy, orientation)
         
         if (theIsRelative):
-            slice.SliceOffsetValues = GetPositions(val_range, 1, thePosition)
+            slice_filter.SliceOffsetValues = GetPositions(val_range, 1, thePosition)
         else:
-            slice.SliceOffsetValues = thePosition
+            slice_filter.SliceOffsetValues = thePosition
 
-        slice.UpdatePipeline()
-        poly_data = slice
+        slice_filter.UpdatePipeline()
+        poly_data = slice_filter
 
     use_normal = 0
     # Geometry filter
@@ -1371,8 +1383,9 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
 def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                        theIsDeformed=False, theScaleFactor=-1,
                        theIsColored=True, theColor=None,
-                       thePrimitiveType=GaussType.SPRITE,
-                       theMaxPixelSize=256, theMagnification=1, theVectorMode='Magnitude'):
+                       thePrimitiveType=GaussType.SPRITE, theIsProportional=True,
+                       theMaxPixelSize=256,
+                       theMultiplier=None, theVectorMode='Magnitude'):
     """Creates Gauss points on the given field.
     
     If scale factor is defined deformation will be applied.
@@ -1386,23 +1399,23 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
-    pv.UpdatePipeline(time_value, theProxy)
-    
-    # Hide initial object
-    rep = pv.GetRepresentation(theProxy)
-    rep.Visibility = 0
+    theProxy.UpdatePipeline(time=time_value)
+
+    # Extract only groups with data for the field
+    source = extract_groups_for_field(theProxy, theFieldName, theEntityType)
 
     # Quadrature point arrays
-    qp_arrays = theProxy.QuadraturePointArrays
-
-    # If no gauss points are defined, use cell centers
-    source = None
+    qp_arrays = theProxy.QuadraturePointArrays.Available
+    
+    # If no quadrature point array is passed, use cell centers
     if theFieldName in qp_arrays:
-        generate_qp = pv.GenerateQuadraturePoints(theProxy)
-        generate_qp.SelectSourceArray = ['CELLS', theFieldName] #@MZN
+        generate_qp = pv.GenerateQuadraturePoints(source)
+        generate_qp.SelectSourceArray = ['CELLS', 'ELGA_Offset'] #@MZN
+        #generate_qp.SelectSourceArray = ['CELLS', theFieldName]
         source = generate_qp
     else:
-        cell_centers = pv.CellCenters(theProxy)
+        # Cell centers
+        cell_centers = pv.CellCenters(source)
         cell_centers.VertexCells = 1
         source = cell_centers
 
@@ -1430,31 +1443,9 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
         warp_vector.UpdatePipeline()
         source = warp_vector
 
-    # Point sprite settings
-    
-    #@MZN: Add magnification etc.
+    # Get Gauss Points representation
     gausspnt = pv.GetRepresentation(source)
-    gausspnt.Representation = 'Point Sprite'
-    gausspnt.MaxPixelSize = theMaxPixelSize
-    gausspnt.RenderMode = GaussType.get_mode(thePrimitiveType)
-    #@MZN Debug
-    print("Set mode = ", GaussType.get_mode(thePrimitiveType))
-    print("Render mode = ", gausspnt.RenderMode)
-    if thePrimitiveType == GaussType.SPRITE:
-        # Set texture like in visu
-        i = 0
 
-    gausspnt.RadiusInitialized = 1
-    gausspnt.RadiusTransferFunctionEnabled = 1
-    gausspnt.RadiusMode = 'Scalar'
-    #gausspnt.RadiusScalarRange = radius_range
-    #gausspnt.RadiusArray = [None, theFieldName]
-    if nb_components > 0:
-        gausspnt.RadiusVectorComponent = _get_vector_component(theVectorMode)
-    gausspnt.RadiusUseScalarRange = 1
-    gausspnt.RadiusIsProportional = 1
-    gausspnt.RadiusProportionalFactor = theMagnification
-    
     # Get lookup table
     lookup_table = get_lookup_table(theFieldName, nb_components, theVectorMode)
 
@@ -1475,7 +1466,60 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     gausspnt.LookupTable = lookup_table
     
     # Add scalar bar
-    add_scalar_bar(theFieldName, nb_components, theVectorMode, lookup_table, time_value)
+    add_scalar_bar(theFieldName, nb_components,
+                   theVectorMode, lookup_table, time_value)
+
+    # Set point sprite representation
+    gausspnt.Representation = 'Point Sprite'
+
+    # Point sprite settings
+    gausspnt.InterpolateScalarsBeforeMapping = 0
+    gausspnt.MaxPixelSize = theMaxPixelSize
+    
+    # Render mode
+    gausspnt.RenderMode = GaussType.get_mode(thePrimitiveType)
+    
+    if thePrimitiveType == GaussType.SPRITE:
+        # Set texture
+        # TODO: replace with pvsimple high-level interface
+        texture = sm.CreateProxy("textures", "SpriteTexture")
+        alphamprop = texture.GetProperty("AlphaMethod")
+        alphamprop.SetElement(0, 2) # Clamp
+        alphatprop = texture.GetProperty("AlphaThreshold")
+        alphatprop.SetElement(0, 63)
+        maxprop = texture.GetProperty("Maximum")
+        maxprop.SetElement(0, 255)
+        texture.UpdateVTKObjects()
+        
+        gausspnt.Texture = texture
+        #gausspnt.Texture.AlphaMethod = 'Clamp'
+        #gausspnt.Texture.AlphaThreshold = 63
+        #gausspnt.Texture.Maximum= 255 
+
+    # Proportional radius
+    gausspnt.RadiusUseScalarRange = 0
+    gausspnt.RadiusIsProportional = 0
+    
+    if theIsProportional:
+        mult = theMultiplier
+        if mult is None:
+            mult = abs(0.1 / data_range[1])
+        
+        gausspnt.RadiusScalarRange = data_range
+        gausspnt.RadiusTransferFunctionEnabled = 1
+        gausspnt.RadiusMode = 'Scalar'
+        gausspnt.RadiusArray = ['POINTS', theFieldName]
+        if nb_components > 1:
+            gausspnt.RadiusVectorComponent = _get_vector_component(theVectorMode)
+        gausspnt.RadiusTransferFunctionMode = 'Table'
+        gausspnt.RadiusScalarRange = data_range
+        gausspnt.RadiusUseScalarRange = 1
+        gausspnt.RadiusIsProportional = 1
+        gausspnt.RadiusProportionalFactor = mult
+    else:
+        gausspnt.RadiusTransferFunctionEnabled = 0
+        gausspnt.RadiusMode = 'Constant'
+        gausspnt.RadiusArray = ['POINTS', 'Constant Radius']
     
     return gausspnt
 
@@ -1577,18 +1621,27 @@ def MeshOnGroup(theProxy, theGroupName):
 def CreatePrsForFile(theParavis, theFileName, thePrsTypeList, thePictureDir,
                      thePictureExt, theIsAutoDelete = 0):
     """Build presentations of the given types for all fields of the given file."""
+    # Import MED file
     print("Import {0}...".format(theFileName.split(os.sep)[-1]), end='')
-    theParavis.ImportFile(theFileName)
-    proxy = pv.GetActiveSource()
-    if proxy is None:
-        raise RuntimeError("Error: can't import file.")
-    else: print("OK")
-
-    # Get view
-    view = pv.GetRenderView()
-
-    # Create required presentations for the proxy
-    CreatePrsForProxy(proxy, view, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
+    
+    try:
+        theParavis.ImportFile(theFileName)
+        proxy = pv.GetActiveSource()
+        if proxy is None:
+            print ("FAILED")
+        else:
+            proxy.UpdatePipeline()
+            print("OK")
+    except:
+        print ("FAILED")
+        sys.exit()
+    else:
+        # Get view
+        view = pv.GetRenderView()
+    
+        # Create required presentations for the proxy
+        CreatePrsForProxy(proxy, view, thePrsTypeList,
+                          thePictureDir, thePictureExt, theIsAutoDelete)
 
 
 def _create_prs(prs_type, proxy, field_entity, field_name, timestamp_nb):
@@ -1638,7 +1691,7 @@ def CreatePrsForProxy(theProxy, theView, thePrsTypeList, thePictureDir, thePictu
     thePictureExt   -- graphics files extension (determines file type)
     
     """
-    
+    # List of the field names
     field_names = list(theProxy.PointArrays.GetData())
     nb_on_nodes = len(field_names)
     field_names.extend(theProxy.CellArrays.GetData())
