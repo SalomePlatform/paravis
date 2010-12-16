@@ -1,24 +1,20 @@
 # This case corresponds to: /visu/ScalarMap/A7 case
-# Create Scalar Map for all fields of the the given MED file
+# Create Scalar Map for all data of the given MED file
 
 import sys
-
 from paravistest import datadir, pictureext, get_picture_dir
 from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
 
-
-# Directory for saving snapshots
-picturedir = get_picture_dir(sys.argv[1], "ScalarMap/A7")
-
-# Create presentations
+# Create presentations 
 myParavis = paravis.myParavis
 
-file = datadir +  "Tetra4_236.med"
+# Directory for saving snapshots
+picturedir = get_picture_dir(sys.argv[1],"ScalarMap/A7") 
+
+file = datadir + "Tetra4_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "
-print "\nCreatePrsForFile..."
+print "CreatePrsForFile..."
 CreatePrsForFile(myParavis, file, [PrsTypeEnum.SCALARMAP], picturedir, pictureext)
-
-

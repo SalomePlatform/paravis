@@ -2,11 +2,11 @@
 # Create Scalar Map for field of the the given MED file for 10 timestamps%
 
 import sys
-
+import os
 from paravistest import datadir, pictureext, get_picture_dir
 import paravis
-from pvsimple GetActiveSource, GetRenderView, Render, ResetView
-from presentations import ScalarMapOnField, HideAll
+from pvsimple import GetActiveSource, GetRenderView, Render
+from presentations import ScalarMapOnField, hide_all, EntityType, PrsTypeEnum,reset_view,process_prs_for_test
 
 
 # Create presentations
@@ -29,32 +29,44 @@ else: print "OK"
 # Get view
 aView = GetRenderView()
 
-# Create required presentations for the proxy
-# CreatePrsForProxy(proxy, aView, thePrsTypeList, thePictureDir, thePictureExt, theIsAutoDelete)
-aFieldNames = proxy.PointArrays.GetData()
+
+field_names = proxy.PointArrays.GetData()
 aNbOnNodes = len(aFieldNames)
 aFieldNames.extend(proxy.CellArrays.GetData())
 aTimeStamps = proxy.TimestepValues.GetData()
-aFieldEntity = 'POINT_DATA'
+aFieldEntity = EntityType.NODE
 aFieldName = "MODES_DEPL"
 #create list to store picture files sizes
 sizes=[]
-
+#create Scalar Map presentations for 10 timestamps
 for i in range(1,11):
-    HideAll(aView, True)
+    hide_all(aView, True)
     aPrs = ScalarMapOnField(proxy, aFieldEntity,aFieldName , i)
     if aPrs is None:
         raise RuntimeError, "Presentation is None!!!"
     #display only current scalar map
     aPrs.Visibility=1
-    ResetView(aView)
+    reset_view(aView)
     Render(aView)    
-
-    picture_name = picturedir + "time_stamp_"+str(i)+"."+pictureext
+    
+    # Add path separator to the end of picture path if necessery
+    if not picturedir.endswith(os.sep):
+            picturedir += os.sep
+    prs_type = PrsTypeEnum.SCALARMAP
+            
+    # Get name of presentation type
+    prs_name = PrsTypeEnum.get_name(prs_type)    
+    f_prs_type = prs_name.replace(' ', '').upper()
+    # Construct image file name
+    pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=picturedir,
+                                                                            field=aFieldName,
+                                                                            time=str(i),
+                                                                            type=f_prs_type,
+                                                                            ext=pictureext)
+    
     # Show and record the presentation
-    process_prs_for_test(aPrs, aView, picture_name)
-
-    sizes.append(os.path.getsize(picture_name))
+    process_prs_for_test(aPrs, aView, pic_name)
+    sizes.append(os.path.getsize(pic_name))
 
 # check sizes of pictures	
 if abs(max(sizes)-min(sizes)) > 0.01*max(sizes):

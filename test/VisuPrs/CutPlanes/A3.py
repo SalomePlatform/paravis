@@ -1,24 +1,20 @@
 # This case corresponds to: /visu/CutPlanes/A3 case
-# Create Cut Planes for all fields of the the given MED file
+# Create Cut Planes for all data of the given MED file
 
 import sys
-
 from paravistest import datadir, pictureext, get_picture_dir
 from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
 
+# Create presentations 
+myParavis = paravis.myParavis
 
 # Directory for saving snapshots
-picturedir = get_picture_dir(sys.argv[1], "CutPlanes/A3")
-
-# Create presentations
-myParavis = paravis.myParavis
+picturedir = get_picture_dir(sys.argv[1],"CutPlanes/A3") 
 
 file = datadir + "Fields_group3D_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "
-print "\nCreatePrsForFile..."
+print "CreatePrsForFile..."
 CreatePrsForFile(myParavis, file, [PrsTypeEnum.CUTPLANES], picturedir, pictureext)
-
-

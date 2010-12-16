@@ -57,19 +57,8 @@ IF (PYTHON_EXECUTABLE)
       F9
       G0            
       G1
-      G2      
+      G2
       )
     ADD_TEST(SCALARMAP_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
   ENDFOREACH( tfile )
 ENDIF (PYTHON_EXECUTABLE)
-
-
-
-
-
-
-
-
-
-
-

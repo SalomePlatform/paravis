@@ -29,7 +29,7 @@ SUBDIRS(Aux
         CutLines 
         Vectors 
         Plot3D
-        IsoSurface
+        IsoSurfaces
         MeshPresentation
 	GaussPoints
 	StreamLines)

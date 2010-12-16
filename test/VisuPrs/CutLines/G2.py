@@ -32,23 +32,36 @@ aFieldNames = aProxy.PointArrays.GetData()
 aNbOnNodes = len(aFieldNames)
 aFieldNames.extend(aProxy.CellArrays.GetData())
 aTimeStamps = aProxy.TimestepValues.GetData()
-aFieldEntity = 'POINT_DATA'
+aFieldEntity = EntityType.NODE
 aFieldName = "MODES_DEPL"
 
-
+#create Cut Lines presentations for 10 timestamps
 for i in range(1,11):
+    hide_all(aView, True)
     aPrs = CutLinesOnField(aProxy, aFieldEntity,aFieldName , i)
-    HideAll(aView,True)
     if aPrs is None:
         raise RuntimeError, "Presentation is None!!!"
     #display only current scalar map
-    aPrs.Visibility = 1
-    ResetView(aView)
-    Render(aView)
-    #DisplayOnly(aView,aPrs)
-    #aView.FitAll()
-    picture_name = picturedir + "time_stamp_"+str(i)+"."+pictureext
+    aPrs.Visibility=1
+    reset_view(aView)
+    Render(aView)    
+    
+    # Add path separator to the end of picture path if necessery
+    if not picturedir.endswith(os.sep):
+            picturedir += os.sep
+    prs_type = PrsTypeEnum.CUTLINES
+            
+    # Get name of presentation type
+    prs_name = PrsTypeEnum.get_name(prs_type)    
+    f_prs_type = prs_name.replace(' ', '').upper()
+    # Construct image file name
+    pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=picturedir,
+                                                                            field=aFieldName,
+                                                                            time=str(i),
+                                                                            type=f_prs_type,
+                                                                            ext=pictureext)
+    
     # Show and record the presentation
-    process_prs_for_test(aPrs, aView, picture_name)
+    process_prs_for_test(aPrs, aView, pic_name)
 
 

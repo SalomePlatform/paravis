@@ -1,21 +1,20 @@
-#This case corresponds to: /visu/MeshPresentation/A1 case
-#Create all possible submeshes on the given MED file
+# This case corresponds to: /visu/MeshPresentation/A2 case
+# Create Mesh Presentation for all data of the given MED file
 
 import sys
-
 from paravistest import datadir, pictureext, get_picture_dir
 from presentations import CreatePrsForFile, PrsTypeEnum
 import paravis
 
-# Create presentations
+# Create presentations 
 myParavis = paravis.myParavis
 
-picturedir = get_picture_dir(sys.argv[1], "MeshPresentation/A2")
+# Directory for saving snapshots
+picturedir = get_picture_dir(sys.argv[1],"MeshPresentation/A2") 
 
-file = datadir +  "pointe_236.med"
+file = datadir + "pointe_236.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "
-print "\nCreatePrsForFile..."
+print "CreatePrsForFile..."
 CreatePrsForFile(myParavis, file, [PrsTypeEnum.MESH], picturedir, pictureext)
-
