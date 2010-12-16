@@ -14,6 +14,7 @@ class SalomeSession(object):
     def __init__(self):
         import runSalome
         import sys
+	sys.argv += ["--killall"]
         sys.argv += ["--show-desktop=1"]
 	sys.argv += ["--splash=0"]
         sys.argv += ["--modules=VISU,PARAVIS"]
@@ -29,29 +30,29 @@ class SalomeSession(object):
 # Auxiliary functions
 def test_values(value, et_value, check_error=0):
     """Test values."""
-    error=0
+    error = 0
     length = len(value)
     et_length = len(et_value)
     if (length != et_length):
         err_msg = "ERROR!!! There is different number of created {0} and\
         etalon {1} values!!!".format(length, et_length)
         print(err_msg)
-	error = error+1
+	error = error + 1
     else:
         for i in range(et_length):
 	    if abs(et_value[i]) > 1:
-	        max_val = abs(0.001*et_value[i])
+	        max_val = abs(0.001 * et_value[i])
 		if abs(et_value[i] -  value[i]) > max_val:
                     err_msg = "ERROR!!! Got value {0} is not equal\
                     to etalon value {1}!!!".format(value[i],  et_value[i])
 		    print(err_msg)
-		    error=error+1
+		    error = error + 1
 	    else:
 	        max_val = 0.001
-		if abs(et_value[i] -  value[i])> max_val:
+		if abs(et_value[i] - value[i])> max_val:
 		    err_msg = "ERROR!!! Got value {0} is not equal\
-                    to etalon value {1}!!!".format(value[i],  et_value[i])
-		    error=error+1
+                    to etalon value {1}!!!".format(value[i], et_value[i])
+		    error = error + 1
     if check_error and error > 0:
         err_msg = "There is(are) some error(s) was(were) found... For more info see ERRORs above..."
         raise RuntimeError(err_msg)
