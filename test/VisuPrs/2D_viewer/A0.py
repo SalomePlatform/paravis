@@ -1,8 +1,8 @@
-#This case corresponds to: /visu/2D_viewer/A0 case
+# This case corresponds to: /visu/2D_viewer/A0 case
 
-from paravistest import *
+import paravistest
 
-from pvsimple import *
+from pvsimple import CreateXYPlotView, Delete
 
 # Create view
 aXYPlot = CreateXYPlotView()
