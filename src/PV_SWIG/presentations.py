@@ -1040,7 +1040,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
         
     # Warp by vector
     warp_vector = pv.WarpByVector(source)
-    warp_vector.Vectors = [theFieldName]
+    warp_vector.Vectors = [vector_array]
     if (theScaleFactor > 0):
         warp_vector.ScaleFactor = theScaleFactor
     else:
@@ -1060,7 +1060,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName, theTimeStampNumb
     lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
 
     # Set properties
-    if (theIsColored):
+    if theIsColored:
         defshape.ColorAttributeType = EntityType.get_pvtype(theEntityType)
         defshape.ColorArrayName = theFieldName
     else:
@@ -1370,7 +1370,7 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
         isosurfaces.ColorArrayName = theFieldName
     else:
         isosurfaces.ColorArrayName = ''
-        if (theColor is not None):
+        if theColor:
             isosurfaces.DiffuseColor = theColor
     isosurfaces.LookupTable = lookup_table
   
@@ -1524,26 +1524,77 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber
     return gausspnt
 
 
-def StreamLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber, theScaleFactor=-1,
-                       theIsColored=False, theVectorMode='Magnitude'):
+def StreamLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
+                       theDirection='BOTH',
+                       theIsColored=False, theColor = None, theVectorMode='Magnitude'):
     """Creates Stream Lines on the given field."""
+    # We don't need mesh parts with no data on them
+    select_cells_with_data(theProxy)
+    
+    # Check vector mode
+    nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
+    _check_vector_mode(theVectorMode, nb_components)
+
     # Get time value
     time_value = GetTime(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
     pv.UpdatePipeline(time_value, theProxy)
-    
-    # Hide initial object
-    rep = pv.GetRepresentation(theProxy)
-    rep.Visibility = 0
 
-    # Cell centers
-    if is_data_on_cells(theProxy, theFieldName):
-        cell_centers = pv.CellCenters(theProxy)
-        cell_centers.VertexCells = 1
+    # Extract only groups with data for the field
+    new_proxy = extract_groups_for_field(theProxy, theFieldName, theEntityType)
+
+    # Do merge
+    source = new_proxy #pv.MergeBlocks(new_proxy)
     
-    streamlines = None
+    # Cell data to point data
+    if is_data_on_cells(theProxy, theFieldName):
+        cell_to_point = pv.CellDatatoPointData(source)
+        cell_to_point.PassCellData = 1
+        source = cell_to_point
+        source.UpdatePipeline() #@MZN
+
+    vector_array = theFieldName
+    # If the given vector array has only 2 components, add the third one
+    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
+    if nb_components == 2:
+        calculator = get_add_component_calc(source, EntityType.NODE, theFieldName)
+        vector_array = calculator.ResultArrayName
+        source = calculator
+        
+    # Stream Tracer
+    stream = pv.StreamTracer(source)
+    stream.SeedType= "Point Source"
+    stream.Vectors = ['POINTS', vector_array] #@MZN POINTS?
+    stream.SeedType = "Point Source"
+    stream.IntegrationDirection = theDirection
+    stream.UpdatePipeline() #@MZN
+
+    # Get representation
+    streamlines = pv.GetRepresentation(stream)
+   
+    # Get lookup table
+    lookup_table = get_lookup_table(theFieldName, nb_components, theVectorMode)
+
+    # Set field range if necessary
+    data_range = get_data_range(new_proxy, theEntityType, theFieldName, theVectorMode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
+
+    # Set properties
+    if theIsColored:
+        streamlines.ColorAttributeType = EntityType.get_pvtype(theEntityType)
+        streamlines.ColorArrayName = theFieldName
+    else:
+        streamlines.ColorArrayName = ''
+        if theColor:
+            streamlines.DiffuseColor = theColor
+        
+    streamlines.LookupTable = lookup_table
+
+    # Add scalar bar
+    add_scalar_bar(theFieldName, nb_components, theVectorMode, lookup_table, time_value)
     
     return streamlines
 
