@@ -22,7 +22,7 @@
 
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
-     A0
+      A0
       A1
       A2
       A3
