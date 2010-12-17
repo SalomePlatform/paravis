@@ -1377,6 +1377,11 @@ void vtkMedReader::SetGroupStatus(const char* name, int status)
   this->Internal->GroupSelectionMTime.Modified();
 }
 
+int vtkMedReader::GetGroupStatus(const char* key)
+{
+  return this->Groups->GetArraySetting(key);
+}
+
 void vtkMedReader::AddQuadratureSchemeDefinition(vtkInformation* info,
     vtkMedQuadratureDefinition* meddef)
 {
@@ -3236,7 +3241,8 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
           groupGlobalId=groupMap[NULL];
           }
         // add a cross link from this group to this family
-        sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
+        if(onlySelected)
+          sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
         }
       // add all the groups of this family
       for(vtkIdType groupIndex=0; groupIndex<family->GetNumberOfGroup(); groupIndex++)
@@ -3262,7 +3268,8 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
           groupGlobalId=groupMap[group];
           }
         // add a cross link from this group to this family
-        sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
+        if(onlySelected)
+          sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
         }//groupIndex
 
       // add all the attributes of this family
@@ -3298,7 +3305,8 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
           attributeId=attIds[attribute->GetValue()];
           }
         // add a cross link from this attribute to this family
-        sil->AddEdge(attributeId, familyGlobalId, crossEdge);
+        if(onlySelected)
+          sil->AddEdge(attributeId, familyGlobalId, crossEdge);
         }
       }//famIndex
     }//meshIndex

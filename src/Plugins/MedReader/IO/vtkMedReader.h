@@ -109,6 +109,7 @@ vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
   // returns a string
   // GROUP/MESH_NAME/OnPoint/FAMILY_NAME or MESH_NAME/OnCell/FAMILY_NAME
   virtual void SetGroupStatus(const char* key, int flag);
+  virtual int GetGroupStatus(const char* key);
 
   // Description:
   // the animation mode modify the way the reader answers time requests from

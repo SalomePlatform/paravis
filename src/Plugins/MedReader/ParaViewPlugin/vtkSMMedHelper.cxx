@@ -168,7 +168,7 @@ void vtkSMMedHelper::InitializeSelections()
     {
     const char* name = adaptor->GetSelectionName(idx);
     vtkIdType groupId = this->Internal->SILModel->FindVertex(name);
-    if(groupId == -1)
+    if(groupId == -1 || strncmp(name, "GROUP", strlen("GROUP")) != 0)
       continue;
 
     int status = this->Internal->SILModel->GetCheckStatus(groupId);
