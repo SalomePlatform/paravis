@@ -26,7 +26,7 @@ else: print "OK"
 aView = GetRenderView()
 
 #%Creation of the mesh presentation%
-mesh_name = "LargeInconsistentTetra"
+mesh_name = "LargeInconsistent"
 
 #^Presentation on "onNodes" and '"onCells" family^
 entity_types = [EntityType.NODE,EntityType.CELL]
