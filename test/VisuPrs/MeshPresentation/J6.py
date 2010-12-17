@@ -11,7 +11,7 @@ import paravis
 myParavis = paravis.myParavis
 picturedir = get_picture_dir(sys.argv[1], "MeshPresentation/J6")
 
-theFileName = datadir +  "GenTetra2.med"
+theFileName = datadir +  "GeneralTetra.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "
@@ -26,7 +26,7 @@ else: print "OK"
 aView = GetRenderView()
 
 #%Creation of the mesh presentation%
-mesh_name = "GenTetra2"
+mesh_name = "GeneralTetra"
 
 #^Presentation on "onNodes" and '"onCells" family^
 entity_types = [EntityType.NODE,EntityType.CELL]
