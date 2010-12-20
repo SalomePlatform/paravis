@@ -28,7 +28,7 @@ IF (PYTHON_EXECUTABLE)
       A3
       A4
       A5
-      a6      
+      A6      
       A7
       A8
       A9
