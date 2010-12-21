@@ -1466,6 +1466,12 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
     'X', 'Y', 'Z' - vector components.
 
     """
+    # We don't need mesh parts with no data on them
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
+    
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
     _check_vector_mode(theVectorMode, nb_components)
