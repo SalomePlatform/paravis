@@ -526,11 +526,12 @@ def select_all_cells(proxy):
     proxy.UpdatePipeline()
 
 
-def select_cells_with_data(proxy):
-    """Select only cell types which have the data.
+def select_cells_with_data(proxy, on_points=None, on_cells=None):
+    """Select cell types with data.
 
-    Only cell types with data for even one field
-    will be selected.
+    Only cell types with data for the given fields will be selected.
+    If no fields defined (neither on points nor on cells) only cell
+    types with data for even one field (from available) will be selected.
     """
     all_cell_types = proxy.CellTypes.Available
     all_arrays = list(proxy.CellArrays.GetData())
@@ -540,6 +541,7 @@ def select_cells_with_data(proxy):
         file_name = proxy.FileName.split(os.sep)[-1]
         print("Warning: {0} doesn't contain any data array.".format(file_name))
 
+    # List of cell types to be selected
     cell_types_on = []
 
     for cell_type in all_cell_types:
@@ -549,11 +551,23 @@ def select_cells_with_data(proxy):
         cell_arrays = proxy.GetCellDataInformation().keys()
         point_arrays = proxy.GetPointDataInformation().keys()
 
-        in_arrays = lambda array: ((array in cell_arrays) or
-                                   (array in point_arrays))
-        if any(in_arrays(array) for array in all_arrays):
-            cell_types_on.append(cell_type)
+        if on_points or on_cells:
+            if on_points is None:
+                on_points = []
+            if on_cells is None:
+                on_cells = []
 
+            if (all(array in cell_arrays for array in on_cells) and
+                all(array in point_arrays for array in on_points)):
+                # Add cell type to the list
+                cell_types_on.append(cell_type)
+        else:
+            in_arrays = lambda array: ((array in cell_arrays) or
+                                       (array in point_arrays))
+            if any(in_arrays(array) for array in all_arrays):
+                cell_types_on.append(cell_type)
+
+    # Select cell types
     proxy.CellTypes = cell_types_on
     proxy.UpdatePipeline()
 
@@ -1027,8 +1041,11 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
                          theVectorMode='Magnitude'):
     """Creates Defromed shape on the given field."""
     # We don't need mesh parts with no data on them
-    select_cells_with_data(theProxy)
-
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
+    
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
     _check_vector_mode(theVectorMode, nb_components)
@@ -1107,7 +1124,10 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
                                      theVectorMode='Magnitude'):
     """Creates Defromed shape And Scalar Map on the given field."""
     # We don't need mesh parts with no data on them
-    select_cells_with_data(theProxy)
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
 
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1187,7 +1207,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                   theVectorMode='Magnitude'):
     """Creates plot 3d on the given field."""
     # We don't need mesh parts with no data on them
-    select_cells_with_data(theProxy)
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
 
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1318,7 +1341,10 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName,
                        theColor=None, theVectorMode='Magnitude'):
     """Creates Iso Surfaces on the given field."""
     # We don't need mesh parts with no data on them
-    select_cells_with_data(theProxy)
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
 
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1583,7 +1609,10 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
                        theVectorMode='Magnitude'):
     """Creates Stream Lines on the given field."""
     # We don't need mesh parts with no data on them
-    select_cells_with_data(theProxy)
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
 
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1609,7 +1638,6 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
         cell_to_point.UpdatePipeline()
         source = cell_to_point
 
-    
     vector_array = theFieldName
     # If the given vector array has only 2 components, add the third one
     #@MZN: workaround: paraview doesn't treat 2-component array as vectors
@@ -1618,7 +1646,7 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
         vector_array = calc.ResultArrayName
         calc.UpdatePipeline()
         source = calc
- 
+
     # Stream Tracer
     stream = pv.StreamTracer(source)
     stream.SeedType = "Point Source"
@@ -1626,7 +1654,7 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
     stream.SeedType = "Point Source"
     stream.IntegrationDirection = theDirection
     stream.UpdatePipeline()
-    
+
     data_info = stream.GetDataInformation()
     nb_cells = data_info.GetNumberOfCells()
     nb_points = data_info.GetNumberOfPoints()
