@@ -1,5 +1,5 @@
 #This case corresponds to: /visu/animation/B2 case
-#%Create animation for Scalar Map for 'pression' field of the the given MED file and dumps picture files in JPEG format %
+#%Create animation for Cut Planes for 'pression' field of the the given MED file and dumps picture files in JPEG format %
 
 import sys
 import os
@@ -8,9 +8,10 @@ from presentations import *
 from pvsimple import *
 import paravis
 
-# Create presentations
+#import file
 myParavis = paravis.myParavis
 
+# Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1], "Animation/B2")
 
 theFileName = datadir +  "TimeStamps_236.med"
@@ -32,19 +33,10 @@ Render(aView)
 if aView is None : print "Error"
 else : print "OK"
 
-print "Creating Cut Planes........................",
-prs_0 = CutPlanesOnField(aProxy,EntityType.CELL,'pression',1)
-
-if prs_0 is None : print "Error"
-else : print "OK"
-
-prs_0.Visibility=1
-reset_view(aView)
-Render(aView)
-
-prs= ScalarMapOnField(aProxy,EntityType.CELL,'pression' , 2)
-prs.Opacity=0.5
-
+# Cut Planes creation
+prs= CutPlanesOnField(aProxy,EntityType.CELL,'pression' , 2)
+prs.Visibility=1
+aView.ResetCamera()
 print "Creating an Animation.....................",
 my_format = "jpeg"
 print "Current format to save snapshots: ",my_format
@@ -52,18 +44,27 @@ print "Current format to save snapshots: ",my_format
 if not picturedir.endswith(os.sep):
     picturedir += os.sep
 
+# Select only the current field:
+aProxy.PointArrays.DeselectAll()
+aProxy.CellArrays.DeselectAll()
+aProxy.CellArrays = ['pression']
+   
+# Animation creation and saving into set of files into picturedir
 scene = AnimateReader(aProxy,aView,picturedir+"B2_dom."+my_format)
-nb_frames = scene.NumberOfFrames
+nb_frames = len(scene.TimeKeeper.TimestepValues)
 
 pics = os.listdir(picturedir) 
 if len(pics) != nb_frames:
-    print "FAILED!!! Number of made pictures is equal to ", len(pics), " instead of ", nb_frames
+   print "FAILED!!! Number of made pictures is equal to ", len(pics), " instead of ", nb_frames
     
 for pic in pics:
     os.remove(picturedir+pic)    
     
-#scene.FramesPerTimestep = 8
-scene.PlayMode = 1
+# Prepare animation  performance    
+scene.PlayMode = 1 #  set RealTime mode for animation performance
+# set period
+scene.Duration = 30 # correspond to set the speed of animation in VISU 
+scene.GoToFirst()
 print "Animation.................................",
 scene.Play()
 scene.GoToFirst()

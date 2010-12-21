@@ -1,5 +1,5 @@
-#This case corresponds to: /visu/animation/A7 case
-#%Create animation for Cut Lines for 'pression' field of the the given MED file and dumps picture files in PNG format %
+#This case corresponds to: /visu/animation/E7 case
+#%Create animation for Plot 3D for 'pression' field of the the given MED file and dumps picture files in PNG format %
 
 import sys
 import os
@@ -12,7 +12,7 @@ import paravis
 myParavis = paravis.myParavis
 
 # Directory for saving snapshots
-picturedir = get_picture_dir(sys.argv[1], "Animation/A7")
+picturedir = get_picture_dir(sys.argv[1], "Animation/E7")
 
 theFileName = datadir +  "TimeStamps_236.med"
 print " --------------------------------- "
@@ -33,8 +33,8 @@ Render(aView)
 if aView is None : print "Error"
 else : print "OK"
 
-# Cut Lines  creation
-prs= CutLinesOnField(aProxy,EntityType.CELL,'pression' , 2)
+# Plot 3D  creation
+prs= Plot3DOnField(aProxy,EntityType.CELL,'pression' , 2)
 prs.Visibility=1
 aView.ResetCamera()
 print "Creating an Animation.....................",
@@ -44,13 +44,9 @@ print "Current format to save snapshots: ",my_format
 if not picturedir.endswith(os.sep):
     picturedir += os.sep
 
-# Select only the current field:
-aProxy.PointArrays.DeselectAll()
-aProxy.CellArrays.DeselectAll()
-aProxy.CellArrays = ['pression']
    
 # Animation creation and saving into set of files into picturedir
-scene = AnimateReader(aProxy,aView,picturedir+"A7_dom."+my_format)
+scene = AnimateReader(aProxy,aView,picturedir+"E7_dom."+my_format)
 nb_frames = len(scene.TimeKeeper.TimestepValues)
 
 pics = os.listdir(picturedir) 

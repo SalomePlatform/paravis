@@ -23,10 +23,34 @@
 IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
       A0
+      A2
       A4
       A7
+      A8
       B2
       B5
+      B6  
+      C0
+      C1
+      C3
+      C8
+      D1
+      D2
+      D6
+      D9
+      E0
+      E4
+      E7
+      E8
+      F2
+      F5
+      F6
+      G0
+      G3
+      G4
+      G8
+      H1
+      H2
       )
       ADD_TEST(ANIMATION_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
     SET_TESTS_PROPERTIES(ANIMATION_${tfile} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")

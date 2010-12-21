@@ -1,15 +1,17 @@
 #This case corresponds to: /visu/animation/A0 case
-#%Create CutLines for 'vitesse' field of the the given MED file and creates animation on this field %
+#%Create animation for Scalar Map for 'vitesse' field of the the given MED file and dumps picture files in JPEG format %
 
 import sys
+import os
 from paravistest import * 
 from presentations import *
 from pvsimple import *
 import paravis
 
-# Create presentations
+#import file
 myParavis = paravis.myParavis
 
+# Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1], "Animation/A0")
 
 theFileName = datadir +  "TimeStamps_236.med"
@@ -23,13 +25,6 @@ if aProxy is None:
 	raise RuntimeError, "Error: can't import file."
 else: print "OK"
 
-print "Creating Cut Lines........................",
-cut_lines = CutLinesOnField(aProxy,EntityType.NODE,'vitesse' , 1,\
-theNbLines=20,theOrientation1 = Orientation.XY, theOrientation2 = Orientation.ZX)
-
-if cut_lines is None : print "Error"
-else : print "OK"
-
 print "Creating a Viewer.........................",
 aView = GetRenderView()
 reset_view(aView)
@@ -38,15 +33,38 @@ Render(aView)
 if aView is None : print "Error"
 else : print "OK"
 
-cut_lines.Visibility=1
-
+# Scalar Map creation
 prs= ScalarMapOnField(aProxy,EntityType.NODE,'vitesse' , 1)
-prs.Opacity=0.5
+prs.Visibility=1
+aView.ResetCamera()
 print "Creating an Animation.....................",
-scene = AnimateReader(aProxy,aView)
-scene.PlayMode = 1
-scene.FramesPerTimestep = 4
+my_format = "jpeg"
+print "Current format to save snapshots: ",my_format
+# Add path separator to the end of picture path if necessery
+if not picturedir.endswith(os.sep):
+    picturedir += os.sep
+
+# Select only the current field:
+aProxy.CellArrays.DeselectAll()
+aProxy.PointArrays.DeselectAll()
+aProxy.PointArrays = ['vitesse']
+   
+# Animation creation and saving into set of files into picturedir
+scene = AnimateReader(aProxy,aView,picturedir+"A0_dom."+my_format)
+nb_frames = len(scene.TimeKeeper.TimestepValues)
+
+pics = os.listdir(picturedir) 
+if len(pics) != nb_frames:
+   print "FAILED!!! Number of made pictures is equal to ", len(pics), " instead of ", nb_frames
+    
+for pic in pics:
+    os.remove(picturedir+pic)    
+    
+# Prepare animation  performance    
+scene.PlayMode = 1 #  set RealTime mode for animation performance
+# set period
+scene.Duration = 40 # correspond to set the speed of animation in VISU 
+scene.GoToFirst()
 scene.Loop = 1
 print "Animation.................................",
 scene.Play()
-
