@@ -1,6 +1,6 @@
 # This case corresponds to: /visu/DeformedShape/B3 case
 
-from paravistest import datadir, pictureext, get_picture_dir
+from paravistest import datadir
 from presentations import DeformedShapeOnField, EntityType
 import paravis
 import pvsimple
