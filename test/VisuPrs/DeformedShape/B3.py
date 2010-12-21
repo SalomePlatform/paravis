@@ -1,77 +1,92 @@
-#In base before redesign (tag: V3_2_0b1, for ex.) such case corresponds to: /visu/007/A2 case
-# VISU_Gen interface methods: SetCurrentStudy,DeformedShapeOnField
-# DeformedShape interface methods: SetScale,GetScale,IsColored,ShowColored
-# Created by enk
+# This case corresponds to: /visu/DeformedShape/B3 case
 
-import SALOMEDS
-import os
+from paravistest import datadir, pictureext, get_picture_dir
+from presentations import DeformedShapeOnField, EntityType
+import paravis
+import pvsimple
 
-#%====================Stage1: Creating a new study====================%
-print "**** Stage1: Creating a new study "
 
-print "Creating a new study.................."
-myVisu=myVisu
-myVisu.SetCurrentStudy(salome.myStudy)
+my_paravis = paravis.myParavis
 
-#%====================Stage2: Import from MED file in Visu====================%
-print "**** Stage2: Import from MED file in Visu"
+#====================Stage1: Import from MED file in ParaVis============
+print "**** Stage1: Import from MED file in ParaVis"
 
 print 'Import "Tria3_236.med"....................',
-medHexa8=datadir + "Tria3_236.med"
-myResult=myVisu.ImportFile(medHexa8)
-if myResult is None : print "Error"
-else : print "OK"
 
-#%====================Stage3: Creating Deformed Shape====================%
-print "**** Stage3: Creating Deformed Shape"
+file_path = datadir + "Tria3_236.med"
+my_paravis.ImportFile(file_path)
+med_reader = pvsimple.GetActiveSource()
+
+if med_reader is None:
+    print "FAILED"
+else:
+    print "OK"
+
+#====================Stage2: Creating Deformed Shape====================
+print "**** Stage2: Creating Deformed Shape"
 
 print "Creating Deformed Shape...............",
-myMeshName           = "Maillage MED_TRIA3"
-myCellEntity         = VISU.CELL
-myVectorielFieldName = 'vectoriel field'
-defshape=myVisu.DeformedShapeOnField(myResult,myMeshName,myCellEntity,myVectorielFieldName,1);
-if defshape is None : print "Error"
-else : print "OK"
 
-#%====================Stage4: Scale of Deformed Shape====================%
-print "**** Stage4: Scale of Deformed Shape"
+cell_entity = EntityType.CELL
+field_name = 'vectoriel_field'
+defshape = DeformedShapeOnField(med_reader, cell_entity, field_name, 1)
+pvsimple.ResetCamera()
 
-print "Default scale : ",defshape.GetScale()
+if defshape is None:
+    print "FAILED"
+else:
+    print "OK"
+
+#====================Stage3: Scale of Deformed Shape====================
+print "**** Stage3: Scale of Deformed Shape"
+
+warp_vector = pvsimple.GetActiveSource()
+print "Default scale: ", warp_vector.ScaleFactor
 
 print "Set positive scale of Deformed Shape"
-aScale=1
-defshape.SetScale(aScale)
-print "Scale : ",defshape.GetScale()
+scale = 1
+warp_vector.ScaleFactor = scale
+
+pvsimple.Render()
+print "Scale: ", warp_vector.ScaleFactor
 
 print "Set negative scale of Deformed Shape"
-aScale=-1
-defshape.SetScale(aScale)
-print "Scale : ",defshape.GetScale()
+scale = -1
+warp_vector.ScaleFactor = scale
+
+pvsimple.Render()
+print "Scale: ", warp_vector.ScaleFactor
 
 print "Set zero scale of Deformed Shape"
-aScale=0
-defshape.SetScale(aScale)
-print "Scale : ",defshape.GetScale()
+scale = 0
+warp_vector.ScaleFactor = scale
 
-#%====================Stage5: IsColored method of Deformed Shape====================%
-print "**** Stage5: IsColored of Deformed Shape"
+pvsimple.Render()
+print "Scale: ", warp_vector.ScaleFactor
 
-if defshape.IsColored():
-    print "Default shape is Colored"
+#====================Stage4: Coloring method of Deformed Shape===========
+print "**** Stage4: Coloring of Deformed Shape"
+
+color_array = defshape.ColorArrayName
+if color_array:
+    print "Default shape is colored by array: ", color_array
 else:
-    print "Default shape is not Colored"
+    print "Default shape is colored by solid color: ", defshape.AmbientColor
 
-print "Set colored mode    .... ",
-defshape.ShowColored(1)
-if defshape.IsColored():
+print "Set colored by array mode    .... ",
+defshape.ColorArrayName = field_name
+pvsimple.Render()
+
+if defshape.ColorArrayName == field_name:
     print "OK"
 else:
-    print "Error"
+    print "FAILED"
 
-print "Set not colored mode .... ",
-defshape.ShowColored(0)
-if defshape.IsColored():
-    print "Error"
+print "Set colored by solid color mode .... ",
+defshape.ColorArrayName = ''
+pvsimple.Render()
+
+if defshape.ColorArrayName:
+    print "FAILED"
 else:
     print "OK"
-        

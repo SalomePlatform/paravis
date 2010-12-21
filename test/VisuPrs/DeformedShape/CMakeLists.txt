@@ -34,7 +34,9 @@ IF (PYTHON_EXECUTABLE)
       A9
       B0
       B1
-      B2           
+      B2
+      B3
+      B4           
       C8
       E0
       E1
