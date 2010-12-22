@@ -216,6 +216,7 @@ def display_only(prs, view=None):
     hide_all(view)
     if (hasattr(prs, 'Visibility') and prs.Visibility != 1):
         prs.Visibility = 1
+    pv.Render(view=view)
 
 
 def _check_vector_mode(vector_mode, nb_components):
@@ -646,10 +647,26 @@ def add_scalar_bar(field_name, nb_components,
         title = "\n".join([title, vector_mode])
 
     # Create scalar bar
-    scalar_bar = pv.CreateScalarBar(Enabled=1, LabelFontSize=10,
-                                    TitleFontSize=8, NumberOfLabels=5)
+    scalar_bar = pv.CreateScalarBar(Enabled=1)
     scalar_bar.Title = title
     scalar_bar.LookupTable = lookup_table
+
+    # Set default properties same as in Post-Pro
+    scalar_bar.NumberOfLabels = 5
+    scalar_bar.AutomaticLabelFormat = 0
+    scalar_bar.LabelFormat = '%-#6.6g'
+    # Title
+    scalar_bar.TitleFontFamily = 'Arial'
+    scalar_bar.TitleFontSize = 8
+    scalar_bar.TitleBold = 1
+    scalar_bar.TitleItalic = 1
+    scalar_bar.TitleShadow = 1
+    # Labels
+    scalar_bar.LabelFontFamily = 'Arial'
+    scalar_bar.LabelFontSize = 8
+    scalar_bar.LabelBold = 1
+    scalar_bar.LabelItalic = 1
+    scalar_bar.LabelShadow = 1
 
     # Add the scalar bar to the view
     pv.GetRenderView().Representations.append(scalar_bar)
@@ -658,6 +675,13 @@ def add_scalar_bar(field_name, nb_components,
     _current_bar = scalar_bar
 
     return scalar_bar
+
+
+def get_bar():
+    """Get current scalar bar."""
+    global _current_bar
+
+    return _current_bar
 
 
 def get_lookup_table(field_name, nb_components, vector_mode='Magnitude'):
@@ -957,7 +981,7 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 
 def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                   theScaleFactor=-1, theGlyphPos=GlyphPos.TAIL,
+                   theScaleFactor=None, theGlyphPos=GlyphPos.TAIL,
                    theIsColored=False, theVectorMode='Magnitude'):
     """Creates vectors on the given field."""
     # Check vector mode
@@ -981,9 +1005,17 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         cell_centers.VertexCells = 1
         source = cell_centers
 
+    vector_array = theFieldName
+    # If the given vector array has only 2 components, add the third one
+    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
+    if nb_components == 2:
+        calc = get_add_component_calc(source, EntityType.NODE, theFieldName)
+        vector_array = calc.ResultArrayName
+        source = calc
+
     # Glyph
     glyph = pv.Glyph(source)
-    glyph.Vectors = theFieldName
+    glyph.Vectors = vector_array
     glyph.ScaleMode = 'vector'
     glyph.MaskPoints = 0
 
@@ -996,7 +1028,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     elif (theGlyphPos == GlyphPos.CENTER):
         glyph.GlyphType.Center = [0.0, 0.0, 0.0]
 
-    if (theScaleFactor > 0):
+    if theScaleFactor is not None:
         glyph.SetScaleFactor = theScaleFactor
     else:
         def_scale = get_default_scale(PrsTypeEnum.DEFORMEDSHAPE,
@@ -1037,7 +1069,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
                          theTimeStampNumber,
-                         theScaleFactor=-1, theIsColored=False,
+                         theScaleFactor=None, theIsColored=False,
                          theVectorMode='Magnitude'):
     """Creates Defromed shape on the given field."""
     # We don't need mesh parts with no data on them
@@ -1045,7 +1077,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
         select_cells_with_data(theProxy, on_points=[theFieldName])
     else:
         select_cells_with_data(theProxy, on_cells=[theFieldName])
-    
+
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
     _check_vector_mode(theVectorMode, nb_components)
@@ -1080,7 +1112,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
     # Warp by vector
     warp_vector = pv.WarpByVector(source)
     warp_vector.Vectors = [vector_array]
-    if (theScaleFactor > 0):
+    if theScaleFactor is not None:
         warp_vector.ScaleFactor = theScaleFactor
     else:
         def_scale = get_default_scale(PrsTypeEnum.DEFORMEDSHAPE,
@@ -1118,16 +1150,27 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
 
 def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
                                      theTimeStampNumber,
-                                     theScaleFactor=-1,
+                                     theScaleFactor=None,
                                      theScalarEntityType=None,
                                      theScalarFieldName=None,
                                      theVectorMode='Magnitude'):
     """Creates Defromed shape And Scalar Map on the given field."""
     # We don't need mesh parts with no data on them
+    on_points = []
+    on_cells = []
+
     if theEntityType == EntityType.NODE:
-        select_cells_with_data(theProxy, on_points=[theFieldName])
+        on_points.append(theFieldName)
     else:
-        select_cells_with_data(theProxy, on_cells=[theFieldName])
+        on_cells.append(theFieldName)
+
+    if theScalarEntityType and theScalarFieldName:
+        if theScalarEntityType == EntityType.NODE:
+            on_points.append(theScalarFieldName)
+        else:
+            on_cells.append(theScalarFieldName)
+
+    select_cells_with_data(theProxy, on_points, on_cells)
 
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1170,7 +1213,7 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
     # Warp by vector
     warp_vector = pv.WarpByVector(source)
     warp_vector.Vectors = [vector_array]
-    if theScaleFactor > 0:
+    if theScaleFactor is not None:
         warp_vector.ScaleFactor = theScaleFactor
     else:
         def_scale = get_default_scale(PrsTypeEnum.DEFORMEDSHAPE,
@@ -1203,7 +1246,8 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
 def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                   theOrientation=Orientation.AUTO,
                   thePosition=0.5, theIsRelative=True,
-                  theScaleFactor=-1, theIsContourPrs=False, theNbOfContours=32,
+                  theScaleFactor=None,
+                  theIsContourPrs=False, theNbOfContours=32,
                   theVectorMode='Magnitude'):
     """Creates plot 3d on the given field."""
     # We don't need mesh parts with no data on them
@@ -1292,7 +1336,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     warp_scalar.Scalars = scalars
     warp_scalar.Normal = normal
     warp_scalar.UseNormal = use_normal
-    if (theScaleFactor > 0):
+    if theScaleFactor is not None:
         warp_scalar.ScaleFactor = theScaleFactor
     else:
         def_scale = get_default_scale(PrsTypeEnum.PLOT3D,
@@ -1433,7 +1477,7 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName,
 
 def GaussPointsOnField(theProxy, theEntityType, theFieldName,
                        theTimeStampNumber,
-                       theIsDeformed=True, theScaleFactor=-1,
+                       theIsDeformed=True, theScaleFactor=None,
                        theIsColored=True, theColor=None,
                        thePrimitiveType=GaussType.SPRITE,
                        theIsProportional=True,
@@ -1471,7 +1515,7 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
         select_cells_with_data(theProxy, on_points=[theFieldName])
     else:
         select_cells_with_data(theProxy, on_cells=[theFieldName])
-    
+
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
     _check_vector_mode(theVectorMode, nb_components)
@@ -1516,7 +1560,7 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
         # Warp by vector
         warp_vector = pv.WarpByVector(source)
         warp_vector.Vectors = [vector_array]
-        if (theScaleFactor > 0):
+        if theScaleFactor is not None:
             warp_vector.ScaleFactor = theScaleFactor
         else:
             def_scale = get_default_scale(PrsTypeEnum.DEFORMEDSHAPE, theProxy,
@@ -1661,10 +1705,6 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
     stream.IntegrationDirection = theDirection
     stream.UpdatePipeline()
 
-    data_info = stream.GetDataInformation()
-    nb_cells = data_info.GetNumberOfCells()
-    nb_points = data_info.GetNumberOfPoints()
-
     # Get representation
     if is_empty(stream):
         return None
@@ -1779,7 +1819,6 @@ def CreatePrsForFile(theParavis, theFileName, thePrsTypeList,
             print("OK")
     except:
         print ("FAILED")
-        sys.exit()
     else:
         # Get view
         view = pv.GetRenderView()
