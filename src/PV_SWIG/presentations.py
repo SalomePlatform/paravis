@@ -14,8 +14,9 @@ from math import sqrt
 from string import upper
 
 import pvsimple as pv
-# TODO: to be removed (issue with Point Sprite texture)
+# TODO(MZN): to be removed (issue with Point Sprite texture)
 import paravisSM as sm
+
 
 # Constants
 EPS = 1E-3
@@ -319,11 +320,11 @@ def is_empty(proxy):
     return not(nb_cells + nb_points)
 
 
-def GetOrientation(theProxy):
+def get_orientation(proxy):
     """Get the optimum cutting plane orientation for Plot3d."""
     orientation = Orientation.XY
 
-    bounds = get_bounds(theProxy)
+    bounds = get_bounds(proxy)
     delta = [bounds[1] - bounds[0],
              bounds[3] - bounds[2],
              bounds[5] - bounds[4]]
@@ -347,50 +348,50 @@ def GetOrientation(theProxy):
     return orientation
 
 
-def GetNormalByOrientation(theOrientation):
+def get_normal_by_orientation(orientation):
     """Get normal for the plane by its orientation."""
     normal = [0.0, 0.0, 0.0]
-    if (theOrientation == Orientation.XY):
+    if (orientation == Orientation.XY):
         normal[2] = 1.0
-    elif (theOrientation == Orientation.ZX):
+    elif (orientation == Orientation.ZX):
         normal[1] = 1.0
-    elif (theOrientation == Orientation.YZ):
+    elif (orientation == Orientation.YZ):
         normal[0] = 1.0
 
     return normal
 
 
-def GetRangeForOrientation(theProxy, theOrientation):
+def get_range_for_orientation(proxy, orientation):
     """Get source range for cutting plane orientation."""
     val_range = []
-    if (theOrientation == Orientation.XY):
-        val_range = get_z_range(theProxy)
-    elif (theOrientation == Orientation.ZX):
-        val_range = get_y_range(theProxy)
-    elif (theOrientation == Orientation.YZ):
-        val_range = get_x_range(theProxy)
+    if (orientation == Orientation.XY):
+        val_range = get_z_range(proxy)
+    elif (orientation == Orientation.ZX):
+        val_range = get_y_range(proxy)
+    elif (orientation == Orientation.YZ):
+        val_range = get_x_range(proxy)
 
     return val_range
 
 
-def GetPositions(val_range, theNbPlanes, theDisplacement):
+def get_positions(val_range, nb_planes, displacement):
     """Compute plane positions."""
     positions = []
-    if (theNbPlanes > 1):
+    if (nb_planes > 1):
         aDistance = val_range[1] - val_range[0]
         val_range[1] = val_range[0] + (1.0 - EPS) * aDistance
         val_range[0] = val_range[0] + EPS * aDistance
 
         aDistance = val_range[1] - val_range[0]
-        step = aDistance / (theNbPlanes - 1)
-        aDisplacement = step * theDisplacement
+        step = aDistance / (nb_planes - 1)
+        aDisplacement = step * displacement
         startPos = val_range[0] - 0.5 * step + aDisplacement
 
-        for i in xrange(theNbPlanes):
+        for i in xrange(nb_planes):
             pos = startPos + i * step
             positions.append(pos)
-    elif (theNbPlanes == 1):
-        pos = val_range[0] + (val_range[1] - val_range[0]) * theDisplacement
+    elif (nb_planes == 1):
+        pos = val_range[0] + (val_range[1] - val_range[0]) * displacement
         positions.append(pos)
 
     return positions
@@ -758,16 +759,16 @@ def _get_group_names(proxy, mesh_name, entity_type, wo_nogroups=False):
     return group_names
 
 
-def GetTime(theProxy, theTimeStampNumber):
+def get_time(proxy, timestamp_nb):
     """Get time value by timestamp number."""
     # Check timestamp number
-    timestamps = theProxy.TimestepValues.GetData()
-    if ((theTimeStampNumber - 1) not in xrange(len(timestamps))):
+    timestamps = proxy.TimestepValues.GetData()
+    if ((timestamp_nb - 1) not in xrange(len(timestamps))):
         raise ValueError("Timestamp number is out of range: {0}".
-                         format(theTimeStampNumber))
+                         format(timestamp_nb))
 
     # Return time value
-    return timestamps[theTimeStampNumber - 1]
+    return timestamps[timestamp_nb - 1]
 
 
 # Functions for building Post-Pro presentations
@@ -792,7 +793,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -809,7 +810,7 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                                 theFieldName, theVectorMode)
     lookup_table.LockScalarRange = 1
     lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
-
+    print("pppppppppppppppppp = ", data_range)
     # Set properties
     scalarmap.ColorAttributeType = EntityType.get_pvtype(theEntityType)
     scalarmap.ColorArrayName = theFieldName
@@ -834,7 +835,7 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -860,8 +861,9 @@ def CutPlanesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     slice_filter.SliceType.Normal = normal
 
     # Set cut planes positions
-    slice_filter.SliceOffsetValues = GetPositions(val_range,
-                                                  theNbPlanes, theDisplacement)
+    slice_filter.SliceOffsetValues = get_positions(val_range,
+                                                   theNbPlanes,
+                                                   theDisplacement)
     cut_planes = pv.GetRepresentation(slice_filter)
 
     # Get lookup table
@@ -897,7 +899,7 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -925,8 +927,8 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     base_plane.SliceType.Normal = base_normal
 
     # Set base plane position
-    base_plane.SliceOffsetValues = GetPositions(valrange_base, 1,
-                                                theDisplacement1)
+    base_plane.SliceOffsetValues = get_positions(valrange_base, 1,
+                                                 theDisplacement1)
 
     # Check base plane
     base_plane.UpdatePipeline()
@@ -953,8 +955,8 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     cut_planes.SliceType.Normal = cut_normal
 
     # Set cutting planes position
-    cut_planes.SliceOffsetValues = GetPositions(valrange_cut, theNbLines,
-                                                theDisplacement2)
+    cut_planes.SliceOffsetValues = get_positions(valrange_cut, theNbLines,
+                                                 theDisplacement2)
     cut_lines = pv.GetRepresentation(cut_planes)
 
     # Get lookup table
@@ -989,7 +991,7 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1007,7 +1009,6 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     vector_array = theFieldName
     # If the given vector array has only 2 components, add the third one
-    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
     if nb_components == 2:
         calc = get_add_component_calc(source, EntityType.NODE, theFieldName)
         vector_array = calc.ResultArrayName
@@ -1083,7 +1084,7 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1103,7 +1104,6 @@ def DeformedShapeOnField(theProxy, theEntityType, theFieldName,
 
     vector_array = theFieldName
     # If the given vector array has only 2 components, add the third one
-    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
     if nb_components == 2:
         calc = get_add_component_calc(source, EntityType.NODE, theFieldName)
         vector_array = calc.ResultArrayName
@@ -1177,7 +1177,7 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1204,7 +1204,6 @@ def DeformedShapeAndScalarMapOnField(theProxy, theEntityType, theFieldName,
 
     vector_array = theFieldName
     # If the given vector array has only 2 components, add the third one
-    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
     if nb_components == 2:
         calc = get_add_component_calc(source, EntityType.NODE, theFieldName)
         vector_array = calc.ResultArrayName
@@ -1261,7 +1260,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1281,10 +1280,10 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     # Define orientation if necessary (auto mode)
     orientation = theOrientation
     if (orientation == Orientation.AUTO):
-        orientation = GetOrientation(theProxy)
+        orientation = get_orientation(theProxy)
 
     # Get cutting plane normal
-    normal = GetNormalByOrientation(orientation)
+    normal = get_normal_by_orientation(orientation)
 
     if (not is_planar_input(theProxy)):
         # Create slice filter
@@ -1295,11 +1294,11 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         slice_filter.SliceType.Normal = normal
 
         # Set cutting plane position
-        val_range = GetRangeForOrientation(theProxy, orientation)
+        val_range = get_range_for_orientation(theProxy, orientation)
 
         if (theIsRelative):
-            slice_filter.SliceOffsetValues = GetPositions(val_range, 1,
-                                                          thePosition)
+            slice_filter.SliceOffsetValues = get_positions(val_range, 1,
+                                                           thePosition)
         else:
             slice_filter.SliceOffsetValues = thePosition
 
@@ -1311,7 +1310,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     if not poly_data or poly_data.GetDataInformation().GetNumberOfCells() == 0:
         geometry_filter = pv.GeometryFilter(merge_blocks)
         poly_data = geometry_filter
-        use_normal = 1  # MZN: temporary workaround
+        use_normal = 1  # TODO(MZN): temporary workaround
 
     warp_scalar = None
     plot3d = None
@@ -1352,7 +1351,7 @@ def Plot3DOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
         contour.ContourBy = ['POINTS', theFieldName]
         scalar_range = get_data_range(theProxy, theEntityType,
                                       theFieldName, theVectorMode)
-        contour.Isosurfaces = GetPositions(scalar_range, theNbOfContours, 0)
+        contour.Isosurfaces = get_positions(scalar_range, theNbOfContours, 0)
         contour.UpdatePipeline()
         plot3d = pv.GetRepresentation(contour)
     else:
@@ -1395,7 +1394,7 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1521,7 +1520,7 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1550,7 +1549,6 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
     if theIsDeformed and nb_components > 1:
         vector_array = theFieldName
         # If the given vector array has only 2 components, add the third one
-        #@MZN: workaround: paraview doesn't treat 2-component array as vectors
         if nb_components == 2:
             calc = get_add_component_calc(source,
                                           EntityType.NODE, theFieldName)
@@ -1608,7 +1606,7 @@ def GaussPointsOnField(theProxy, theEntityType, theFieldName,
 
     if thePrimitiveType == GaussType.SPRITE:
         # Set texture
-        # TODO: replace with pvsimple high-level interface
+        # TODO(MZN): replace with pvsimple high-level interface
         texture = sm.CreateProxy("textures", "SpriteTexture")
         alphamprop = texture.GetProperty("AlphaMethod")
         alphamprop.SetElement(0, 2)  # Clamp
@@ -1669,7 +1667,7 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
     _check_vector_mode(theVectorMode, nb_components)
 
     # Get time value
-    time_value = GetTime(theProxy, theTimeStampNumber)
+    time_value = get_time(theProxy, theTimeStampNumber)
 
     # Set timestamp
     pv.GetRenderView().ViewTime = time_value
@@ -1690,7 +1688,6 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
 
     vector_array = theFieldName
     # If the given vector array has only 2 components, add the third one
-    #@MZN: workaround: paraview doesn't treat 2-component array as vectors
     if nb_components == 2:
         calc = get_add_component_calc(source, EntityType.NODE, theFieldName)
         vector_array = calc.ResultArrayName
@@ -1763,6 +1760,7 @@ def MeshOnEntity(theProxy, theMeshName, theEntityType):
     if (theProxy.GetDataInformation().GetNumberOfPoints() or
         theProxy.GetDataInformation().GetNumberOfCells()):
         prs = pv.GetRepresentation(theProxy)
+        prs.ColorArrayName = ''
 
     return prs
 
@@ -1799,6 +1797,7 @@ def MeshOnGroup(theProxy, theGroupName):
 
         if nb_items:
             prs = pv.GetRepresentation(theProxy)
+            prs.ColorArrayName = ''
 
     return prs
 

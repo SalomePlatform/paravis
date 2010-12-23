@@ -5,7 +5,7 @@ import os
 import sys
 
 from paravistest import datadir, pictureext, get_picture_dir
-from presentations import GaussPointsOnField, EntityType, GetTime, process_prs_for_test
+from presentations import GaussPointsOnField, EntityType, get_time, process_prs_for_test
 import paravis
 import pvsimple
 
@@ -27,7 +27,7 @@ if med_reader is None:
 
 # Create Gauss Points presentation
 view = pvsimple.GetRenderView()
-time = GetTime(med_reader, timestamp_nb)
+time = get_time(med_reader, timestamp_nb)
 
 for field_name in field_names:
     prs = GaussPointsOnField(med_reader, EntityType.CELL, field_name, timestamp_nb)

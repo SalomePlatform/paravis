@@ -5,7 +5,7 @@ import os
 import sys
 
 from paravistest import datadir, pictureext, get_picture_dir
-from presentations import GaussPointsOnField, EntityType, GetTime, process_prs_for_test
+from presentations import GaussPointsOnField, EntityType, get_time, process_prs_for_test
 import paravis
 import pvsimple
 
@@ -32,7 +32,7 @@ if prs is None:
 
 # Display presentation and get snapshot
 view = pvsimple.GetRenderView()
-time = GetTime(med_reader, timestamp_nb)
+time = get_time(med_reader, timestamp_nb)
 
 pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=picturedir,
                                                         field=field_name,
