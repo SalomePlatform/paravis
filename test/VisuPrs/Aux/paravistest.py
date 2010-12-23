@@ -3,12 +3,38 @@ This module provides auxiliary classes, functions and variables for testing.
 """
 
 from __future__ import print_function
-
+from math import fabs
 import os
 from datetime import date
 
 import salome
 
+class RepresentationType:
+    """
+    Types of representation.
+    """
+    OUTLINE = 0
+    POINTS = 1
+    WIREFRAME = 2
+    SURFACE = 3
+    SURFACEEDGES = 4
+    VOLUME = 5
+    POINTSPRITE = 6
+    
+    _type2name = {OUTLINE: 'Outline',
+                  POINTS: 'Points',
+                  WIREFRAME: 'Wireframe',
+                  SURFACE:'Surface',
+                  SURFACEEDGES:'Surface With Edges',
+                  VOLUME:'Volume',
+                  POINTSPRITE:'Point Sprite'}
+                  
+    @classmethod
+    def get_name(cls, type):
+        """Return paraview representation type by the primitive type."""
+        return cls._type2name[type]
+
+        
 # Auxiliary classes
 class SalomeSession(object):
     def __init__(self):
@@ -77,7 +103,45 @@ def get_picture_dir(pic_dir, subdir):
                 os.remove(os.path.join(root, f))
 
     return res_dir
-    
+   
+#@VPH: utility function for 3D viewer test for common check of different types of presentation parameters set
+def CallAndCheck(prs_name,property_name, value,do_raise = 1, compare_toler = -1.0):
+    if isinstance(value,str):
+        call_str =  prs_name+"."+property_name+"='" +value + "'" 
+    else:
+        call_str =  prs_name+"."+property_name+"=" +str(value) 
+    exec("from pvsimple import *")    
+    exec(prs_name+" = Show()")    
+    try:
+        exec(call_str)
+    except ValueError:
+        error_string  ="'"+str(value)+"' is not available for this type of presentations"
+    else:
+        error_string = None
+        
+    is_good = (error_string is None)
+    if not is_good:
+        if do_raise:
+            raise RuntimeError, call_str +": "+error_string
+        else:
+            print(call_str+": "+error_string)
+    else:
+        # compare just set value and the one got from presentation
+        command = "really_set_value = "+prs_name+"."+property_name
+        exec(command)
+        is_equal = 1
+        if compare_toler > 0:
+            is_equal = (fabs(really_set_value - value) < compare_toler)
+        else:
+            is_equal = (really_set_value == value)
+        if not is_equal:
+            if do_raise:
+                raise RuntimeError, call_str + ": " + str(really_set_value) + " has been set instead"
+            else:
+                print (call_str + ": " + str(really_set_value) + " has been set instead")
+                is_good = 0
+
+    return is_good                       
 
 # Auxiliary variables
 
