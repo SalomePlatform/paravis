@@ -20,19 +20,13 @@
 #  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SUBDIRS(Aux 
-        2D_viewer 
-        ScalarMap 
-        DeformedShape 
-        ScalarMap_On_DeformedShape 
-        CutPlanes 
-        CutLines 
-        Vectors 
-        Plot3D
-        IsoSurfaces
-        MeshPresentation
-        Animation
-	GaussPoints
-	StreamLines
-	SWIG_scripts)
-
+IF (PYTHON_EXECUTABLE)
+  FOREACH ( tfile
+      A1
+      A3
+      A7
+      )
+    ADD_TEST(SWIGSCRIPTS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
+    SET_TESTS_PROPERTIES(SWIGSCRIPTS_${tfile} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+  ENDFOREACH( tfile )
+ENDIF (PYTHON_EXECUTABLE)
