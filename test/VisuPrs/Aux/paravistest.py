@@ -109,43 +109,35 @@ def get_picture_dir(pic_dir, subdir):
                 os.remove(os.path.join(root, f))
 
     return res_dir
+   
 
-
-def CallAndCheck(prs_name, property_name, value, do_raise=1,
-                 compare_toler=-1.0):
-    """ Utility function for 3D viewer test for common check of different
+def CallAndCheck(prs,property_name, value,do_raise = 1, compare_toler = -1.0): 
+    """Utility function for 3D viewer test for common check of different 
     types of presentation parameters set"""
-    call_str = "{0}.{1} = {2}".format(prs_name, property_name, str(value))
-    exec("from pvsimple import *")
-    exec("{0} = Show()".format(prs_name))
     try:
-        exec(call_str)
+        prs.SetPropertyWithName(property_name, value)
     except ValueError:
-        error_string = "{0} is not available for this type of presentations".
-        format(property_name)
+        error_string  = ("{0} value of {1} is not available for this type of presentations".
+        format(value, property_name))
     else:
-        error_string = None
-
+        error_string = None        
     is_good = (error_string is None)
     if not is_good:
         msg = "{0}: {1}".format(call_str, error_string)
         if do_raise:
-            raise RuntimeError(msg)
+            raise RuntimeError(error_string)
         else:
-            print(msg)
+            print(error_string)
     else:
         # compare just set value and the one got from presentation
-        command = "really_set_value = {0}.{1}".format(prs_name, property_name)
-        exec(command)
+        really_set_value = prs.GetPropertyValue(property_name)
         is_equal = 1
         if compare_toler > 0:
             is_equal = (fabs(really_set_value - value) < compare_toler)
         else:
             is_equal = (really_set_value == value)
         if not is_equal:
-            msg = "{0}: {1} has been set instead".
-            format(call_str, str(really_set_value))
-
+            msg = "{0} has been set instead".format(really_set_value)
             if do_raise:
                 raise RuntimeError(msg)
             else:
