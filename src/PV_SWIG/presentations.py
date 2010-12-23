@@ -10,7 +10,7 @@ from __future__ import print_function
 import os
 import re
 import warnings
-from math import sqrt
+from math import sqrt,fabs
 from string import upper
 
 import pvsimple as pv
@@ -95,6 +95,30 @@ class EntityType:
         """Return entity type from ['CELL_DATA', 'POINT_DATA']"""
         return cls._type2pvtype[type]
 
+class RepresentationType:
+    """
+    Types of representation.
+    """
+    OUTLINE = 0
+    POINTS = 1
+    WIREFRAME = 2
+    SURFACE = 3
+    SURFACEEDGES = 4
+    VOLUME = 5
+    POINTSPRITE = 6
+    
+    _type2name = {OUTLINE: 'Outline',
+                  POINTS: 'Points',
+                  WIREFRAME: 'Wireframe',
+                  SURFACE:'Surface',
+                  SURFACEEDGES:'Surface With Edges',
+                  VOLUME:'Volume',
+                  POINTSPRITE:'Point Sprite'}
+                  
+    @classmethod
+    def get_name(cls, type):
+        """Return paraview representation type by the primitive type."""
+        return cls._type2name[type]
 
 class Orientation:
     """
@@ -984,7 +1008,7 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                    theScaleFactor=None, theGlyphPos=GlyphPos.TAIL,
-                   theIsColored=False, theVectorMode='Magnitude'):
+                   theIsColored=False, theVectorMode='Magnitude',theGlyphType = '2D Glyph'):
     """Creates vectors on the given field."""
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1020,15 +1044,17 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     glyph.ScaleMode = 'vector'
     glyph.MaskPoints = 0
 
-    glyph.GlyphType = "2D Glyph"
-    glyph.GlyphType.GlyphType = 'Arrow'
-    if (theGlyphPos == GlyphPos.TAIL):
-        glyph.GlyphType.Center = [0.5, 0.0, 0.0]
-    elif (theGlyphPos == GlyphPos.HEAD):
-        glyph.GlyphType.Center = [-0.5, 0.0, 0.0]
-    elif (theGlyphPos == GlyphPos.CENTER):
-        glyph.GlyphType.Center = [0.0, 0.0, 0.0]
-
+#@VPH: Customizing of vector visualization
+    if theGlyphType == '2D Glyph':
+        glyph.GlyphType = '2D Glyph'
+        glyph.GlyphType.GlyphType = 'Arrow'
+    if theGlyphType == 'Cone':
+        glyph.GlyphType = 'Cone'
+        glyph.GlyphType.Resolution = 7            
+        glyph.GlyphType.Height = 2
+        glyph.GlyphType.Radius = 0.2
+        
+        
     if theScaleFactor is not None:
         glyph.SetScaleFactor = theScaleFactor
     else:
@@ -2003,3 +2029,44 @@ def CreatePrsForProxy(theProxy, theView,
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, theView, pic_name)
+                    
+                    
+#@VPH: utility function for 3D viewer test for common check of different types of presentation parameters set
+def CallAndCheck(prs_name,property_name, value,do_raise = 1, compare_toler = -1.0):
+    if isinstance(value,str):
+        call_str =  prs_name+"."+property_name+"='" +value + "'" 
+    else:
+        call_str =  prs_name+"."+property_name+"=" +str(value) 
+    command = prs_name+" = Show()"
+    exec("from pvsimple import Show")
+    exec(command)        
+    try:
+        exec(call_str)
+    except ValueError:
+        error_string  ="'"+str(value)+"' is not available for this type of presentations"
+    else:
+        error_string = None
+        
+    is_good = (error_string is None)
+    if not is_good:
+        if do_raise:
+            raise RuntimeError, call_str +": "+error_string
+        else:
+            print(call_str+": "+error_string)
+    else:
+        # compare just set value and the one got from presentation
+        command = "really_set_value = "+prs_name+"."+property_name
+        exec(command)
+        is_equal = 1
+        if compare_toler > 0:
+            is_equal = (fabs(really_set_value - value) < compare_toler)
+        else:
+            is_equal = (really_set_value == value)
+        if not is_equal:
+            if do_raise:
+                raise RuntimeError, call_str + ": " + str(really_set_value) + " has been set instead"
+            else:
+                print (call_str + ": " + str(really_set_value) + " has been set instead")
+                is_good = 0
+
+    return is_good                    
