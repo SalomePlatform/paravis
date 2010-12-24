@@ -179,7 +179,8 @@ def reset_view(view=None):
     if not view:
         view = pv.GetRenderView()
 
-    if _AuxCounter.first_render:
+    #@MZN
+    if True or _AuxCounter.first_render:
         # Camera preferences
         view.CameraFocalPoint = [0.0, 0.0, 0.0]
         view.CameraViewUp = [0.0, 0.0, 1.0]
@@ -244,7 +245,8 @@ def _get_vector_component(vector_mode):
     return vcomponent
 
 
-def get_data_range(proxy, entity_type, field_name, vector_mode='Magnitude'):
+def get_data_range(proxy, entity_type, field_name, cut_off=False,
+                   vector_mode='Magnitude'):
     """Get data range for the field."""
     entity_data_info = None
     field_data = proxy.GetFieldDataInformation()
@@ -265,6 +267,12 @@ def get_data_range(proxy, entity_type, field_name, vector_mode='Magnitude'):
         entity = EntityType.get_pvtype(entity_type)
         warnings.warn("Field {0} is unknown for {1}!".
                       format(field_name, entity))
+
+    # Cut off the range
+    if cut_off and (data_range[0] <= data_range[1]):
+        delta = abs(data_range[1] - data_range[0]) * GAP_COEFFICIENT
+        data_range[0] += delta
+        data_range[1] -= delta
 
     return data_range
 
@@ -397,6 +405,17 @@ def get_positions(val_range, nb_planes, displacement):
         positions.append(pos)
 
     return positions
+
+
+def get_contours(scalar_range, nb_contours):
+    """Generate contour values."""
+    contours = []
+    for i in xrange(nb_contours):
+        pos = scalar_range[0] + i * (
+            scalar_range[1] - scalar_range[0]) / (nb_contours - 1)
+        contours.append(pos)
+
+    return contours
 
 
 def get_nb_components(proxy, entity_type, field_name):
@@ -658,6 +677,7 @@ def add_scalar_bar(field_name, nb_components,
 
     # Create scalar bar
     scalar_bar = pv.CreateScalarBar(Enabled=1)
+    scalar_bar.Orientation = 'Vertical'
     scalar_bar.Title = title
     scalar_bar.LookupTable = lookup_table
 
@@ -1031,10 +1051,9 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
     # Set glyph type
     glyph.GlyphType = theGlyphType
-    if glyph.GlyphType == '2D Glyph':
+    if theGlyphType == '2D Glyph':
         glyph.GlyphType.GlyphType = 'Arrow'
-    elif glyph.GlyphType == 'Cone':
-        glyph.GlyphType = 'Cone'
+    elif theGlyphType == 'Cone':
         glyph.GlyphType.Resolution = 7
         glyph.GlyphType.Height = 2
         glyph.GlyphType.Radius = 0.2
@@ -1446,19 +1465,11 @@ def IsoSurfacesOnField(theProxy, theEntityType, theFieldName,
     # Specify the range
     scalar_range = theRange
     if (scalar_range is None):
-        scalar_range = get_data_range(theProxy, theEntityType, theFieldName)
-        # Cut off the range
-        if (scalar_range[0] <= scalar_range[1]):
-            delta = abs(scalar_range[1] - scalar_range[0]) * GAP_COEFFICIENT
-            scalar_range[0] += delta
-            scalar_range[1] -= delta
+        scalar_range = get_data_range(theProxy, theEntityType,
+                                      theFieldName, cut_off=True)
 
-    # Calculate contour values for the range
-    surfaces = []
-    for i in xrange(theNbOfSurfaces):
-        pos = scalar_range[0] + i * (
-            scalar_range[1] - scalar_range[0]) / (theNbOfSurfaces - 1)
-        surfaces.append(pos)
+    # Get contour values for the range
+    surfaces = get_contours(scalar_range, theNbOfSurfaces)
 
     # Set contour values
     contour.Isosurfaces = surfaces
