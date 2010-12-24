@@ -1718,6 +1718,7 @@ def StreamLinesOnField(theProxy, theEntityType, theFieldName,
     stream.Vectors = ['POINTS', vector_array]
     stream.SeedType = "Point Source"
     stream.IntegrationDirection = theDirection
+    stream.IntegratorType = 'Runge-Kutta 2'
     stream.UpdatePipeline()
 
     # Get representation
