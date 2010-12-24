@@ -95,6 +95,7 @@ class EntityType:
         """Return entity type from ['CELL_DATA', 'POINT_DATA']"""
         return cls._type2pvtype[type]
 
+
 class Orientation:
     """
     Orientation types.
@@ -261,7 +262,9 @@ def get_data_range(proxy, entity_type, field_name, vector_mode='Magnitude'):
         vcomp = _get_vector_component(vector_mode)
         data_range = entity_data_info[field_name].GetComponentRange(vcomp)
     else:
-        warnings.warn("Field {0} is unknown!".format(field_name))
+        entity = EntityType.get_pvtype(entity_type)
+        warnings.warn("Field {0} is unknown for {1}!".
+                      format(field_name, entity))
 
     return data_range
 
@@ -408,8 +411,15 @@ def get_nb_components(proxy, entity_type, field_name):
     elif entity_type == EntityType.NODE:
         entity_data_info = proxy.GetPointDataInformation()
 
-    nb_components = entity_data_info[field_name].GetNumberOfComponents()
-    return nb_components
+    nb_comp = None
+    if field_name in entity_data_info.keys():
+        nb_comp = entity_data_info[field_name].GetNumberOfComponents()
+    else:
+        entity = EntityType.get_pvtype(entity_type)
+        raise ValueError("Field {0} is unknown for {1}!".
+                         format(field_name, entity))
+
+    return nb_comp
 
 
 def get_scale_factor(proxy):
@@ -809,7 +819,6 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                                 theFieldName, theVectorMode)
     lookup_table.LockScalarRange = 1
     lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
-    print("pppppppppppppppppp = ", data_range)
     # Set properties
     scalarmap.ColorAttributeType = EntityType.get_pvtype(theEntityType)
     scalarmap.ColorArrayName = theFieldName
@@ -982,8 +991,9 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 
 def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
-                   theScaleFactor=None, theGlyphPos=GlyphPos.TAIL,
-                   theIsColored=False, theVectorMode='Magnitude',theGlyphType = '2D Glyph'):
+                   theScaleFactor=None,
+                   theGlyphPos=GlyphPos.TAIL, theGlyphType='2D Glyph'
+                   theIsColored=False, theVectorMode='Magnitude'):
     """Creates vectors on the given field."""
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
@@ -1019,23 +1029,24 @@ def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     glyph.ScaleMode = 'vector'
     glyph.MaskPoints = 0
 
-#@VPH: Customizing of vector visualization
-    if theGlyphType == '2D Glyph':
-        glyph.GlyphType = '2D Glyph'
+    # Set glyph type
+    glyph.GlyphType = theGlyphType
+    if glyph.GlyphType == '2D Glyph':
         glyph.GlyphType.GlyphType = 'Arrow'
-    if theGlyphType == 'Cone':
+    elif glyph.GlyphType == 'Cone':
         glyph.GlyphType = 'Cone'
-        glyph.GlyphType.Resolution = 7            
+        glyph.GlyphType.Resolution = 7
         glyph.GlyphType.Height = 2
         glyph.GlyphType.Radius = 0.2
-        
+
+    # Set glyph position
     if (theGlyphPos == GlyphPos.TAIL):
         glyph.GlyphType.Center = [0.5, 0.0, 0.0]
     elif (theGlyphPos == GlyphPos.HEAD):
         glyph.GlyphType.Center = [-0.5, 0.0, 0.0]
     elif (theGlyphPos == GlyphPos.CENTER):
-        glyph.GlyphType.Center = [0.0, 0.0, 0.0]        
-        
+        glyph.GlyphType.Center = [0.0, 0.0, 0.0]
+
     if theScaleFactor is not None:
         glyph.SetScaleFactor = theScaleFactor
     else:
@@ -2010,5 +2021,3 @@ def CreatePrsForProxy(theProxy, theView,
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, theView, pic_name)
-                    
-                    
