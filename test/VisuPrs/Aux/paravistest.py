@@ -117,8 +117,7 @@ def CallAndCheck(prs,property_name, value,do_raise = 1, compare_toler = -1.0):
     try:
         prs.SetPropertyWithName(property_name, value)
     except ValueError:
-        error_string  = ("{0} value of {1} is not available for this type of presentations".
-        format(value, property_name))
+        error_string  = ("{0} value of {1} is not available for this type of presentations".format(value, property_name))
     else:
         error_string = None        
     is_good = (error_string is None)
