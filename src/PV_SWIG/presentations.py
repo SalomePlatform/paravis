@@ -992,7 +992,7 @@ def CutLinesOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
 
 def VectorsOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
                    theScaleFactor=None,
-                   theGlyphPos=GlyphPos.TAIL, theGlyphType='2D Glyph'
+                   theGlyphPos=GlyphPos.TAIL, theGlyphType='2D Glyph',
                    theIsColored=False, theVectorMode='Magnitude'):
     """Creates vectors on the given field."""
     # Check vector mode
