@@ -30,9 +30,7 @@ node_entity = EntityType.NODE
 field_name = 'vitesse'
 cutplanes = CutPlanesOnField(med_reader, node_entity, field_name, 1)
 
-if cutplanes is None :
+if cutplanes is None:
     print "FAILED"
-else :
+else:
     print "OK"
-
-
