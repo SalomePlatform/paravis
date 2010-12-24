@@ -11,8 +11,11 @@ import pvsimple
 file_path = tablesdir + "sinus.csv"
 sinus_csv = pvsimple.CSVReader(FileName=file_path)
 
-# Set space as separator
+# Import settings
+sinus_csv.DetectNumericColumns = 1
+sinus_csv.UseStringDelimiter = 1
 sinus_csv.FieldDelimiterCharacters = ' '
+sinus_csv.HaveHeaders = 1
 
 # Display curve
 cur_view = pvsimple.GetRenderView()
