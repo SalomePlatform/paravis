@@ -139,7 +139,6 @@ def call_and_check(prs, property_name, value, do_raise=1, compare_toler=-1.0):
         error_string = None
     is_good = (error_string is None)
     if not is_good:
-        msg = "{0}: {1}".format(call_str, error_string)
         if do_raise:
             raise RuntimeError(error_string)
         else:
