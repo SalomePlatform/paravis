@@ -11,6 +11,24 @@ from datetime import date
 import salome
 
 
+# Auxiliary variables
+
+# Data directory
+samples_dir = os.getenv("DATA_DIR")
+datadir = None
+tablesdir = None
+if samples_dir is not None:
+    samples_dir = os.path.normpath(samples_dir)
+    datadir = samples_dir + "/MedFiles/"
+    tablesdir = samples_dir + "/Tables/"
+
+# Graphica files extension
+pictureext = os.getenv("PIC_EXT")
+if pictureext == None:
+    pictureext = "png"
+
+
+# Auxiliary classes
 class RepresentationType:
     """
     Types of representation.
@@ -37,7 +55,6 @@ class RepresentationType:
         return cls._type2name[type]
 
 
-# Auxiliary classes
 class SalomeSession(object):
     def __init__(self):
         import runSalome
@@ -109,17 +126,17 @@ def get_picture_dir(pic_dir, subdir):
                 os.remove(os.path.join(root, f))
 
     return res_dir
-   
 
-def CallAndCheck(prs,property_name, value,do_raise = 1, compare_toler = -1.0): 
-    """Utility function for 3D viewer test for common check of different 
+
+def call_and_check(prs, property_name, value, do_raise=1, compare_toler=-1.0):
+    """Utility function for 3D viewer test for common check of different
     types of presentation parameters set"""
     try:
         prs.SetPropertyWithName(property_name, value)
     except ValueError:
         error_string  = ("{0} value of {1} is not available for this type of presentations".format(value, property_name))
     else:
-        error_string = None        
+        error_string = None
     is_good = (error_string is None)
     if not is_good:
         msg = "{0}: {1}".format(call_str, error_string)
@@ -145,21 +162,6 @@ def CallAndCheck(prs,property_name, value,do_raise = 1, compare_toler = -1.0):
 
     return is_good
 
-# Auxiliary variables
-
-# Data directory
-samples_dir = os.getenv("DATA_DIR")
-datadir = None
-tablesdir = None
-if samples_dir is not None:
-    samples_dir = os.path.normpath(samples_dir)
-    datadir = samples_dir + "/MedFiles/"
-    tablesdir = samples_dir + "/Tables/"
-
-# Graphica files extension
-pictureext = os.getenv("PIC_EXT")
-if pictureext == None:
-    pictureext = "png"
 
 # Run Salome
 salome_session = SalomeSession()
