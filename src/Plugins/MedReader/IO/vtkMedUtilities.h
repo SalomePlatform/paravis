@@ -17,6 +17,7 @@ class vtkMedMesh;
 class vtkMedFamily;
 class vtkMedGroup;
 class vtkIdList;
+class vtkMutableDirectedGraph;
 
 class VTK_EXPORT vtkMedUtilities: public vtkObject
 {
@@ -45,13 +46,13 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   //BTX
   // Description:
   // returns the ith med_geometrie_element
-  static const int NumberOfCellGeometry = MED_NBR_GEOMETRIE_MAILLE + 3;
+  static const int NumberOfCellGeometry=MED_NBR_GEOMETRIE_MAILLE+3;
   static const med_geometrie_element CellGeometry[NumberOfCellGeometry];
-  static const int NumberOfFaceGeometry = MED_NBR_GEOMETRIE_FACE + 1;
+  static const int NumberOfFaceGeometry=MED_NBR_GEOMETRIE_FACE+1;
   static const med_geometrie_element FaceGeometry[NumberOfFaceGeometry];
-  static const int NumberOfEdgeGeometry = MED_NBR_GEOMETRIE_ARETE;
+  static const int NumberOfEdgeGeometry=MED_NBR_GEOMETRIE_ARETE;
   static const med_geometrie_element EdgeGeometry[NumberOfEdgeGeometry];
-  static const int NumberOfVertexGeometry = 1;
+  static const int NumberOfVertexGeometry=1;
   static const med_geometrie_element VertexGeometry[NumberOfVertexGeometry];
 
   // Description:
@@ -68,12 +69,12 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
 
   // Description:
   // returns the ith med_connectivite
-  static const int NumberOfConnectivity = 2;
+  static const int NumberOfConnectivity=2;
   static const med_connectivite Connectivity[NumberOfConnectivity];
 
   // Description:
   // returns the ith med_entite_maillage
-  static const int NumberOfEntityType = 5;
+  static const int NumberOfEntityType=5;
   static const med_entite_maillage EntityType[NumberOfEntityType];
 
   static const std::string SimplifyName(const char* medName);
@@ -90,11 +91,12 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   static int GetNumberOfPoint(med_geometrie_element geometry);
   static int GetDimension(med_geometrie_element geometry);
 
-  // returns the VTK cell type (as described in the vtkCellType.h file) corresponding to the
-  // given med_geometrie_element
+  // returns the VTK cell type (as described in the vtkCellType.h file)
+  // corresponding to the given med_geometrie_element
   static int GetVTKCellType(med_geometrie_element geometry);
 
-  // returns the number of sub entity : the number of faces for cells, the number of edges for faces, the number of nodes for edges
+  // returns the number of sub entity : the number of faces for cells,
+  // the number of edges for faces, the number of nodes for edges
   static int GetNumberOfSubEntity(med_geometrie_element geometry);
   //ETX
 
@@ -108,7 +110,8 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   // Description :
   // Project the ids gathered in the sub entity to the parent entity.
   // used for MED_DESC connectivity.
-  // Rem : no check is performed, and do not work for MED_POLYHEDRE and MED_POLYGON
+  // Rem : no check is performed, and do not work for MED_POLYHEDRE
+  // and MED_POLYGON
   static void ProjectConnectivity(med_geometrie_element parentGeometry,
       vtkIdList* parentIds, vtkIdList* subEntityIds, int subEntityIndex);
 
@@ -122,7 +125,6 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   static void SplitGroupKey(const char* name, vtkstd::string& mesh,
       vtkstd::string& entity, vtkstd::string& group);
   //ETX
-
 };
 
 //BTX

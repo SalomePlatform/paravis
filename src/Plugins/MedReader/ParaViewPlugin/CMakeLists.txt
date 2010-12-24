@@ -26,6 +26,7 @@ SET(SM_SRCS
     vtkSMInformationKeyDomain.cxx
     vtkSMInformationKeyDomainHelper.cxx
     vtkPVServerInformationKey.cxx
+    vtkSMMedHelper.cxx
     )
 
 IF(PARAVIEW_BUILD_QT_GUI)

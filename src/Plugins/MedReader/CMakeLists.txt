@@ -6,7 +6,8 @@ if(COMMAND cmake_policy)
 	 cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 	
-# Setup output directories.
+	# Setup output directories.
+## !!! This definition corrupts wrapping process
 #set (LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL
 #	  "Single output directory for building all libraries.")
 #set (EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL
