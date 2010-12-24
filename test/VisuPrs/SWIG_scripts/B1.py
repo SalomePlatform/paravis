@@ -91,6 +91,10 @@ print "display_only(cutplanes, view)"
 
 cam_pos = view.CameraPosition
 cam_pos[0] = cam_pos[0] + 10
+print "set view.CameraPosition"
+cutplanes.Scale[0] = 3
+cutplanes.Scale[1] = 10
+pvsimple.Render(view)
 sleep(DELAY)
 
 pvsimple.ResetCamera(view)
