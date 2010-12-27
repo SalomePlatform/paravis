@@ -245,8 +245,8 @@ def _get_vector_component(vector_mode):
     return vcomponent
 
 
-def get_data_range(proxy, entity_type, field_name, cut_off=False,
-                   vector_mode='Magnitude'):
+def get_data_range(proxy, entity_type, field_name, vector_mode='Magnitude',
+                   cut_off=False):
     """Get data range for the field."""
     entity_data_info = None
     field_data = proxy.GetFieldDataInformation()
