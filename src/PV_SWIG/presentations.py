@@ -602,10 +602,11 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
     proxy.UpdatePipeline()
 
 
-def extract_groups_for_field(proxy, field_name, field_entity):
+def extract_groups_for_field(proxy, field_name, field_entity, force=False):
     """Exctract only groups which have the field.
 
-    Return ExtractGroup object, if not all groups have the field.
+    Return ExtractGroup object, if not all groups have the field or
+    the force argunent is true.
     Return the initial proxy if no groups had been filtered.
     """
     source = proxy
@@ -638,7 +639,7 @@ def extract_groups_for_field(proxy, field_name, field_entity):
     proxy.UpdatePipeline()
 
     # Extract groups if necessary
-    if len(groups_to_extract) < len(initial_groups):
+    if force or (len(groups_to_extract) < len(initial_groups)):
         extract_group = pv.ExtractGroup(proxy)
         extract_group.Groups = groups_to_extract
         extract_group.UpdatePipeline()
@@ -817,6 +818,12 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     'X', 'Y', 'Z' - vector components.
 
     """
+    # We don't need mesh parts with no data on them
+    if theEntityType == EntityType.NODE:
+        select_cells_with_data(theProxy, on_points=[theFieldName])
+    else:
+        select_cells_with_data(theProxy, on_cells=[theFieldName])
+
     # Check vector mode
     nb_components = get_nb_components(theProxy, theEntityType, theFieldName)
     _check_vector_mode(theVectorMode, nb_components)
@@ -828,8 +835,12 @@ def ScalarMapOnField(theProxy, theEntityType, theFieldName, theTimeStampNumber,
     pv.GetRenderView().ViewTime = time_value
     pv.UpdatePipeline(time_value, theProxy)
 
+    # Extract only groups with data for the field
+    new_proxy = extract_groups_for_field(theProxy, theFieldName, theEntityType,
+                                         force=True)
+
     # Show pipeline object
-    scalarmap = pv.GetRepresentation(theProxy)
+    scalarmap = pv.GetRepresentation(new_proxy)
 
     # Get lookup table
     lookup_table = get_lookup_table(theFieldName, nb_components, theVectorMode)
@@ -1982,6 +1993,8 @@ def CreatePrsForProxy(theProxy, theView,
     for (i, field_name) in enumerate(field_names):
         # Select only the current field:
         # necessary for getting the right timestamps
+        cell_arrays = theProxy.CellArrays.GetData()
+        point_arrays = theProxy.PointArrays.GetData()
         field_entity = None
         if (i >= nb_on_nodes):
             field_entity = EntityType.CELL
@@ -1995,6 +2008,11 @@ def CreatePrsForProxy(theProxy, theView,
         # Get timestamps
         theProxy.UpdatePipelineInformation()
         timestamps = theProxy.TimestepValues.GetData()
+
+        # Restore fields selection state
+        theProxy.CellArrays = cell_arrays
+        theProxy.PointArrays = point_arrays
+        theProxy.UpdatePipelineInformation()
 
         for prs_type in thePrsTypeList:
             # Ignore mesh presentation
