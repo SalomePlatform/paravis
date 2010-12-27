@@ -21,9 +21,9 @@ else:
 print "Creating Cut Lines........................",
 med_field = "vitesse"
 cutlines = CutLinesOnField(med_reader, EntityType.NODE, med_field, 1,
-                           theNbLines=20,
-                           theOrientation1=Orientation.XY,
-                           theOrientation2=Orientation.ZX)
+                           nb_lines=20,
+                           orientation1=Orientation.XY,
+                           orientation2=Orientation.ZX)
 if cutlines is None:
     print "FAILED"
 else:

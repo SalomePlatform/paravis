@@ -83,7 +83,7 @@ pvsimple.Render(view)
 
 displacement = 0.5
 cutplanes = CutPlanesOnField(med_reader, entity, field_name, timestamp,
-                             theDisplacement=displacement)
+                             displacement=displacement)
 print "CutPlanesOnField(...)"
 
 display_only(cutplanes, view)
@@ -166,8 +166,8 @@ pvsimple.Render(view)
 sleep(DELAY)
 
 cutlines = CutLinesOnField(med_reader, entity, field_name, timestamp,
-                           theOrientation1=Orientation.ZX,
-                           theOrientation2=Orientation.YZ)
+                           orientation1=Orientation.ZX,
+                           orientation2=Orientation.YZ)
 display_only(cutlines, view)
 pvsimple.ResetCamera(view)
 print "display_only(cutlines, view)"

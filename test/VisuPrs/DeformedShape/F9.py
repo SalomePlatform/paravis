@@ -43,7 +43,7 @@ for colored in [False,True]:
         colored_str = "_colored"
     for i in range(1,11):
         hide_all(aView, True)
-        aPrs = DeformedShapeOnField(aProxy, aFieldEntity,aFieldName , i,theIsColored=colored)	
+        aPrs = DeformedShapeOnField(aProxy, aFieldEntity, aFieldName, i, is_colored=colored)	
         if aPrs is None:
             raise RuntimeError, "Presentation is None!!!"
         # display only current deformed shape

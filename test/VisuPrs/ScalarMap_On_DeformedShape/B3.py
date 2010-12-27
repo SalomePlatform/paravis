@@ -42,7 +42,7 @@ hide_all(view)
 smondefshape2 = DeformedShapeAndScalarMapOnField(med_reader,
                                                  node_entity,
                                                  field_name, 1,
-                                                 theVectorMode='Y')
+                                                 vector_mode='Y')
 
 print "Creating Scalar Map On Deformed Shape with 'Y' scalar mode.....",
 if smondefshape2 is None:

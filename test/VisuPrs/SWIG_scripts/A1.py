@@ -79,7 +79,7 @@ else:
 
 print "Creating Cut Planes.......",
 cutplanes = CutPlanesOnField(med_reader, node_entity, 'vitesse', 1,
-                             theNbPlanes=30, theOrientation=Orientation.YZ)
+                             nb_planes=30, orientation=Orientation.YZ)
 if cutplanes is None:
     print "FAILED"
 else:
@@ -135,7 +135,7 @@ else:
 
 print "Creating Cut Planes.......",
 cutplanes1 = CutPlanesOnField(med_reader1, cell_entity, 'scalar_field', 1,
-                              theOrientation=Orientation.YZ)
+                              orientation=Orientation.YZ)
 if cutplanes1 is None:
     print "FAILED"
 else:

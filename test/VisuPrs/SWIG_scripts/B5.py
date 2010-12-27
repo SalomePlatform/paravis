@@ -75,7 +75,7 @@ print "view3.Background = {0}".format(str(color))
 pvsimple.Render(view3)
 
 cutplanes = CutPlanesOnField(med_reader, entity, field_name, timestamp,
-                             theOrientation=Orientation.XY)
+                             orientation=Orientation.XY)
 print "CutPlanesOnField(...)"
 
 display_only(cutplanes, view3)
@@ -127,8 +127,8 @@ print "view5.Background = {0}".format(str(color))
 pvsimple.Render(view5)
 
 cutlines = CutLinesOnField(med_reader, entity, field_name, timestamp,
-                           theOrientation1=Orientation.ZX,
-                           theOrientation2=Orientation.YZ)
+                           orientation1=Orientation.ZX,
+                           orientation2=Orientation.YZ)
 print "cutlines = CutLinesOnField(...)"
 
 display_only(cutlines, view5)

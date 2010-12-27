@@ -32,7 +32,7 @@ mesh_name = "Box1"
 entity_types = [EntityType.NODE,EntityType.CELL]
 for entity_type in entity_types:
     entity_name = EntityType.get_name(entity_type)
-    mesh = MeshOnEntity(aProxy, mesh_name ,entity_type)
+    mesh = MeshOnEntity(aProxy, mesh_name, entity_type)
     if mesh is None: 
         msg = "ERROR!!!Presentation of mesh on '"+entity_name+"' family wasn't created..."
         raise RuntimeError, msg 
