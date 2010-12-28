@@ -29,6 +29,7 @@ IF (PYTHON_EXECUTABLE)
       B1
       B5
       B7
+      B8
       B9
       )
     ADD_TEST(SWIGSCRIPTS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
