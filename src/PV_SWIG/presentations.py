@@ -97,8 +97,14 @@ class EntityType:
 
 
 class Orientation:
-    """
-    Orientation types.
+    """Orientation types.
+
+    Defines a set of plane orientation possibilities:
+      AUTO: plane orientation should be calculated.
+      XY: plane formed by X and Y axis.
+      YZ: plane formed by Y and Z axis.
+      ZX: plane formed by Z and X axis
+
     """
     AUTO = 0
     XY = 1
@@ -107,8 +113,13 @@ class Orientation:
 
 
 class GlyphPos:
-    """
-    Glyph positions.
+    """Glyph positions.
+
+    Set of elements defining the position of the vector head:
+      CENTER: in the center of the vector
+      TAIL: in the tail of the vector
+      HEAD: in the head of the vector
+
     """
     CENTER = 0
     TAIL = 1
@@ -117,7 +128,7 @@ class GlyphPos:
 
 class GaussType:
     """
-    Types of Gauss Points representation.
+    Gauss Points primitive types.
     """
     SPRITE = 0
     POINT = 1
@@ -141,14 +152,13 @@ class _AuxCounter:
 
 # Auxiliary functions
 def process_prs_for_test(prs, view, picture_name, show_bar=True):
-    """Show presentation and record image.
+    """Show presentation and record snapshot image.
 
     Arguments:
-
-    prs -- the presentation to show
-    view -- the render view
-    picture_name -- the full name of a graphics file to save
-    show_bar -- to show scalar bar or not
+      prs: the presentation to show
+      view: the render view
+      picture_name: the full name of the graphics file to save
+      show_bar: to show scalar bar or not
 
     """
     # Show the presentation only
@@ -174,7 +184,9 @@ def process_prs_for_test(prs, view, picture_name, show_bar=True):
 def reset_view(view=None):
     """Reset the view.
 
+    Set predefined (taken from Post-Pro) camera settings.
     If the view is not passed, the active view is used.
+
     """
     if not view:
         view = pv.GetRenderView()
@@ -214,15 +226,28 @@ def hide_all(view, to_remove=False):
 
 
 def display_only(prs, view=None):
-    """Display only the presentation in the view."""
+    """Display only the given presentation in the view."""
     hide_all(view)
     if (hasattr(prs, 'Visibility') and prs.Visibility != 1):
         prs.Visibility = 1
     pv.Render(view=view)
 
 
-def _check_vector_mode(vector_mode, nb_components):
-    """Check vector mode."""
+def check_vector_mode(vector_mode, nb_components):
+    """Check vector mode.
+
+    Check if vector mode is correct for the data array with the
+    given number of components.
+
+    Arguments:
+      vector_mode: 'Magnitude', 'X', 'Y' or 'Z'
+      nb_components: number of component in the data array
+
+    Raises:
+      ValueError: in case of the vector mode is unexistent
+      or nonapplicable.
+
+    """
     if vector_mode not in ('Magnitude', 'X', 'Y', 'Z'):
         raise ValueError("Unexistent vector mode: {0}".format(vector_mode))
 
@@ -232,7 +257,17 @@ def _check_vector_mode(vector_mode, nb_components):
                          format(vector_mode, nb_components))
 
 
-def _get_vector_component(vector_mode):
+def get_vector_component(vector_mode):
+    """Get vector component as ineger.
+
+    Translate vector component notation from string
+    to integer:
+      'Magnitude': -1
+      'X': 0
+      'Y': 1
+      'Z': 2
+
+    """
     vcomponent = -1
 
     if vector_mode == 'X':
@@ -247,7 +282,18 @@ def _get_vector_component(vector_mode):
 
 def get_data_range(proxy, entity, field_name, vector_mode='Magnitude',
                    cut_off=False):
-    """Get data range for the field."""
+    """Get data range for the field.
+
+    Arguments:
+      proxy: the pipeline object, containig data array for the field
+      entity: the field entity
+      field_name: the field name
+      vector_mode: the vector mode ('Magnitude', 'X', 'Y' or 'Z')
+
+    Returns:
+      Data range as [min, max]
+
+    """
     entity_data_info = None
     field_data = proxy.GetFieldDataInformation()
 
@@ -261,7 +307,7 @@ def get_data_range(proxy, entity, field_name, vector_mode='Magnitude',
     data_range = []
 
     if field_name in entity_data_info.keys():
-        vcomp = _get_vector_component(vector_mode)
+        vcomp = get_vector_component(vector_mode)
         data_range = entity_data_info[field_name].GetComponentRange(vcomp)
     else:
         pv_entity = EntityType.get_pvtype(entity)
@@ -278,26 +324,26 @@ def get_data_range(proxy, entity, field_name, vector_mode='Magnitude',
 
 
 def get_bounds(proxy):
-    """Get bounds of the proxy."""
+    """Get bounds of the proxy in 3D."""
     dataInfo = proxy.GetDataInformation()
     bounds_info = dataInfo.GetBounds()
     return bounds_info
 
 
 def get_x_range(proxy):
-    """Get X range."""
+    """Get X range of the proxy bounds in 3D."""
     bounds_info = get_bounds(proxy)
     return bounds_info[0:2]
 
 
 def get_y_range(proxy):
-    """Get Y range."""
+    """Get Y range of the proxy bounds in 3D."""
     bounds_info = get_bounds(proxy)
     return bounds_info[2:4]
 
 
 def get_z_range(proxy):
-    """Get Z range."""
+    """Get Z range of the proxy bounds in 3D."""
     bounds_info = get_bounds(proxy)
     return bounds_info[4:6]
 
@@ -315,13 +361,19 @@ def is_planar_input(proxy):
 
 
 def is_data_on_cells(proxy, field_name):
-    """Check if the field on cells with the given name exists."""
+    """Check the existence of a field on cells with the given name."""
     cell_data_info = proxy.GetCellDataInformation()
     return (field_name in cell_data_info.keys())
 
 
 def is_empty(proxy):
-    """Check if the object contains any points or cells."""
+    """Check if the object contains any points or cells.
+
+    Returns:
+      True: if the given proxy doesn't contain any points or cells
+      False: otherwise
+
+    """
     data_info = proxy.GetDataInformation()
 
     nb_cells = data_info.GetNumberOfCells()
@@ -331,7 +383,7 @@ def is_empty(proxy):
 
 
 def get_orientation(proxy):
-    """Get the optimum cutting plane orientation for Plot3d."""
+    """Get the optimum cutting plane orientation for Plot 3D."""
     orientation = Orientation.XY
 
     bounds = get_bounds(proxy)
@@ -496,7 +548,9 @@ def get_default_scale(prs_type, proxy, entity, field_name):
 def get_calc_magnitude(proxy, array_entity, array_name):
     """Compute magnitude for the given vector array via Calculator.
 
-    Return the calculator object.
+    Returns:
+      the calculator object.
+
     """
     calculator = None
 
@@ -527,7 +581,9 @@ def get_add_component_calc(proxy, array_entity, array_name):
     is zero.
     If the number of components is not equal to 2 - return original array name.
 
-    Return the calculator object.
+    Returns:
+      the calculator object.
+
     """
     calculator = None
 
@@ -550,6 +606,7 @@ def select_all_cells(proxy):
     """Select all cell types.
 
     Used in creation of mesh/submesh presentation.
+
     """
     all_cell_types = proxy.CellTypes.Available
     proxy.CellTypes = all_cell_types
@@ -562,6 +619,7 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
     Only cell types with data for the given fields will be selected.
     If no fields defined (neither on points nor on cells) only cell
     types with data for even one field (from available) will be selected.
+
     """
     all_cell_types = proxy.CellTypes.Available
     all_arrays = list(proxy.CellArrays.GetData())
@@ -605,9 +663,17 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
 def extract_groups_for_field(proxy, field_name, field_entity, force=False):
     """Exctract only groups which have the field.
 
-    Return ExtractGroup object, if not all groups have the field or
-    the force argunent is true.
-    Return the initial proxy if no groups had been filtered.
+    Arguments:
+      proxy: the pipeline object, containig data
+      field_name: the field name
+      field_entity: the field entity
+      force: if True - ExtractGroup object will be created in any case
+
+    Returns:
+      ExtractGroup object: if not all groups have the field or
+      the force argument is true
+      The initial proxy: if no groups had been filtered.
+
     """
     source = proxy
 
@@ -649,7 +715,7 @@ def extract_groups_for_field(proxy, field_name, field_entity, force=False):
 
 
 def if_possible(proxy, field_name, entity, prs_type):
-    """Check if the presentation is possible on the given field."""
+    """Check if the presentation creation is possible on the given field."""
     result = True
     if (prs_type == PrsTypeEnum.DEFORMEDSHAPE or
         prs_type == PrsTypeEnum.DEFORMEDSHAPESCALARMAP or
@@ -661,14 +727,14 @@ def if_possible(proxy, field_name, entity, prs_type):
         result = (entity == EntityType.CELL or
                   field_name in proxy.QuadraturePointArrays.Available)
     elif (prs_type == PrsTypeEnum.MESH):
-        result = len(_get_group_names(proxy, field_name, entity)) > 0
+        result = len(get_group_names(proxy, field_name, entity)) > 0
 
     return result
 
 
 def add_scalar_bar(field_name, nb_components,
                    vector_mode, lookup_table, time_value):
-    """Add scalar bar."""
+    """Add scalar bar with predefined properties."""
     global _current_bar
 
     # Construct bar title
@@ -740,14 +806,14 @@ def get_lookup_table(field_name, nb_components, vector_mode='Magnitude'):
     return lookup_table
 
 
-def _get_group_mesh_name(full_group_name):
+def get_group_mesh_name(full_group_name):
     """Return mesh name of the group by its full name."""
     group_name = full_group_name.split('/')[1]
 
     return group_name
 
 
-def _get_group_entity(full_group_name):
+def get_group_entity(full_group_name):
     """Return entity type of the group by its full name."""
     entity_name = full_group_name.split('/')[2]
 
@@ -756,34 +822,34 @@ def _get_group_entity(full_group_name):
     return entity
 
 
-def _get_group_short_name(full_group_name):
+def get_group_short_name(full_group_name):
     """Return short name of the group by its full name."""
     short_name = full_group_name.split('/')[3]
 
     return short_name
 
 
-def _get_mesh_names(proxy):
+def get_mesh_names(proxy):
     """Return all mesh names in the given proxy as a set."""
     groups = proxy.Groups.Available
-    mesh_names = set([_get_group_mesh_name(item) for item in groups])
+    mesh_names = set([get_group_mesh_name(item) for item in groups])
 
     return mesh_names
 
 
-def _get_group_names(proxy, mesh_name, entity, wo_nogroups=False):
+def get_group_names(proxy, mesh_name, entity, wo_nogroups=False):
     """Return full names of all groups of the given entity type
     from the mesh with the given name as a list.
     """
     groups = proxy.Groups.Available
 
-    condition = lambda item: (_get_group_mesh_name(item) == mesh_name and
-                              _get_group_entity(item) == entity)
+    condition = lambda item: (get_group_mesh_name(item) == mesh_name and
+                              get_group_entity(item) == entity)
     group_names = [item for item in groups if condition(item)]
 
     if wo_nogroups:
         # Remove "No_Group" group
-        not_no_group = lambda item: _get_group_short_name(item) != "No_Group"
+        not_no_group = lambda item: get_group_short_name(item) != "No_Group"
         group_names = filter(not_no_group, group_names)
 
     return group_names
@@ -801,21 +867,63 @@ def get_time(proxy, timestamp_nb):
     return timestamps[timestamp_nb - 1]
 
 
+def create_prs(prs_type, proxy, field_entity, field_name, timestamp_nb):
+    """Auxiliary method.
+
+    Build presentation of the given type on the given field and
+    timestamp number.
+    Set the presentation properties like visu.CreatePrsForResult() do.
+
+    """
+    prs = None
+
+    if prs_type == PrsTypeEnum.SCALARMAP:
+        prs = ScalarMapOnField(proxy, field_entity, field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.CUTPLANES:
+        prs = CutPlanesOnField(proxy, field_entity, field_name, timestamp_nb,
+                               orientation=Orientation.ZX)
+    elif prs_type == PrsTypeEnum.CUTLINES:
+        prs = CutLinesOnField(proxy, field_entity, field_name, timestamp_nb,
+                              orientation1=Orientation.XY,
+                              orientation2=Orientation.ZX)
+    elif prs_type == PrsTypeEnum.DEFORMEDSHAPE:
+        prs = DeformedShapeOnField(proxy, field_entity,
+                                   field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.DEFORMEDSHAPESCALARMAP:
+        prs = DeformedShapeAndScalarMapOnField(proxy, field_entity,
+                                               field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.VECTORS:
+        prs = VectorsOnField(proxy, field_entity, field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.PLOT3D:
+        prs = Plot3DOnField(proxy, field_entity, field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.ISOSURFACES:
+        prs = IsoSurfacesOnField(proxy, field_entity, field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.GAUSSPOINTS:
+        prs = GaussPointsOnField(proxy, field_entity, field_name, timestamp_nb)
+    elif prs_type == PrsTypeEnum.STREAMLINES:
+        prs = StreamLinesOnField(proxy, field_entity, field_name, timestamp_nb)
+    else:
+        raise ValueError("Unexistent presentation type.")
+
+    return prs
+
+
 # Functions for building Post-Pro presentations
 def ScalarMapOnField(proxy, entity, field_name, timestamp_nb,
                      vector_mode='Magnitude'):
-    """Creates Scalar Map presentation on the field.
+    """Creates Scalar Map presentation on the given field.
 
     Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
 
-    proxy -- the pipeline object, containig data
-    entity -- the entity type from PrsTypeEnum
-    field_name -- the field name
-    timestamp_nb -- the number of time step (1, 2, ...)
-    vector_mode -- the mode of transformation of vector values
-    into scalar values, applicable only if the field contains vector values.
-    Possible modes: 'Magnitude' - vector module;
-    'X', 'Y', 'Z' - vector components.
+    Returns:
+      Scalar Map as representation object.
 
     """
     # We don't need mesh parts with no data on them
@@ -826,7 +934,7 @@ def ScalarMapOnField(proxy, entity, field_name, timestamp_nb,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -868,10 +976,27 @@ def ScalarMapOnField(proxy, entity, field_name, timestamp_nb,
 def CutPlanesOnField(proxy, entity, field_name, timestamp_nb,
                      nb_planes=10, orientation=Orientation.YZ,
                      displacement=0.5, vector_mode='Magnitude'):
-    """Creates cut planes on the given field."""
+    """Creates Cut Planes presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      nb_planes: number of cutting planes
+      orientation: cutting planes orientation in 3D space
+      displacement: the displacement of the planes into one or another side
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Cut Planes as representation object.
+
+    """
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -932,10 +1057,29 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
                     orientation2=Orientation.YZ,
                     displacement1=0.5, displacement2=0.5,
                     vector_mode='Magnitude'):
-    """Creates cut lines on the given field."""
+    """Creates Cut Lines presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      nb_lines: number of lines
+      orientation1: base plane orientation in 3D space
+      orientation2: cutting planes orientation in 3D space
+      displacement1: base plane displacement
+      displacement2: cuttong planes displacement
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Cut Lines as representation object.
+
+    """
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1025,10 +1169,29 @@ def VectorsOnField(proxy, entity, field_name, timestamp_nb,
                    scale_factor=None,
                    glyph_pos=GlyphPos.TAIL, glyph_type='2D Glyph',
                    is_colored=False, vector_mode='Magnitude'):
-    """Creates vectors on the given field."""
+    """Creates Vectors presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      scale_factor: scale factor
+      glyph_pos: the position of glyphs
+      glyph_type: the type of glyphs
+      is_colored: this option allows to color the presentation according to
+      the corresponding data array values
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Vectors as representation object.
+
+    """
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1120,7 +1283,24 @@ def DeformedShapeOnField(proxy, entity, field_name,
                          timestamp_nb,
                          scale_factor=None, is_colored=False,
                          vector_mode='Magnitude'):
-    """Creates Defromed shape on the given field."""
+    """Creates Defromed Shape presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      scale_factor: scale factor of the deformation
+      is_colored: this option allows to color the presentation according to
+      the corresponding data array values
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Defromed Shape as representation object.
+
+    """
     # We don't need mesh parts with no data on them
     if entity == EntityType.NODE:
         select_cells_with_data(proxy, on_points=[field_name])
@@ -1129,7 +1309,7 @@ def DeformedShapeOnField(proxy, entity, field_name,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1202,7 +1382,24 @@ def DeformedShapeAndScalarMapOnField(proxy, entity, field_name,
                                      scalar_entity=None,
                                      scalar_field_name=None,
                                      vector_mode='Magnitude'):
-    """Creates Defromed shape And Scalar Map on the given field."""
+    """Creates Defromed Shape And Scalar Map presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      scale_factor: scale factor of the deformation
+      scalar_entity: scalar field entity
+      scalar_field_name: scalar field, i.e. the field for coloring
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Defromed Shape And Scalar Map as representation object.
+
+    """
     # We don't need mesh parts with no data on them
     on_points = []
     on_cells = []
@@ -1222,7 +1419,7 @@ def DeformedShapeAndScalarMapOnField(proxy, entity, field_name,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1296,7 +1493,30 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
                   scale_factor=None,
                   is_contour=False, nb_contours=32,
                   vector_mode='Magnitude'):
-    """Creates plot 3d on the given field."""
+    """Creates Plot 3D presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      orientation: the cut plane plane orientation in 3D space, if
+      the input is planar - will not be taken into account
+      position: position of the cut plane in the object (ranging from 0 to 1).
+      The value 0.5 corresponds to cutting by halves.
+      is_relative: defines if the cut plane position is relative or absolute
+      scale_factor: deformation scale factor
+      is_contour: if True - Plot 3D will be represented with a set of contours,
+      otherwise - Plot 3D will be represented with a smooth surface
+      nb_contours: number of contours, applied if is_contour is True
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Plot 3D as representation object.
+
+    """
     # We don't need mesh parts with no data on them
     if entity == EntityType.NODE:
         select_cells_with_data(proxy, on_points=[field_name])
@@ -1305,7 +1525,7 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1426,11 +1646,31 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
     return plot3d
 
 
-def IsoSurfacesOnField(proxy, entity, field_name,
-                       timestamp_nb,
-                       custom_range=None, nb_surfaces=10, is_colored=True,
-                       color=None, vector_mode='Magnitude'):
-    """Creates Iso Surfaces on the given field."""
+def IsoSurfacesOnField(proxy, entity, field_name, timestamp_nb,
+                       custom_range=None, nb_surfaces=10,
+                       is_colored=True, color=None, vector_mode='Magnitude'):
+    """Creates Iso Surfaces presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      custom_range: scalar range, if undefined the source range will be applied
+      nb_surfaces: number of surfaces, which will be generated
+      is_colored: this option allows to color the presentation according to
+      the corresponding data array values. If False - the presentation will
+      be one-coloured.
+      color: defines the presentation color as [R, G, B] triple. Taken into
+      account only if is_colored is False.
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Iso Surfaces as representation object.
+
+    """
     # We don't need mesh parts with no data on them
     if entity == EntityType.NODE:
         select_cells_with_data(proxy, on_points=[field_name])
@@ -1439,7 +1679,7 @@ def IsoSurfacesOnField(proxy, entity, field_name,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1522,31 +1762,35 @@ def GaussPointsOnField(proxy, entity, field_name,
                        is_proportional=True,
                        max_pixel_size=256,
                        multiplier=None, vector_mode='Magnitude'):
-    """Creates Gauss points on the given field.
+    """Creates Gauss Points on the given field.
 
     Arguments:
 
-    proxy -- the pipeline object, containig data
-    entity -- the entity type from PrsTypeEnum
-    field_name -- the field name
-    timestamp_nb -- the number of time step (1, 2, ...)
-    is_deformed -- defines whether the Gauss Points will be deformed or not
-    scale_factor -- the scale factor for deformation;
-    will be taken into account only if is_deformed is True.
+    proxy: the pipeline object, containig data
+    entity: the field entity type from PrsTypeEnum
+    field_name: the field name
+    timestamp_nb: the number of time step (1, 2, ...)
+    is_deformed: defines whether the Gauss Points will be deformed or not
+    scale_factor -- the scale factor for deformation. Will be taken into
+    account only if is_deformed is True.
     If not passed by user, default scale will be computed.
-    is_colored -- defines whether the Gauss Points will be multicolored
-    color -- color of the Gauss Points. If defined, the presentation
-    will be one-coloured
-    primitive -- primitive type from GaussType
-    is_proportional -- if True, the size of primitives will depends on
+    is_colored -- defines whether the Gauss Points will be multicolored,
+    using the corresponding data values
+    color: defines the presentation color as [R, G, B] triple. Taken into
+    account only if is_colored is False.
+    primitive: primitive type from GaussType
+    is_proportional: if True, the size of primitives will depends on
     the gauss point value
-    max_pixel_size -- the maximum sizr of the Gauss Points primitive in pixels
-    multiplier -- coefficient between data values and the size of primitives
+    max_pixel_size: the maximum sizr of the Gauss Points primitive in pixels
+    multiplier: coefficient between data values and the size of primitives
     If not passed by user, default scale will be computed.
-    vector_mode -- the mode of transformation of vector values into
+    vector_mode: the mode of transformation of vector values into
     scalar values, applicable only if the field contains vector values.
     Possible modes: 'Magnitude' - vector module;
     'X', 'Y', 'Z' - vector components.
+
+    Returns:
+      Gauss Points as representation object.
 
     """
     # We don't need mesh parts with no data on them
@@ -1557,7 +1801,7 @@ def GaussPointsOnField(proxy, entity, field_name,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1675,8 +1919,8 @@ def GaussPointsOnField(proxy, entity, field_name,
         gausspnt.RadiusMode = 'Scalar'
         gausspnt.RadiusArray = ['POINTS', field_name]
         if nb_components > 1:
-            gausspnt.RadiusVectorComponent = \
-                                           _get_vector_component(vector_mode)
+            v_comp = get_vector_component(vector_mode)
+            gausspnt.RadiusVectorComponent = v_comp
         gausspnt.RadiusTransferFunctionMode = 'Table'
         gausspnt.RadiusScalarRange = data_range
         gausspnt.RadiusUseScalarRange = 1
@@ -1690,12 +1934,30 @@ def GaussPointsOnField(proxy, entity, field_name,
     return gausspnt
 
 
-def StreamLinesOnField(proxy, entity, field_name,
-                       timestamp_nb,
-                       direction='BOTH',
-                       is_colored=False, color=None,
+def StreamLinesOnField(proxy, entity, field_name, timestamp_nb,
+                       direction='BOTH', is_colored=False, color=None,
                        vector_mode='Magnitude'):
-    """Creates Stream Lines on the given field."""
+    """Creates Stream Lines presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      direction: the stream lines direction ('FORWARD', 'BACKWARD' or 'BOTH')
+      is_colored: this option allows to color the presentation according to
+      the corresponding data values. If False - the presentation will
+      be one-coloured.
+      color: defines the presentation color as [R, G, B] triple. Taken into
+      account only if is_colored is False.
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Stream Lines as representation object.
+
+    """
     # We don't need mesh parts with no data on them
     if entity == EntityType.NODE:
         select_cells_with_data(proxy, on_points=[field_name])
@@ -1704,7 +1966,7 @@ def StreamLinesOnField(proxy, entity, field_name,
 
     # Check vector mode
     nb_components = get_nb_components(proxy, entity, field_name)
-    _check_vector_mode(vector_mode, nb_components)
+    check_vector_mode(vector_mode, nb_components)
 
     # Get time value
     time_value = get_time(proxy, timestamp_nb)
@@ -1780,17 +2042,19 @@ def MeshOnEntity(proxy, mesh_name, entity):
     """Creates submesh of the entity type for the mesh.
 
     Arguments:
+      proxy -- the pipeline object, containig data
+      mesh_name -- the mesh name
+      entity -- the entity type
 
-    proxy -- the pipeline object, containig data
-    mesh_name -- the mesh name
-    entity -- the entity type
+    Returns:
+      Submesh as representation object of the given source.
 
     """
     # Select all cell types
     select_all_cells(proxy)
 
     # Get subset of groups on the given entity
-    subset = _get_group_names(proxy, mesh_name, entity)
+    subset = get_group_names(proxy, mesh_name, entity)
 
     # Select only groups of the given entity type
     proxy.Groups = subset
@@ -1810,9 +2074,12 @@ def MeshOnGroup(proxy, group_name):
     """Creates submesh on the group.
 
     Arguments:
+      proxy -- the pipeline object, containig data
+      group_name -- the full group name
 
-    proxy -- the pipeline object, containig data
-    group_name -- the full group name
+    Returns:
+      Representation object of the given source with single group
+      selected.
 
     """
     # Select all cell types
@@ -1828,7 +2095,7 @@ def MeshOnGroup(proxy, group_name):
 
     # Check if the group was set
     if proxy.Groups.GetData() == one_group:
-        group_entity = _get_group_entity(group_name)
+        group_entity = get_group_entity(group_name)
         # Check if the submesh is not empty
         nb_items = 0
         if group_entity == EntityType.NODE:
@@ -1845,7 +2112,18 @@ def MeshOnGroup(proxy, group_name):
 
 def CreatePrsForFile(paravis_instance, file_name, prs_types,
                      picture_dir, picture_ext):
-    """Build presentations of the given types for all fields of the file."""
+    """Build presentations of the given types for the file.
+
+    Build presentations for all fields on all timestamps.
+
+    Arguments:
+      paravis_instance: ParaVis module instance object
+      file_name: full path to the MED file
+      prs_types: the list of presentation types to build
+      picture_dir: the directory path for saving snapshots
+      picture_ext: graphics files extension (determines file type)
+
+    """
     # Import MED file
     print("Import {0}...".format(file_name.split(os.sep)[-1]), end='')
 
@@ -1868,57 +2146,18 @@ def CreatePrsForFile(paravis_instance, file_name, prs_types,
                           picture_dir, picture_ext)
 
 
-def _create_prs(prs_type, proxy, field_entity, field_name, timestamp_nb):
-    """Internal method.
-    Build presentation of the given type on the given field and
-    timestamp number.
-    Set the presentation properties like visu.CreatePrsForResult() do.
-    """
-    prs = None
-
-    if prs_type == PrsTypeEnum.SCALARMAP:
-        prs = ScalarMapOnField(proxy, field_entity, field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.CUTPLANES:
-        prs = CutPlanesOnField(proxy, field_entity, field_name, timestamp_nb,
-                               orientation=Orientation.ZX)
-    elif prs_type == PrsTypeEnum.CUTLINES:
-        prs = CutLinesOnField(proxy, field_entity, field_name, timestamp_nb,
-                              orientation1=Orientation.XY,
-                              orientation2=Orientation.ZX)
-    elif prs_type == PrsTypeEnum.DEFORMEDSHAPE:
-        prs = DeformedShapeOnField(proxy, field_entity,
-                                   field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.DEFORMEDSHAPESCALARMAP:
-        prs = DeformedShapeAndScalarMapOnField(proxy, field_entity,
-                                               field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.VECTORS:
-        prs = VectorsOnField(proxy, field_entity, field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.PLOT3D:
-        prs = Plot3DOnField(proxy, field_entity, field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.ISOSURFACES:
-        prs = IsoSurfacesOnField(proxy, field_entity, field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.GAUSSPOINTS:
-        prs = GaussPointsOnField(proxy, field_entity, field_name, timestamp_nb)
-    elif prs_type == PrsTypeEnum.STREAMLINES:
-        prs = StreamLinesOnField(proxy, field_entity, field_name, timestamp_nb)
-    else:
-        raise ValueError("Unexistent presentation type.")
-
-    return prs
-
-
 def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
     """Build presentations of the given types for all fields of the proxy.
+
     Save snapshots in graphics files (type depends on the given extension).
     Stores the files in the given directory.
 
     Arguments:
-
-    proxy -- the pipeline object, containig data arrays
-    view  -- the render view
-    prs_types  -- the list of presentation types to build
-    picture_dir   -- the directory path for saving snapshots
-    picture_ext   -- graphics files extension (determines file type)
+      proxy: the pipeline object, containig data
+      view: the render view
+      prs_types: the list of presentation types to build
+      picture_dir: the directory path for saving snapshots
+      picture_ext: graphics files extension (determines file type)
 
     """
     # List of the field names
@@ -1938,7 +2177,7 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
         groups = list(proxy.Groups)
 
         # Iterate on meshes
-        mesh_names = _get_mesh_names(proxy)
+        mesh_names = get_mesh_names(proxy)
         for mesh_name in mesh_names:
             # Build mesh on nodes and cells
             for entity in (EntityType.NODE, EntityType.CELL):
@@ -1963,8 +2202,8 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
                     process_prs_for_test(prs, view, pic_name, False)
 
                 # Build submesh on all groups of the mesh
-                mesh_groups = _get_group_names(proxy, mesh_name,
-                                               entity, wo_nogroups=True)
+                mesh_groups = get_group_names(proxy, mesh_name,
+                                              entity, wo_nogroups=True)
                 for group in mesh_groups:
                     print("Creating submesh on group {0}... ".
                           format(group), end='')
@@ -2031,8 +2270,8 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
                     time = timestamps[timestamp_nb - 1]
                     print("Creating {0} on {1}, time = {2}... ".
                           format(prs_name, field_name, time), end='')
-                    prs = _create_prs(prs_type, proxy,
-                                      field_entity, field_name, timestamp_nb)
+                    prs = create_prs(prs_type, proxy,
+                                     field_entity, field_name, timestamp_nb)
                     if prs is None:
                         print("FAILED")
                         continue
