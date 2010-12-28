@@ -144,12 +144,6 @@ class GaussType:
         return cls._type2mode[type]
 
 
-# Internal classes
-class _AuxCounter:
-    "Internal class."
-    first_render = True
-
-
 # Auxiliary functions
 def process_prs_for_test(prs, view, picture_name, show_bar=True):
     """Show presentation and record snapshot image.
@@ -191,21 +185,17 @@ def reset_view(view=None):
     if not view:
         view = pv.GetRenderView()
 
-    #@MZN
-    if True or _AuxCounter.first_render:
-        # Camera preferences
-        view.CameraFocalPoint = [0.0, 0.0, 0.0]
-        view.CameraViewUp = [0.0, 0.0, 1.0]
-        view.CameraPosition = [738.946, -738.946, 738.946]
+    # Camera preferences
+    view.CameraFocalPoint = [0.0, 0.0, 0.0]
+    view.CameraViewUp = [0.0, 0.0, 1.0]
+    view.CameraPosition = [738.946, -738.946, 738.946]
 
-        # Turn on the headligth
-        view.LightSwitch = 1
-        view.LightIntensity = 0.5
+    # Turn on the headligth
+    view.LightSwitch = 1
+    view.LightIntensity = 0.5
 
-        # Use parallel projection
-        view.CameraParallelProjection = 1
-
-        _AuxCounter.first_render = False
+    # Use parallel projection
+    view.CameraParallelProjection = 1
 
     view.ResetCamera()
     pv.Render(view=view)
