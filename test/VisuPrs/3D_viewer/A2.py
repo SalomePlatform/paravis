@@ -45,12 +45,11 @@ opacities  = [1.0, 0.5, 0.0]
 linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
-myMeshName = 'Maillage MED_PENTA6'
-myFieldName = 'vectoriel_field'
+field_name = 'vectoriel_field'
 
 
 print "\nCreating Vectors.......",
-vectors= VectorsOnField(proxy,EntityType.CELL,myFieldName, 1,theIsColored=True,theGlyphType = "Cone")
+vectors= VectorsOnField(proxy,EntityType.CELL,field_name, 1,is_colored=True,glyph_type = "Cone")
 if vectors is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(vectors,my_view)

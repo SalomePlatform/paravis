@@ -36,8 +36,8 @@ if proxy is None:
 	raise RuntimeError, "Error: can't import file."
 else: print "OK"
 
-represents = [RepresentationType.POINTS,RepresentationType.WIREFRAME,\
-RepresentationType.SURFACE,RepresentationType.VOLUME]
+represents = [RepresentationType.POINTS,RepresentationType.WIREFRAME,
+                                RepresentationType.SURFACE,RepresentationType.VOLUME]
 shrinks    = [0, 1]
 shadings   = [0, 1]
 opacities  = [1.0, 0.5, 0.0]
@@ -45,11 +45,11 @@ linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 shrink_filter = None
 shrinked_sm_on_ds = None
-myMeshName = 'CUBE_EN_HEXA8_QUAD4'
-myFieldName = 'fieldcelldouble'
+
+field_name = 'fieldcelldouble'
 
 print "\nCreating scalar map on deformed shape.......",
-sm_on_ds= DeformedShapeAndScalarMapOnField(proxy,EntityType.CELL,myFieldName, 1,theScaleFactor=0.2)
+sm_on_ds= DeformedShapeAndScalarMapOnField(proxy,EntityType.CELL,field_name, 1,scale_factor=0.2)
 if sm_on_ds is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(sm_on_ds,my_view)
@@ -70,17 +70,16 @@ for reprCode in represents:
                 shrink_filter.ShrinkFactor = 0.8
                 shrink_filter.UpdatePipeline()
                 shrinked_sm_on_ds  = GetRepresentation(shrink_filter)
-                shrinked_sm_on_ds.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)
-                shrinked_sm_on_ds.ColorArrayName = myFieldName    
-##                shrinked_sm_on_ds.LookupTable = sm_on_ds.LookupTable
+                shrinked_sm_on_ds.ColorArrayName = sm_on_ds.ColorArrayName   
+                shrinked_sm_on_ds.LookupTable = sm_on_ds.LookupTable
+                shrinked_sm_on_ds.ColorAttributeType = sm_on_ds.ColorAttributeType          
             sm_on_ds.Visibility = 0
             shrinked_sm_on_ds.Representation = sm_on_ds.Representation                
-            shrinked_sm_on_ds.Visibility = 1
             shape_to_show =  shrinked_sm_on_ds   
         else:             
             hide_all(my_view)
-            sm_on_ds.Visibility = 1
             shape_to_show =  sm_on_ds   
+        shape_to_show.Visibility = 1            
         Render(my_view)             
                 
         for sha in shadings:

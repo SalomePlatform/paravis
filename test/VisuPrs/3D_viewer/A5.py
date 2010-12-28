@@ -45,11 +45,11 @@ linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 shrink_filter = None
 shrinked_deformed_shape = None
-myMeshName = 'CUBE_EN_HEXA8_QUAD4'
-myFieldName = 'fieldcelldouble'
+
+field_name = 'fieldcelldouble'
 
 print "\nCreating deformed_shape.......",
-deformed_shape= DeformedShapeOnField(proxy,EntityType.CELL,myFieldName, 1,theScaleFactor=0.5, theIsColored=True)
+deformed_shape= DeformedShapeOnField(proxy,EntityType.CELL,field_name, 1,scale_factor=0.5, is_colored=True)
 if deformed_shape is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(deformed_shape,my_view)
@@ -70,17 +70,16 @@ for reprCode in represents:
                 shrink_filter.ShrinkFactor = 0.8
                 shrink_filter.UpdatePipeline()                
                 shrinked_deformed_shape  = GetRepresentation(shrink_filter)
-                shrinked_deformed_shape.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)
-                shrinked_deformed_shape.ColorArrayName = myFieldName    
+                shrinked_deformed_shape.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)                                
+                shrinked_deformed_shape.ColorArrayName = field_name    
 ##                shrinked_deformed_shape.LookupTable = deformed_shape.LookupTable
             deformed_shape.Visibility = 0
             shrinked_deformed_shape.Representation = deformed_shape.Representation                
-            shrinked_deformed_shape.Visibility = 1
             shape_to_show =  shrinked_deformed_shape   
         else:             
             hide_all(my_view)
-            deformed_shape.Visibility = 1
             shape_to_show =  deformed_shape   
+        shape_to_show.Visibility = 1                        
         Render(my_view)             
                 
         for sha in shadings:

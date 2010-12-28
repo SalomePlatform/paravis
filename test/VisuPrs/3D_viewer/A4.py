@@ -42,12 +42,10 @@ opacities  = [1.0, 0.5, 0.0]
 linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
-
-myMeshName = 'maillage_migr3d'
-myFieldName = 'Head'
+field_name = 'Head'
 
 print "\nCreating iso_surface.......",
-iso_surface= IsoSurfacesOnField(proxy,EntityType.CELL,myFieldName, 1)
+iso_surface= IsoSurfacesOnField(proxy,EntityType.CELL,field_name, 1)
 if iso_surface is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(iso_surface,my_view)

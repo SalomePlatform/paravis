@@ -44,11 +44,10 @@ opacities  = [1.0, 0.5, 0.0]
 linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
-myMeshName = 'Maillage MED_PENTA6'
-myFieldName = 'vectoriel_field'
+field_name = 'vectoriel_field'
 
 print "\nCreating stream_lines......."
-stream_lines= StreamLinesOnField(proxy,EntityType.CELL,myFieldName, 1,theIsColored=True)
+stream_lines= StreamLinesOnField(proxy,EntityType.CELL,field_name, 1,is_colored=True)
 stream_tracer = stream_lines.Input
 print "stream_tracer:",stream_tracer
 stream_tracer.Input = None
@@ -85,13 +84,13 @@ for reprCode in represents:
                 call_and_check(stream_lines,"LineWidth", lwi, 1, compare_prec)            
                 # save picture in file
                 # Construct image file name
-                pic_name = "{folder}params_{repr}_any_{shading}_{opa}_{lwi}.{ext}".format(folder=picturedir,
+                pic_name = "{folder}params_{repr}_any_{shading}_any_{lwi}.{ext}".format(folder=picturedir,
                                                                                                repr  = repr.replace(' ','_'),
                                                                                                shading = sha,
-                                                                                               opa = opa,
                                                                                                lwi = lwi,
                                                                                                ext=pictureext)                            
-
+                # Show and record the presentation
+                process_prs_for_test(stream_lines, my_view, pic_name)
 for opa in opacities:
     call_and_check(stream_lines,"Opacity", opa, 1, compare_prec)
 

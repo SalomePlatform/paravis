@@ -42,12 +42,11 @@ opacities  = [1.0, 0.5, 0.0]
 linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
-myMeshName = 'Maillage MED_TETRA4'
-myFieldName = 'scalar_field'
+field_name = 'scalar_field'
 
-print "\nCreating cut_planes.......",
-cut_planes= CutPlanesOnField(proxy,EntityType.CELL,myFieldName, 1,\
-theNbPlanes=10, theOrientation=Orientation.YZ,theDisplacement=0.5)
+print "\nCreating cut planes.......",
+cut_planes= CutPlanesOnField(proxy,EntityType.CELL,field_name, 1,\
+nb_planes=10, orientation=Orientation.YZ,displacement=0.5)
 if cut_planes is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(cut_planes,my_view)

@@ -42,15 +42,14 @@ opacities  = [1.0, 0.5, 0.0]
 linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
-myMeshName = 'Maillage MED_TETRA4'
-myFieldName = 'scalar_field'
+field_name = 'scalar_field'
 
-print "\nCreating cut_lines.......",
-cut_lines= CutLinesOnField(proxy,EntityType.CELL,myFieldName, 1,\
-                    theNbLines=10,
-                    theOrientation1=Orientation.ZX,
-                    theOrientation2=Orientation.XY,
-                    theDisplacement1=0.5, theDisplacement2=0.5)
+print "\nCreating cut lines.......",
+cut_lines= CutLinesOnField(proxy,EntityType.CELL,field_name, 1,\
+                    nb_lines=10,
+                    orientation1=Orientation.ZX,
+                    orientation2=Orientation.XY,
+                    displacement1=0.5, displacement2=0.5)
 if cut_lines is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(cut_lines,my_view)

@@ -46,11 +46,10 @@ compare_prec = 0.00001
 shrink_filter = None
 shrinked_scalar_map = None
 
-myMeshName = 'LE VOLUME'
-myFieldName = 'VITESSE'
+field_name = 'VITESSE'
 
 print "\nCreating scalar_map.......",
-scalar_map= ScalarMapOnField(proxy,EntityType.CELL,myFieldName, 1,theScaleFactor=0.5, theIsColored=True)
+scalar_map= ScalarMapOnField(proxy,EntityType.CELL,field_name, 1,scale_factor=0.5, is_colored=True)
 if scalar_map is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(scalar_map,my_view)
@@ -70,7 +69,7 @@ for reprCode in represents:
                 shrink_filter  = Shrink()
                 shrinked_scalar_map  = GetRepresentation(shrink_filter)
                 shrinked_scalar_map.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)
-                shrinked_scalar_map.ColorArrayName = myFieldName    
+                shrinked_scalar_map.ColorArrayName = field_name    
 ##                shrinked_scalar_map.LookupTable = scalar_map.LookupTable
             scalar_map.Visibility = 0
             shrinked_scalar_map.Representation = scalar_map.Representation                

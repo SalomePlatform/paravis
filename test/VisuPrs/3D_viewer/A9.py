@@ -62,14 +62,10 @@ if proxy is None:
 	raise RuntimeError, "Error: can't import file."
 else: print "OK"
 
-
-print "\nChange Presentation Parameters..."
-
-myMeshName = 'CUBE_EN_HEXA8_QUAD4'
-myFieldName = 'fieldcelldouble'
+field_name = 'fieldcelldouble'
 
 print "\nCreating scalar_map.......",
-scalar_map= ScalarMapOnField(proxy,EntityType.CELL,myFieldName, 1)
+scalar_map= ScalarMapOnField(proxy,EntityType.CELL,field_name, 1)
 if scalar_map is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
 
 display_only(scalar_map,my_view)
@@ -78,6 +74,7 @@ Render(my_view)
 
 compare_prec = 0.00001
 
+print "\nChange Presentation Parameters..."
 # Group 1 (SHADED)
 
 print "\nCheck in SURFACE:"
@@ -88,7 +85,7 @@ shrink_filter.ShrinkFactor = 0.8
 shrink_filter.UpdatePipeline()
 shrinked_scalar_map= GetRepresentation(shrink_filter)
 shrinked_scalar_map.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)
-shrinked_scalar_map.ColorArrayName = myFieldName    
+shrinked_scalar_map.ColorArrayName = field_name    
 shrinked_scalar_map.Representation = scalar_map.Representation
 lookup_table = scalar_map.LookupTable
 shrinked_scalar_map.LookupTable = lookup_table
@@ -188,7 +185,7 @@ shrink_filter.ShrinkFactor = 0.8
 shrink_filter.UpdatePipeline()
 shrinked_scalar_map= GetRepresentation(shrink_filter)
 shrinked_scalar_map.ColorAttributeType = EntityType.get_pvtype(EntityType.CELL)
-shrinked_scalar_map.ColorArrayName = myFieldName    
+shrinked_scalar_map.ColorArrayName = field_name    
 shrinked_scalar_map.Representation = scalar_map.Representation
 lookup_table = scalar_map.LookupTable
 shrinked_scalar_map.LookupTable = lookup_table

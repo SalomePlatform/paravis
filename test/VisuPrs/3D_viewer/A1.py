@@ -19,7 +19,7 @@ my_view = GetRenderView()
 reset_view(my_view)
 Render(my_view)
 
-theFileName = datadir +  "Penta6_236.med"
+theFileName = datadir +  "fra_236.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "
@@ -39,11 +39,18 @@ linewidths = [1.0, 3.0, 10.0]
 compare_prec = 0.00001
 
 myMeshName = 'LE VOLUME'
-myFieldName = 'VITESSE'
+field_name = 'VITESSE'
 
 # Get view
 my_view = GetRenderView()
 
+print "\nCreating plot3d.......",
+plot3d= Plot3DOnField(proxy,EntityType.CELL,field_name, 1)
+if plot3d is None : raise RuntimeError, "Error!!! Presentation wasn't created..."
+
+display_only(plot3d,my_view)
+reset_view(my_view)
+Render(my_view)
 
 print "\nChange Presentation Parameters..."
 
