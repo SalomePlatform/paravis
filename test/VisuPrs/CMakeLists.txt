@@ -21,7 +21,8 @@
 #
 
 SUBDIRS(Aux 
-        2D_viewer 
+        2D_viewer
+	3D_viewer
         ScalarMap 
         DeformedShape 
         ScalarMap_On_DeformedShape 
