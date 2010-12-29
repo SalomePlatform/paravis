@@ -161,7 +161,15 @@ def call_and_check(prs, property_name, value, do_raise=1, compare_toler=-1.0):
 
     return is_good
 
-
+    
+def setShaded(view, shading):
+    """Utility function to set shaded mode in view"""
+    if shading == 0:
+        view.LightDiffuseColor = [1,1,1]
+    if shading == 1:
+        view.LightDiffuseColor = [0,0,0]        
+    
+    
 # Run Salome
 salome_session = SalomeSession()
 salome.salome_init()
