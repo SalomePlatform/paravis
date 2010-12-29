@@ -10,7 +10,7 @@ from __future__ import print_function
 import os
 import re
 import warnings
-from math import sqrt
+from math import sqrt, sin, cos, radians
 from string import upper
 
 import pvsimple as pv
@@ -400,50 +400,133 @@ def get_orientation(proxy):
     return orientation
 
 
-def get_normal_by_orientation(orientation):
+def dot_product(a, b):
+    """Dot product of two 3-vectors."""
+    dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    return dot
+
+
+def multiply3x3(a, b):
+    """Mutltiply one 3x3 matrix by another."""
+    c = [[0, 0, 0],
+         [0, 0, 0],
+         [0, 0, 0]]
+
+    for i in xrange(3):
+        c[0][i] = a[0][0] * b[0][i] + a[0][1] * b[1][i] + a[0][2] * b[2][i]
+        c[1][i] = a[1][0] * b[0][i] + a[1][1] * b[1][i] + a[1][2] * b[2][i]
+        c[2][i] = a[2][0] * b[0][i] + a[2][1] * b[1][i] + a[2][2] * b[2][i]
+
+    return c
+
+
+def get_rx(ang):
+    """Get X rotation matrix by angle."""
+    rx = [[1.0, 0.0,      0.0],
+          [0.0, cos(ang), -sin(ang)],
+          [0.0, sin(ang), cos(ang)]]
+
+    return rx
+
+
+def get_ry(ang):
+    """Get Y rotation matrix by angle."""
+    ry = [[cos(ang),  0.0, sin(ang)],
+          [0.0,       1.0, 0.0],
+          [-sin(ang), 0.0, cos(ang)]]
+
+    return ry
+
+
+def get_rz(ang):
+    """Get Z rotation matrix by angle."""
+    rz = [[cos(ang), -sin(ang), 0.0],
+          [sin(ang), cos(ang),  0.0],
+          [0.0,      0.0,       1.0]]
+
+    return rz
+
+
+def get_normal_by_orientation(orientation, ang1=0, ang2=0):
     """Get normal for the plane by its orientation."""
+    i_plane = 0
+    rotation = [[], [], []]
+    rx = ry = rz = [[1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0]]
+
     normal = [0.0, 0.0, 0.0]
-    if (orientation == Orientation.XY):
-        normal[2] = 1.0
-    elif (orientation == Orientation.ZX):
-        normal[1] = 1.0
-    elif (orientation == Orientation.YZ):
-        normal[0] = 1.0
+    if orientation == Orientation.XY:
+        if abs(ang1) > EPS:
+            rx = get_rx(ang1)
+        if abs(ang2) > EPS:
+            ry = get_ry(ang2)
+        rotation = multiply3x3(rx, ry)
+        i_plane = 2
+    elif orientation == Orientation.ZX:
+        if abs(ang1) > EPS:
+            rz = get_rz(ang1)
+        if abs(ang2) > EPS:
+            rx = get_rx(ang2)
+        rotation = multiply3x3(rz, rx)
+        i_plane = 1
+    elif orientation == Orientation.YZ:
+        if abs(ang1) > EPS:
+            ry = get_ry(ang1)
+        if abs(ang2) > EPS:
+            rz = get_rz(ang2)
+        rotation = multiply3x3(ry, rz)
+        i_plane = 0
+
+    for i in xrange(0, 3):
+        normal[i] = rotation[i][i_plane]
 
     return normal
 
 
-def get_range_for_orientation(proxy, orientation):
-    """Get source range for cutting plane orientation."""
-    val_range = []
-    if (orientation == Orientation.XY):
-        val_range = get_z_range(proxy)
-    elif (orientation == Orientation.ZX):
-        val_range = get_y_range(proxy)
-    elif (orientation == Orientation.YZ):
-        val_range = get_x_range(proxy)
+def get_bound_project(bound_box, dir):
+    """Get bounds projection"""
+    bound_points = [[bound_box[0], bound_box[2], bound_box[4]],
+                    [bound_box[1], bound_box[2], bound_box[4]],
+                    [bound_box[0], bound_box[3], bound_box[4]],
+                    [bound_box[1], bound_box[3], bound_box[4]],
+                    [bound_box[0], bound_box[2], bound_box[5]],
+                    [bound_box[1], bound_box[2], bound_box[5]],
+                    [bound_box[0], bound_box[3], bound_box[5]],
+                    [bound_box[1], bound_box[3], bound_box[5]]]
 
-    return val_range
+    bound_prj = [0, 0, 0]
+    bound_prj[0] = dot_product(dir, bound_points[0])
+    bound_prj[1] = bound_prj[0]
+
+    for i in xrange(1, 8):
+        tmp = dot_product(dir, bound_points[i])
+        if bound_prj[1] < tmp:
+            bound_prj[1] = tmp
+        if bound_prj[0] > tmp:
+            bound_prj[0] = tmp
+
+    bound_prj[2] = bound_prj[1] - bound_prj[0]
+    bound_prj[1] = bound_prj[0] + (1.0 - EPS) * bound_prj[2]
+    bound_prj[0] = bound_prj[0] + EPS * bound_prj[2]
+    bound_prj[2] = bound_prj[1] - bound_prj[0]
+
+    return bound_prj
 
 
-def get_positions(val_range, nb_planes, displacement):
+def get_positions(nb_planes, dir, bounds, displacement):
     """Compute plane positions."""
     positions = []
-    if (nb_planes > 1):
-        distance = val_range[1] - val_range[0]
-        val_range[1] = val_range[0] + (1.0 - EPS) * distance
-        val_range[0] = val_range[0] + EPS * distance
-
-        distance = val_range[1] - val_range[0]
-        step = distance / (nb_planes - 1)
+    bound_prj = get_bound_project(bounds, dir)
+    if nb_planes > 1:
+        step = bound_prj[2] / (nb_planes - 1)
         abs_displacement = step * displacement
-        startPos = val_range[0] - 0.5 * step + abs_displacement
-
+        start_pos = bound_prj[0] - 0.5 * step + abs_displacement
         for i in xrange(nb_planes):
-            pos = startPos + i * step
+            pos = start_pos + i * step
             positions.append(pos)
-    elif (nb_planes == 1):
-        pos = val_range[0] + (val_range[1] - val_range[0]) * displacement
+    else:
+        pos = bound_prj[0] + bound_prj[2] * displacement
         positions.append(pos)
 
     return positions
@@ -858,7 +941,7 @@ def get_time(proxy, timestamp_nb):
 
 
 def create_prs(prs_type, proxy, field_entity, field_name, timestamp_nb):
-    """Auxiliary method.
+    """Auxiliary function.
 
     Build presentation of the given type on the given field and
     timestamp number.
@@ -937,7 +1020,7 @@ def ScalarMapOnField(proxy, entity, field_name, timestamp_nb,
     new_proxy = extract_groups_for_field(proxy, field_name, entity,
                                          force=True)
 
-    # Show pipeline object
+    # Get Scalar Map representation object
     scalarmap = pv.GetRepresentation(new_proxy)
 
     # Get lookup table
@@ -965,6 +1048,7 @@ def ScalarMapOnField(proxy, entity, field_name, timestamp_nb,
 
 def CutPlanesOnField(proxy, entity, field_name, timestamp_nb,
                      nb_planes=10, orientation=Orientation.YZ,
+                     angle1=0, angle2=0,
                      displacement=0.5, vector_mode='Magnitude'):
     """Creates Cut Planes presentation on the given field.
 
@@ -975,6 +1059,11 @@ def CutPlanesOnField(proxy, entity, field_name, timestamp_nb,
       timestamp_nb: the number of time step (1, 2, ...)
       nb_planes: number of cutting planes
       orientation: cutting planes orientation in 3D space
+      angle1: rotation of the planes in 3d space around the first axis of the
+      selected orientation (X axis for XY, Y axis for YZ, Z axis for ZX).
+      The angle of rotation is set in degrees. Acceptable range: [-45, 45].
+      angle2: rotation of the planes in 3d space around the second axis of the
+      selected orientation. Acceptable range: [-45, 45].
       displacement: the displacement of the planes into one or another side
       vector_mode: the mode of transformation of vector values
       into scalar values, applicable only if the field contains vector values.
@@ -999,25 +1088,17 @@ def CutPlanesOnField(proxy, entity, field_name, timestamp_nb,
     slice_filter = pv.Slice(proxy)
     slice_filter.SliceType = "Plane"
 
-    # Set cut planes normal and get range
-    normal = [0.0, 0.0, 0.0]
-    val_range = []
-    if (orientation == Orientation.XY):
-        normal[2] = 1.0
-        val_range = get_z_range(proxy)
-    elif (orientation == Orientation.ZX):
-        normal[1] = 1.0
-        val_range = get_y_range(proxy)
-    elif (orientation == Orientation.YZ):
-        normal[0] = 1.0
-        val_range = get_x_range(proxy)
-
+    # Set cut planes normal
+    normal = get_normal_by_orientation(orientation,
+                                       radians(angle1), radians(angle2))
     slice_filter.SliceType.Normal = normal
 
     # Set cut planes positions
-    slice_filter.SliceOffsetValues = get_positions(val_range,
-                                                   nb_planes,
-                                                   displacement)
+    positions = get_positions(nb_planes, normal,
+                              get_bounds(proxy), displacement)
+    slice_filter.SliceOffsetValues = positions
+
+    # Get Cut Planes representation object
     cut_planes = pv.GetRepresentation(slice_filter)
 
     # Get lookup table
@@ -1044,7 +1125,9 @@ def CutPlanesOnField(proxy, entity, field_name, timestamp_nb,
 def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
                     nb_lines=10,
                     orientation1=Orientation.XY,
+                    base_angle1=0, base_angle2=0,
                     orientation2=Orientation.YZ,
+                    cut_angle1=0, cut_angle2=0,
                     displacement1=0.5, displacement2=0.5,
                     vector_mode='Magnitude'):
     """Creates Cut Lines presentation on the given field.
@@ -1056,9 +1139,18 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
       timestamp_nb: the number of time step (1, 2, ...)
       nb_lines: number of lines
       orientation1: base plane orientation in 3D space
+      base_angle1: rotation of the base plane in 3d space around the first
+      axis of the orientation1 (X axis for XY, Y axis for YZ, Z axis for ZX).
+      The angle of rotation is set in degrees. Acceptable range: [-45, 45].
+      base_angle2: rotation of the base plane in 3d space around the second
+      axis of the orientation1. Acceptable range: [-45, 45].
       orientation2: cutting planes orientation in 3D space
+      cut_angle1: rotation of the cut planes in 3d space around the first
+      axis of the orientation2. Acceptable range: [-45, 45].
+      cut_angle2: rotation of the cuting planes in 3d space around the second
+      axis of the orientation2. Acceptable range: [-45, 45].
       displacement1: base plane displacement
-      displacement2: cuttong planes displacement
+      displacement2: cutting planes displacement
       vector_mode: the mode of transformation of vector values
       into scalar values, applicable only if the field contains vector values.
       Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
@@ -1082,26 +1174,16 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     base_plane = pv.Slice(proxy)
     base_plane.SliceType = "Plane"
 
-    # Set base plane normal and get position
-    base_normal = [0.0, 0.0, 0.0]
-    valrange_base = []
-    if (orientation1 == Orientation.XY):
-        base_normal[2] = 1.0
-        valrange_base = get_z_range(proxy)
-    elif (orientation1 == Orientation.ZX):
-        base_normal[1] = 1.0
-        valrange_base = get_y_range(proxy)
-    elif (orientation1 == Orientation.YZ):
-        if (orientation2 == orientation1):
-            orientation2 = Orientation.ZX
-        base_normal[0] = 1.0
-        valrange_base = get_x_range(proxy)
-
+    # Set base plane normal
+    base_normal = get_normal_by_orientation(orientation1,
+                                            radians(base_angle1),
+                                            radians(base_angle2))
     base_plane.SliceType.Normal = base_normal
 
     # Set base plane position
-    base_plane.SliceOffsetValues = get_positions(valrange_base, 1,
-                                                 displacement1)
+    base_position = get_positions(1, base_normal,
+                                  get_bounds(proxy), displacement1)
+    base_plane.SliceOffsetValues = base_position
 
     # Check base plane
     base_plane.UpdatePipeline()
@@ -1113,23 +1195,17 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     cut_planes.SliceType = "Plane"
 
     # Set cutting planes normal and get positions
-    cut_normal = [0.0, 0.0, 0.0]
-    valrange_cut = []
-    if (orientation2 == Orientation.XY):
-        cut_normal[2] = 1.0
-        valrange_cut = get_z_range(proxy)
-    elif (orientation2 == Orientation.ZX):
-        cut_normal[1] = 1.0
-        valrange_cut = get_y_range(base_plane)
-    elif (orientation2 == Orientation.YZ):
-        cut_normal[0] = 1.0
-        valrange_cut = get_x_range(base_plane)
-
+    cut_normal = get_normal_by_orientation(orientation2,
+                                           radians(cut_angle1),
+                                           radians(cut_angle2))
     cut_planes.SliceType.Normal = cut_normal
 
     # Set cutting planes position
-    cut_planes.SliceOffsetValues = get_positions(valrange_cut, nb_lines,
-                                                 displacement2)
+    cut_positions = get_positions(nb_lines, cut_normal,
+                                  get_bounds(base_plane), displacement2)
+    cut_planes.SliceOffsetValues = cut_positions
+
+    # Get Cut Lines representation object
     cut_lines = pv.GetRepresentation(cut_planes)
 
     # Get lookup table
@@ -1222,13 +1298,14 @@ def VectorsOnField(proxy, entity, field_name, timestamp_nb,
         glyph.GlyphType.Height = 2
         glyph.GlyphType.Radius = 0.2
 
-    # Set glyph position
-    if (glyph_pos == GlyphPos.TAIL):
-        glyph.GlyphType.Center = [0.5, 0.0, 0.0]
-    elif (glyph_pos == GlyphPos.HEAD):
-        glyph.GlyphType.Center = [-0.5, 0.0, 0.0]
-    elif (glyph_pos == GlyphPos.CENTER):
-        glyph.GlyphType.Center = [0.0, 0.0, 0.0]
+    # Set glyph position if possible
+    if glyphGlyphType.GetProperty("Center"):
+        if (glyph_pos == GlyphPos.TAIL):
+            glyph.GlyphType.Center = [0.5, 0.0, 0.0]
+        elif (glyph_pos == GlyphPos.HEAD):
+            glyph.GlyphType.Center = [-0.5, 0.0, 0.0]
+        elif (glyph_pos == GlyphPos.CENTER):
+            glyph.GlyphType.Center = [0.0, 0.0, 0.0]
 
     if scale_factor is not None:
         glyph.SetScaleFactor = scale_factor
@@ -1239,6 +1316,7 @@ def VectorsOnField(proxy, entity, field_name, timestamp_nb,
 
     glyph.UpdatePipeline()
 
+    # Get Vectors representation object
     vectors = pv.GetRepresentation(glyph)
 
     # Get lookup table
@@ -1337,6 +1415,7 @@ def DeformedShapeOnField(proxy, entity, field_name,
                                       proxy, entity, field_name)
         warp_vector.ScaleFactor = def_scale
 
+    # Get Deformed Shape representation object
     defshape = pv.GetRepresentation(warp_vector)
 
     # Get lookup table
@@ -1454,6 +1533,7 @@ def DeformedShapeAndScalarMapOnField(proxy, entity, field_name,
                                       new_proxy, entity, field_name)
         warp_vector.ScaleFactor = def_scale
 
+    # Get Defromed Shape And Scalar Map representation object
     defshapemap = pv.GetRepresentation(warp_vector)
 
     # Get lookup table
@@ -1479,6 +1559,7 @@ def DeformedShapeAndScalarMapOnField(proxy, entity, field_name,
 
 def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
                   orientation=Orientation.AUTO,
+                  angle1=0, angle2=0,
                   position=0.5, is_relative=True,
                   scale_factor=None,
                   is_contour=False, nb_contours=32,
@@ -1492,6 +1573,12 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
       timestamp_nb: the number of time step (1, 2, ...)
       orientation: the cut plane plane orientation in 3D space, if
       the input is planar - will not be taken into account
+      angle1: rotation of the cut plane in 3d space around the first axis
+      of the selected orientation (X axis for XY, Y axis for YZ,
+      Z axis for ZX).
+      The angle of rotation is set in degrees. Acceptable range: [-45, 45].
+      angle2: rotation of the cut plane in 3d space around the second axis
+      of the selected orientation. Acceptable range: [-45, 45].
       position: position of the cut plane in the object (ranging from 0 to 1).
       The value 0.5 corresponds to cutting by halves.
       is_relative: defines if the cut plane position is relative or absolute
@@ -1541,9 +1628,12 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
         plane_orientation = get_orientation(proxy)
 
     # Get cutting plane normal
-    normal = get_normal_by_orientation(plane_orientation)
+    normal = None
 
     if (not is_planar_input(proxy)):
+        normal = get_normal_by_orientation(plane_orientation,
+                                           radians(angle1), radians(angle2))
+
         # Create slice filter
         slice_filter = pv.Slice(merge_blocks)
         slice_filter.SliceType = "Plane"
@@ -1552,23 +1642,24 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
         slice_filter.SliceType.Normal = normal
 
         # Set cutting plane position
-        val_range = get_range_for_orientation(proxy, plane_orientation)
-
         if (is_relative):
-            slice_filter.SliceOffsetValues = get_positions(val_range, 1,
-                                                           position)
+            base_position = get_positions(1, normal,
+                                          get_bounds(proxy), position)
+            slice_filter.SliceOffsetValues = base_position
         else:
             slice_filter.SliceOffsetValues = position
 
         slice_filter.UpdatePipeline()
         poly_data = slice_filter
+    else:
+        normal = get_normal_by_orientation(plane_orientation, 0, 0)
 
     use_normal = 0
     # Geometry filter
     if not poly_data or poly_data.GetDataInformation().GetNumberOfCells() == 0:
         geometry_filter = pv.GeometryFilter(merge_blocks)
         poly_data = geometry_filter
-        use_normal = 1  # TODO(MZN): temporary workaround
+        use_normal = 1  # TODO(MZN): workaround
 
     warp_scalar = None
     plot3d = None
@@ -1601,6 +1692,7 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
         warp_scalar.ScaleFactor = def_scale
 
     warp_scalar.UpdatePipeline()
+    source = warp_scalar
 
     if (is_contour):
         # Contours
@@ -1609,11 +1701,12 @@ def Plot3DOnField(proxy, entity, field_name, timestamp_nb,
         contour.ContourBy = ['POINTS', field_name]
         scalar_range = get_data_range(proxy, entity,
                                       field_name, vector_mode)
-        contour.Isosurfaces = get_positions(scalar_range, nb_contours, 0)
+        contour.Isosurfaces = get_contours(scalar_range, nb_contours)
         contour.UpdatePipeline()
-        plot3d = pv.GetRepresentation(contour)
-    else:
-        plot3d = pv.GetRepresentation(warp_scalar)
+        source = contour
+
+    # Get Plot 3D representation object
+    plot3d = pv.GetRepresentation(source)
 
     # Get lookup table
     lookup_table = get_lookup_table(field_name, nb_components, vector_mode)
@@ -1715,7 +1808,7 @@ def IsoSurfacesOnField(proxy, entity, field_name, timestamp_nb,
     # Set contour values
     contour.Isosurfaces = surfaces
 
-    # Get Iso Surfaces representation
+    # Get Iso Surfaces representation object
     isosurfaces = pv.GetRepresentation(contour)
 
     # Get lookup table
@@ -1841,7 +1934,7 @@ def GaussPointsOnField(proxy, entity, field_name,
         warp_vector.UpdatePipeline()
         source = warp_vector
 
-    # Get Gauss Points representation
+    # Get Gauss Points representation object
     gausspnt = pv.GetRepresentation(source)
 
     # Get lookup table
@@ -1995,10 +2088,9 @@ def StreamLinesOnField(proxy, entity, field_name, timestamp_nb,
     stream.IntegratorType = 'Runge-Kutta 2'
     stream.UpdatePipeline()
 
-    # Get representation
+    # Get Stream Lines representation object
     if is_empty(stream):
         return None
-
     streamlines = pv.GetRepresentation(stream)
 
     # Get lookup table
