@@ -79,7 +79,8 @@ for reprCode in represents:
             shr_sm_on_ds.Representation = sm_on_ds.Representation
             shape_to_show = shr_sm_on_ds
         else:
-            hide_all(my_view)
+            if shr_sm_on_ds is not None:
+                shr_sm_on_ds.Visibility = 0
             shape_to_show = sm_on_ds
         shape_to_show.Visibility = 1
         Render(my_view)
@@ -108,7 +109,7 @@ for reprCode in represents:
                                                 lwi=lwi,
                                                 ext=pictureext)
                     # Show and record the presentation
-                    process_prs_for_test(shape_to_show, my_view, pic_name)
+                    WriteImage(pic_name, view=my_view, Magnification=1)
                     pass
                 pass
             pass
