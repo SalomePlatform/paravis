@@ -73,12 +73,13 @@ for reprCode in represents:
                 shrinked_ds = GetRepresentation(shrink_filter)
                 shrinked_ds.ColorAttributeType = ds.ColorAttributeType
                 shrinked_ds.ColorArrayName = ds.ColorArrayName
-##                shrinked_ds.LookupTable = ds.LookupTable
+                shrinked_ds.LookupTable = ds.LookupTable
             ds.Visibility = 0
             shrinked_ds.Representation = ds.Representation
             shape_to_show = shrinked_ds
         else:
-            hide_all(my_view)
+            if shrinked_ds is not None:
+                shrinked_ds.Visibility = 0
             shape_to_show = ds
         shape_to_show.Visibility = 1
         Render(my_view)
@@ -107,7 +108,7 @@ for reprCode in represents:
                                                 lwi=lwi,
                                                 ext=pictureext)
                     # Show and record the presentation
-                    process_prs_for_test(shape_to_show, my_view, pic_name)
+                    WriteImage(pic_name, view=my_view, Magnification=1)
                     pass
                 pass
             pass

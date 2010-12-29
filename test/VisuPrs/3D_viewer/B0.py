@@ -80,7 +80,8 @@ for reprCode in represents:
             shrinked_sm.Visibility = 1
             shape_to_show = shrinked_sm
         else:
-            hide_all(my_view)
+            if shrinked_sm is not None:
+                shrinked_sm.Visibility = 0
             scalar_map.Visibility = 1
             shape_to_show = scalar_map
         Render(my_view)
@@ -111,7 +112,7 @@ for reprCode in represents:
                                                 lwi=lwi,
                                                 ext=pictureext)
                     # Show and record the presentation
-                    process_prs_for_test(shape_to_show, my_view, pic_name)
+                    WriteImage(pic_name, view=my_view, Magnification=1)
                     pass
                 pass
             pass
