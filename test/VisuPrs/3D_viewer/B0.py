@@ -47,7 +47,7 @@ shrinked_sm = None
 
 field_name = 'VITESSE'
 
-print "\nCreating scalar_map.......",
+print "\nCreating scalar map.......",
 scalar_map = ScalarMapOnField(proxy, EntityType.CELL, field_name, 1)
 if scalar_map is None:
     raise RuntimeError("Error!!! Presentation wasn't created...")
@@ -68,9 +68,13 @@ for reprCode in represents:
                 scalar_map.Visibility = 1
                 shrink_filter = Shrink(scalar_map.Input)
                 shrinked_sm = GetRepresentation(shrink_filter)
+                shrink_filter.ShrinkFactor = 0.8
+                shrink_filter.UpdatePipeline()                
                 shrinked_sm.ColorAttributeType = scalar_map.ColorAttributeType
                 shrinked_sm.ColorArrayName = scalar_map.ColorArrayName
-##                shrinked_sm.LookupTable = scalar_map.LookupTable
+                lookup_table = scalar_map.LookupTable
+                shrinked_sm.LookupTable = lookup_table
+
             scalar_map.Visibility = 0
             shrinked_sm.Representation = scalar_map.Representation
             shrinked_sm.Visibility = 1
@@ -82,7 +86,7 @@ for reprCode in represents:
         Render(my_view)
 
         for sha in shadings:
-            my_view.LightSwitch = sha
+            setShaded(my_view, sha)
             call_and_check(shape_to_show, "Shading", sha, 1)
             Render(my_view)
 
@@ -97,8 +101,10 @@ for reprCode in represents:
                     # save picture in file
                     # Construct image file name
                     mask = "{folder}params_{repr}_{shr}_{sha}_{op}_{lwi}.{ext}"
+                    opa = str(opa).replace('.', '')
+                    lwi = str(lwi).replace('.', '')
                     pic_name = mask.format(folder=picturedir,
-                                                repr=repr.replace(' ', '_'),
+                                                repr=repr,
                                                 shr=shr,
                                                 sha=sha,
                                                 op=opa,

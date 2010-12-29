@@ -66,7 +66,7 @@ for reprCode in represents:
         call_and_check(iso_surf, "Representation", repr, 1)
 
     for sha in shadings:
-        my_view.LightSwitch = sha
+        setShaded(my_view, sha)
         call_and_check(iso_surf, "Shading", sha, 1)
         Render(my_view)
 

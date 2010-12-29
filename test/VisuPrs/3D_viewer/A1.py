@@ -70,7 +70,9 @@ for reprCode in represents:
         call_and_check(plot3d, "Representation", repr, 1)
 
     for sha in shadings:
+        setShaded(my_view, sha)
         call_and_check(plot3d, "Shading", sha, 1)
+        Render(my_view)
 
         for opa in opacities:
             call_and_check(plot3d, "Opacity", opa, 1, compare_prec)

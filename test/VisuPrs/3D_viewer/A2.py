@@ -68,8 +68,8 @@ for reprCode in represents:
         call_and_check(vectors, "Representation", repr, 1)
 
         for sha in shadings:
-            my_view.LightSwitch = sha
             call_and_check(vectors, "Shading", sha, 1)
+            setShaded(my_view, sha)
             Render(my_view)
             time.sleep(1)
 

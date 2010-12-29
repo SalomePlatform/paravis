@@ -83,7 +83,7 @@ for reprCode in represents:
         Render(my_view)             
                 
         for sha in shadings:
-            my_view.LightSwitch = sha
+            setShaded(my_view, sha)
             call_and_check(shape_to_show,"Shading", sha, 1)        
             Render(my_view)    
                 

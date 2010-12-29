@@ -77,7 +77,7 @@ for reprCode in represents:
         call_and_check(stream_lines, "Representation", repr, 1)
 
         for sha in shadings:
-            my_view.LightSwitch = sha
+            setShaded(my_view, sha)
             call_and_check(stream_lines, "Shading", sha, 1)
             Render(my_view)
             time.sleep(1)
