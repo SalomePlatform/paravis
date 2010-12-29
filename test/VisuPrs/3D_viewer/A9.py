@@ -95,7 +95,7 @@ shrinked_scalar_map.Visibility = 1
 Render(my_view)
 
 shape_to_show = shrinked_scalar_map
-my_view.LightSwitch = 0
+setShaded(my_view, 1)
 call_and_check(shape_to_show, "Shading", 1)
 Render(my_view)
 call_and_check(shape_to_show, "Opacity", 0.8, 1, compare_prec)
@@ -176,7 +176,7 @@ RepresentationType.get_name(RepresentationType.SURFACE), 1, 0.8, 5.0)
 
 # Reset
 ##call_and_check(shape_to_show, "Shrinked", 0, "Shrinked")
-my_view.LightSwitch = 0
+setShaded(my_view, 0)
 call_and_check(shape_to_show, "Shading", 0,)
 Render(my_view)
 call_and_check(shape_to_show, "Opacity", 1.0, 1, compare_prec)
@@ -201,7 +201,7 @@ scalar_map.Visibility = 0
 shrinked_scalar_map.Visibility = 1
 shape_to_show = shrinked_scalar_map
 
-my_view.LightSwitch = 0
+setShaded(my_view, 1)
 call_and_check(shape_to_show, "Shading", 1)
 Render(my_view)
 call_and_check(shape_to_show, "Opacity", 0.8, 1, compare_prec)
