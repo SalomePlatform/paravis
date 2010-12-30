@@ -665,7 +665,7 @@ def get_add_component_calc(proxy, array_entity, array_name):
             attribute_mode = "cell_data"
         calculator.AttributeMode = attribute_mode
         expression = "iHat * " + array_name + "_X + jHat * " + array_name + "_Y + kHat * 0"
-        #calculator.Function = expression.format(array_name)
+        calculator.Function = expression
         calculator.ResultArrayName = array_name + "_3c"
         calculator.UpdatePipeline()
 
@@ -1295,7 +1295,7 @@ def VectorsOnField(proxy, entity, field_name, timestamp_nb,
         glyph.GlyphType.Radius = 0.2
 
     # Set glyph position if possible
-    if glyphGlyphType.GetProperty("Center"):
+    if glyph.GlyphType.GetProperty("Center"):
         if (glyph_pos == GlyphPos.TAIL):
             glyph.GlyphType.Center = [0.5, 0.0, 0.0]
         elif (glyph_pos == GlyphPos.HEAD):
