@@ -48,7 +48,7 @@ for colored in [False,True]:
             raise RuntimeError, "Presentation is None!!!"
         # display only current deformed shape
         #display_only(aView,aPrs)
-        Prs.Visibility =1	
+        aPrs.Visibility =1	
         reset_view(aView)
         Render(aView)
         # Add path separator to the end of picture path if necessery
