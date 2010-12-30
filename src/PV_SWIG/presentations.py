@@ -2337,7 +2337,7 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
 
                 for timestamp_nb in xrange(1, len(timestamps) + 1):
                     time = timestamps[timestamp_nb - 1]
-                    print "Creating " + prs_name + " on " + field_name + ", time = " + time + "... "
+                    print "Creating " + prs_name + " on " + field_name + ", time = " + str(time) + "... "
                     prs = create_prs(prs_type, proxy,
                                      field_entity, field_name, timestamp_nb)
                     if prs is None:
@@ -2347,7 +2347,7 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
                         print "OK"
 
                     # Construct image file name
-                    pic_name = picture_dir + field_name + "_" + time + "_" + f_prs_type + "." + picture_ext
+                    pic_name = picture_dir + field_name + "_" + str(time) + "_" + f_prs_type + "." + picture_ext
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, view, pic_name)
