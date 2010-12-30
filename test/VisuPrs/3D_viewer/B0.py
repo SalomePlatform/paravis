@@ -103,7 +103,7 @@ for reprCode in represents:
                     # Construct image file name
                     opa = str(opa).replace('.', '')
                     lwi = str(lwi).replace('.', '')
-                    pic_name = picturedir + "params_" + repr + "_" + shr + "_" + \
+                    pic_name = picturedir + "params_" + repr + "_" + str(shr) + "_" + \
                         str(sha) + "_" + str(opa) + "_" + str(lwi) + "." + pictureext
                     # Show and record the presentation
                     WriteImage(pic_name, view=my_view, Magnification=1)

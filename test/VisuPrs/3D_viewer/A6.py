@@ -100,7 +100,7 @@ for reprCode in represents:
                     time.sleep(1)
                     # save picture in file
                     # Construct image file name
-                    pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_" + shr + "_" +  \
+                    pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_" + str(shr) + "_" +  \
                         str(sha) + "_" + str(opa) + "_" + str(lwi) + "." + pictureext
                     # Show and record the presentation
                     WriteImage(pic_name, view=my_view, Magnification=1)
