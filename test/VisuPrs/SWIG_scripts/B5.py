@@ -44,7 +44,7 @@ print "view2 = pvsimple.CreateRenderView()"
 
 color = [0.0, 0.3, 1.0]
 view2.Background = color
-print "view2.Background = {0}".format(str(color))
+print "view2.Background =", str(color)
 pvsimple.Render(view2)
 
 scalarmap = ScalarMapOnField(med_reader, entity, field_name, timestamp)
@@ -71,7 +71,7 @@ print "view3 = pvsimple.CreateRenderView()"
 
 color = [0.0, 0.7, 0.0]
 view3.Background = color
-print "view3.Background = {0}".format(str(color))
+print "view3.Background = ", str(color)
 pvsimple.Render(view3)
 
 cutplanes = CutPlanesOnField(med_reader, entity, field_name, timestamp,
@@ -84,7 +84,7 @@ print "display_only(cutplanes, view3)"
 point = view3.CameraFocalPoint
 point[0] = point[0] + 10
 view3.CameraFocalPoint = point
-print "view3.CameraFocalPoint = {0}".format(str(point))
+print "view3.CameraFocalPoint = ", str(point)
 
 view3.ResetCamera()
 print "view3.ResetCamera()"
@@ -100,7 +100,7 @@ print "view4 = pvsimple.CreateRenderView()"
 
 color = [1.0, 0.7, 0.0]
 view4.Background = color
-print "view5.Background = {0}".format(str(color))
+print "view5.Background = ", str(color)
 pvsimple.Render(view4)
 
 isosurfaces = IsoSurfacesOnField(med_reader, entity, field_name, timestamp)
@@ -123,7 +123,7 @@ print "view5 = pvsimple.CreateRenderView()"
 
 color = [0.7, 0.7, 0.7]
 view5.Background = color
-print "view5.Background = {0}".format(str(color))
+print "view5.Background =", str(color)
 pvsimple.Render(view5)
 
 cutlines = CutLinesOnField(med_reader, entity, field_name, timestamp,

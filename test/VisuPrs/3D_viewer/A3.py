@@ -86,12 +86,8 @@ for reprCode in represents:
                 call_and_check(stream_lines, "LineWidth", lwi, 1, compare_prec)
                 # save picture in file
                 # Construct image file name
-                mask = "{folder}params_{repr}_any_{shading}_any_{lwi}.{ext}"
-                pic_name = mask.format(folder=picturedir,
-                                                repr=repr.replace(' ', '_'),
-                                                shading=sha,
-                                                lwi=lwi,
-                                                ext=pictureext)
+                pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_any_" +  \
+                    sha + "_" + opa + "_" + lwi + "." + pictureext
                 # Show and record the presentation
                 process_prs_for_test(stream_lines, my_view, pic_name)
 

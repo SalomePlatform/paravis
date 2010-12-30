@@ -99,14 +99,8 @@ for reprCode in represents:
                     time.sleep(1)
                     # save picture in file
                     # Construct image file name
-                    mask = "{folder}params_{repr}_{shr}_{sha}_{op}_{lwi}.{ext}"
-                    pic_name = mask.format(folder=picturedir,
-                                                repr=repr.replace(' ', '_'),
-                                                shr=shr,
-                                                sha=sha,
-                                                op=opa,
-                                                lwi=lwi,
-                                                ext=pictureext)
+                    pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_" + shr + "_" +  \
+                        sha + "_" + opa + "_" + lwi + "." + pictureext
                     # Show and record the presentation
                     WriteImage(pic_name, view=my_view, Magnification=1)
                     pass

@@ -69,21 +69,21 @@ range_min = 12
 range_max = 120
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = {0}; max = {1}".format(lt.RGBPoints[0], lt.RGBPoints[4])
+print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
 pvsimple.Render(view)
 
 range_min = 120
 range_max = 120
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = {0}; max = {1}".format(lt.RGBPoints[0], lt.RGBPoints[4])
+print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
 pvsimple.Render(view)
 
 range_min = 120
 range_max = 15
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = {0}; max = {1}".format(lt.RGBPoints[0], lt.RGBPoints[4])
+print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
 pvsimple.Render(view)
 
 #=============Stage6: bar orientation of Scalar Map On Deformed Shape==
@@ -200,13 +200,13 @@ print "Default bar title: ", bar.Title
 print "Set not null title"
 title = "Scalar Bar Title"
 bar.Title = title
-print 'Bar title: "{0}"'.format(bar.Title)
+print 'Bar title: "' + bar.Title + '"'
 pvsimple.Render(view)
 
 print "Set title from spaces"
 title = '    '
 bar.Title = title
-print 'Bar title: "{0}"'.format(bar.Title)
+print 'Bar title: "' + bar.Title + '"'
 pvsimple.Render(view)
 
 #============Stage12: scale factor of ScalarMap On Deformed Shape =====

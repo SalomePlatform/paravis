@@ -35,9 +35,5 @@ for field_name in field_names:
         raise RuntimeError, "Created presentation is None!!!"
 
     # Display presentation and get snapshot
-    pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=picturedir,
-                                                            field=field_name,
-                                                            time=time,
-                                                            type="GAUSSPOINTS",
-                                                            ext=pictureext)
+    pic_name = picturedir + field_name + "_" + time + "_GAUSSPOINTS." + pictureext
     process_prs_for_test(prs, view, pic_name)

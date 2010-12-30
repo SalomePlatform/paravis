@@ -18,7 +18,7 @@ def check_value(prs, property_name, value, do_raise=1, compare_toler=-1.0):
     else:
         is_equal = (really_set_value == value)
     if not is_equal:
-        msg = "{0} has been set instead".format(really_set_value)
+        msg = really_set_value + " has been set instead"
         if do_raise:
             raise RuntimeError(msg)
         else:
@@ -105,8 +105,7 @@ time.sleep(1)
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_SURFACE_1.{ext}".format(folder=picturedir,
-                        ext=pictureext)
+pic_name = picturedir + "params_SURFACE_1." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -121,8 +120,7 @@ picture_name = picturedir + "params_SURFACE_2." + pictureext
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_SURFACE_2.{ext}".format(folder=picturedir,
-                                ext=pictureext)
+pic_name = picturedir + "params_SURFACE_2." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -136,8 +134,7 @@ time.sleep(1)
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_SURFACE_3.{ext}".format(folder=picturedir,
-                                        ext=pictureext)
+pic_name = picturedir + "params_SURFACE_3." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -151,8 +148,7 @@ time.sleep(1)
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_SURFACE_4.{ext}".format(folder=picturedir,
-                                        ext=pictureext)
+pic_name = picturedir + "params_SURFACE_4." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -166,8 +162,7 @@ time.sleep(1)
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_SURFACE_5.{ext}".format(folder=picturedir,
-                                    ext=pictureext)
+pic_name = picturedir + "params_SURFACE_5." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -211,8 +206,7 @@ time.sleep(1)
 
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_WIREFRAME_1.{ext}".format(folder=picturedir,
-                                            ext=pictureext)
+pic_name = picturedir + "params_WIREFRAME_1." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -225,8 +219,7 @@ RepresentationType.get_name(RepresentationType.WIREFRAME))
 time.sleep(1)
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_WIREFRAME_2.{ext}".format(folder=picturedir,
-                                        ext=pictureext)
+pic_name = picturedir + "params_WIREFRAME_2." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -239,8 +232,7 @@ RepresentationType.get_name(RepresentationType.WIREFRAME), 1, 0.8, 5.0)
 time.sleep(1)
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_WIREFRAME_3.{ext}".format(folder=picturedir,
-                                            ext=pictureext)
+pic_name = picturedir + "params_WIREFRAME_3." + pictureext
 # Show and record the presentation
 process_prs_for_test(shrinked_scalar_map, my_view, pic_name)
 
@@ -253,8 +245,7 @@ call_and_check(shape_to_show, "Shading", 1)
 time.sleep(1)
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_WIREFRAME_4.{ext}".format(folder=picturedir,
-                                    ext=pictureext)
+pic_name = picturedir + "params_WIREFRAME_4." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 
@@ -267,8 +258,7 @@ call_and_check(shape_to_show, "Opacity", 0.8, 1, compare_prec)
 time.sleep(1)
 # save picture in file
 # Construct image file name
-pic_name = "{folder}params_WIREFRAME_5.{ext}".format(folder=picturedir,
-                                        ext=pictureext)
+pic_name = picturedir + "params_WIREFRAME_5." + pictureext
 # Show and record the presentation
 process_prs_for_test(shape_to_show, my_view, pic_name)
 

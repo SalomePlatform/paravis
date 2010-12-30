@@ -81,12 +81,7 @@ for reprCode in represents:
 
                     # save picture in file
                     # Construct image file name
-                    mask = "{folder}params_{repr}_any_{sha}_{opa}_{lwi}.{ext}"
-                    pic_name = mask.format(folder=picturedir,
-                                            repr=repr.replace(' ', '_'),
-                                            sha=sha,
-                                            opa=opa,
-                                            lwi=lwi,
-                                            ext=pictureext)
+                    pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_any_" +  \
+                        sha + "_" + opa + "_" + lwi + "." + pictureext
                     # Show and record the presentation
                     process_prs_for_test(cut_planes, my_view, pic_name)

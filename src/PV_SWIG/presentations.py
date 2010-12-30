@@ -5,7 +5,7 @@ typical for Post-Pro module (Scalar Map, Deformed Shape, Vectors, etc.)
 
 
 from __future__ import division
-from __future__ import print_function
+##from __future__ import print_function
 
 import os
 import re
@@ -239,12 +239,11 @@ def check_vector_mode(vector_mode, nb_components):
 
     """
     if vector_mode not in ('Magnitude', 'X', 'Y', 'Z'):
-        raise ValueError("Unexistent vector mode: {0}".format(vector_mode))
+        raise ValueError("Unexistent vector mode: " + vector_mode)
 
     if ((nb_components == 1 and (vector_mode == 'Y' or vector_mode == 'Z')) or
         (nb_components == 2 and  vector_mode == 'Z')):
-        raise ValueError("Incorrect vector mode {0} for {1}-component field".
-                         format(vector_mode, nb_components))
+        raise ValueError("Incorrect vector mode " + vector_mode + " for " + nb_components + "-component field")
 
 
 def get_vector_component(vector_mode):
@@ -301,8 +300,7 @@ def get_data_range(proxy, entity, field_name, vector_mode='Magnitude',
         data_range = entity_data_info[field_name].GetComponentRange(vcomp)
     else:
         pv_entity = EntityType.get_pvtype(entity)
-        warnings.warn("Field {0} is unknown for {1}!".
-                      format(field_name, pv_entity))
+        warnings.warn("Field " + field_name + " is unknown for " + pv_entity + "!")
 
     # Cut off the range
     if cut_off and (data_range[0] <= data_range[1]):
@@ -560,8 +558,7 @@ def get_nb_components(proxy, entity, field_name):
         nb_comp = entity_data_info[field_name].GetNumberOfComponents()
     else:
         pv_entity = EntityType.get_pvtype(entity)
-        raise ValueError("Field {0} is unknown for {1}!".
-                         format(field_name, pv_entity))
+        raise ValueError("Field " + field_name + " is unknown for " + pv_entity + "!")
 
     return nb_comp
 
@@ -638,9 +635,9 @@ def get_calc_magnitude(proxy, array_entity, array_name):
         if (nb_components == 2):
             # Workaroud: calculator unable to compute magnitude
             # if number of components equal to 2
-            calculator.Function = "sqrt({0}_X^2+{0}_Y^2)".format(array_name)
+            calculator.Function = "sqrt(" + array_name + "_X^2+" + array_name + "_Y^2)"
         else:
-            calculator.Function = "mag({0})".format(array_name)
+            calculator.Function = "mag(" + array_name + ")"
         calculator.ResultArrayName = array_name + "_magnitude"
         calculator.UpdatePipeline()
 
@@ -667,8 +664,8 @@ def get_add_component_calc(proxy, array_entity, array_name):
         if array_entity != EntityType.NODE:
             attribute_mode = "cell_data"
         calculator.AttributeMode = attribute_mode
-        expression = "iHat * {0}_X + jHat * {0}_Y + kHat * 0"
-        calculator.Function = expression.format(array_name)
+        expression = "iHat * " + array_name + "_X + jHat * " + array_name + "_Y + kHat * 0"
+        #calculator.Function = expression.format(array_name)
         calculator.ResultArrayName = array_name + "_3c"
         calculator.UpdatePipeline()
 
@@ -700,7 +697,7 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
 
     if not all_arrays:
         file_name = proxy.FileName.split(os.sep)[-1]
-        print("Warning: {0} doesn't contain any data array.".format(file_name))
+        print "Warning: " + file_name + " doesn't contain any data array."
 
     # List of cell types to be selected
     cell_types_on = []
@@ -870,7 +867,7 @@ def get_lookup_table(field_name, nb_components, vector_mode='Magnitude'):
         lookup_table.VectorMode = 'Component'
         lookup_table.VectorComponent = 2
     else:
-        raise ValueError("Incorrect vector mode: {0}".format(vector_mode))
+        raise ValueError("Incorrect vector mode: " + vector_mode)
 
     lookup_table.Discretize = 0
     lookup_table.ColorSpace = 'HSV'
@@ -933,8 +930,7 @@ def get_time(proxy, timestamp_nb):
     # Check timestamp number
     timestamps = proxy.TimestepValues.GetData()
     if ((timestamp_nb - 1) not in xrange(len(timestamps))):
-        raise ValueError("Timestamp number is out of range: {0}".
-                         format(timestamp_nb))
+        raise ValueError("Timestamp number is out of range: " + timestamp_nb)
 
     # Return time value
     return timestamps[timestamp_nb - 1]
@@ -2207,18 +2203,18 @@ def CreatePrsForFile(paravis_instance, file_name, prs_types,
 
     """
     # Import MED file
-    print("Import {0}...".format(file_name.split(os.sep)[-1]), end='')
+    print "Import " + file_name.split(os.sep)[-1] + "..."
 
     try:
         paravis_instance.ImportFile(file_name)
         proxy = pv.GetActiveSource()
         if proxy is None:
-            print ("FAILED")
+            print "FAILED"
         else:
             proxy.UpdatePipeline()
-            print("OK")
+            print "OK"
     except:
-        print ("FAILED")
+        print "FAILED"
     else:
         # Get view
         view = pv.GetRenderView()
@@ -2265,20 +2261,15 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
             for entity in (EntityType.NODE, EntityType.CELL):
                 entity_name = EntityType.get_name(entity)
                 if if_possible(proxy, mesh_name, entity, PrsTypeEnum.MESH):
-                    print("Creating submesh on {0} for '{1}' mesh... ".
-                          format(entity_name, mesh_name), end='')
+                    print "Creating submesh on " + entity_name + " for '" + mesh_name + "' mesh... "
                     prs = MeshOnEntity(proxy, mesh_name, entity)
                     if prs is None:
-                        print("FAILED")
+                        print "FAILED"
                         continue
                     else:
-                        print("OK")
+                        print "OK"
                     # Construct image file name
-                    pic_name = "{folder}{mesh}_{type}.{ext}".format(
-                        folder=picture_dir,
-                        mesh=mesh_name,
-                        type=entity_name,
-                        ext=picture_ext)
+                    pic_name = picture_dir + mesh_name + "_" + entity_name + "." + picture_ext
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, view, pic_name, False)
@@ -2287,19 +2278,15 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
                 mesh_groups = get_group_names(proxy, mesh_name,
                                               entity, wo_nogroups=True)
                 for group in mesh_groups:
-                    print("Creating submesh on group {0}... ".
-                          format(group), end='')
+                    print "Creating submesh on group " + group + "... "
                     prs = MeshOnGroup(proxy, group)
                     if prs is None:
-                        print("FAILED")
+                        print "FAILED"
                         continue
                     else:
-                        print("OK")
+                        print "OK"
                     # Construct image file name
-                    pic_name = "{folder}{group}.{ext}".format(
-                        folder=picture_dir,
-                        group=group.replace('/', '_'),
-                        ext=picture_ext)
+                    pic_name = picture_dir + group.replace('/', '_') + "." + picture_ext
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, view, pic_name, False)
@@ -2350,23 +2337,17 @@ def CreatePrsForProxy(proxy, view, prs_types, picture_dir, picture_ext):
 
                 for timestamp_nb in xrange(1, len(timestamps) + 1):
                     time = timestamps[timestamp_nb - 1]
-                    print("Creating {0} on {1}, time = {2}... ".
-                          format(prs_name, field_name, time), end='')
+                    print "Creating " + prs_name + " on " + field_name + ", time = " + time + "... "
                     prs = create_prs(prs_type, proxy,
                                      field_entity, field_name, timestamp_nb)
                     if prs is None:
-                        print("FAILED")
+                        print "FAILED"
                         continue
                     else:
-                        print("OK")
+                        print "OK"
 
                     # Construct image file name
-                    pic_name = "{folder}{field}_{time}_{type}.{ext}".format(
-                        folder=picture_dir,
-                        field=field_name,
-                        time=time,
-                        type=f_prs_type,
-                        ext=picture_ext)
+                    pic_name = picture_dir + field_name + "_" + time + "_" + f_prs_type + "." + picture_ext
 
                     # Show and dump the presentation into a graphics file
                     process_prs_for_test(prs, view, pic_name)

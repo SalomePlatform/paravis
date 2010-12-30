@@ -45,9 +45,6 @@ for entity_type in entity_types:
             picturedir += os.sep
     entity_name = EntityType.get_name(entity_type)
     # Construct image file name
-    pic_name = "{folder}{mesh}_{type}.{ext}".format(folder=picturedir,
-                                                                        mesh=mesh_name,
-                                                                        type=entity_name,
-                                                                        ext=pictureext)
+    pic_name = picturedir + mesh_name + "_" + entity_name + "." + pictureext
     
     process_prs_for_test(mesh, aView, pic_name)

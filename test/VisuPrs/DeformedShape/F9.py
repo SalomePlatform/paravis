@@ -61,10 +61,7 @@ for colored in [False,True]:
         prs_name = PrsTypeEnum.get_name(prs_type)    
         f_prs_type = prs_name.replace(' ', '').upper()
         # Construct image file name
-        pic_name = "{folder}{field}_{time}_{type}.{ext}".format(folder=picturedir,
-                                                                                field=aFieldName+colored_str,
-                                                                                time=str(i),
-                                                                                type=f_prs_type,
-                                                                                ext=pictureext)        
+        pic_name = picturedir + aFieldName+colored_str + "_" + str(i) + "_" + f_prs_type + "." + pictureext
+
         # Show and record the presentation
         process_prs_for_test(aPrs, aView, pic_name)

@@ -75,15 +75,11 @@ gtype = "Cone"
 glyph.GlyphType = gtype
 glyph.GlyphType.Resolution = 3
 glyph.GlyphType.Height = 4
-print "Cone type: {0}, resolution: {1}".format(
-    glyph.GlyphType,
-    glyph.GlyphType.Resolution)
+print "Cone type: " + glyph.GlyphType + ", resolution: " + glyph.GlyphType.Resolution
 pvsimple.Render()
 
 glyph.GlyphType.Resolution = 6
-print "Cone type: {0}, resolution: {1}".format(
-    glyph.GlyphType,
-    glyph.GlyphType.Resolution)
+print "Cone type: " + glyph.GlyphType + ", resolution: " + glyph.GlyphType.Resolution
 pvsimple.Render()
 
 gtype = "Line"
