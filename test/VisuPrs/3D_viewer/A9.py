@@ -18,7 +18,7 @@ def check_value(prs, property_name, value, do_raise=1, compare_toler=-1.0):
     else:
         is_equal = (really_set_value == value)
     if not is_equal:
-        msg = really_set_value + " has been set instead"
+        msg = str(really_set_value) + " has been set instead"
         if do_raise:
             raise RuntimeError(msg)
         else:

@@ -69,21 +69,21 @@ range_min = 12
 range_max = 120
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
+print "min = " + str(lt.RGBPoints[0]) + "; max = " + str(lt.RGBPoints[4])
 pvsimple.Render(view)
 
 range_min = 120
 range_max = 120
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
+print "min = " + str(lt.RGBPoints[0]) + "; max = " + str(lt.RGBPoints[4])
 pvsimple.Render(view)
 
 range_min = 120
 range_max = 15
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
-print "min = " + lt.RGBPoints[0] + "; max = " + lt.RGBPoints[4]
+print "min = " + str(lt.RGBPoints[0]) + "; max = " + str(lt.RGBPoints[4])
 pvsimple.Render(view)
 
 #=============Stage6: bar orientation of Scalar Map On Deformed Shape==

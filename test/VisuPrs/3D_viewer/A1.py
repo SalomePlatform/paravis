@@ -84,6 +84,6 @@ for reprCode in represents:
                 # save picture in file
                 # Construct image file name
                 pic_name = picturedir + "params_" + repr.replace(' ', '_') + "_any_" +  \
-                    sha + "_" + opa + "_" + lwi + "." + pictureext
+                    str(sha) + "_" + str(opa) + "_" + str(lwi) + "." + pictureext
                 # Show and record the presentation
                 process_prs_for_test(plot3d, my_view, pic_name)

@@ -1,15 +1,17 @@
 # This case corresponds to: /visu/3D_viewer/B2 case
 # Create 3D Viewer and test set view properties for CutPlanes presentation
 # Author: POLYANSKIKH VERA
+import sys
+import time
+
 from paravistest import *
 from presentations import *
 from pvsimple import *
-import sys
 import paravis
-import time
+
 
 # Directory for saving snapshots
-picturedir = get_picture_dir(sys.argv[1], "3D_viewer/B0")
+picturedir = get_picture_dir(sys.argv[1], "3D_viewer/B2")
 
 # Add path separator to the end of picture path if necessery
 if not picturedir.endswith(os.sep):
