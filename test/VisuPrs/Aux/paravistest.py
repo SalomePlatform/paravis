@@ -82,7 +82,7 @@ def test_values(value, et_value, check_error=0):
     length = len(value)
     et_length = len(et_value)
     if (length != et_length):
-        err_msg = "ERROR!!! There is different number of created " + length + " and etalon " + length + " values!!!"
+        err_msg = "ERROR!!! There is different number of created " + str(length) + " and etalon " + str(et_length) + " values!!!"
         print err_msg
         error = error + 1
     else:
@@ -90,7 +90,7 @@ def test_values(value, et_value, check_error=0):
             if abs(et_value[i]) > 1:
                 max_val = abs(0.001 * et_value[i])
                 if abs(et_value[i] - value[i]) > max_val:
-                    err_msg = "ERROR!!! Got value " + value[i] + " is not equal to etalon value " + et_value[i] + "!!!"
+                    err_msg = "ERROR!!! Got value " + str(value[i]) + " is not equal to etalon value " + str(ret_value[i]) + "!!!"
                     print err_msg
                     error = error + 1
             else:
@@ -132,7 +132,7 @@ def call_and_check(prs, property_name, value, do_raise=1, compare_toler=-1.0):
     try:
         prs.SetPropertyWithName(property_name, value)
     except ValueError:
-        error_string = (value + "value of " + property_name + " is not available for this type of presentations")
+        error_string = (str(value) + "value of " + property_name + " is not available for this type of presentations")
     else:
         error_string = None
     is_good = (error_string is None)
@@ -150,7 +150,7 @@ def call_and_check(prs, property_name, value, do_raise=1, compare_toler=-1.0):
         else:
             is_equal = (really_set_value == value)
         if not is_equal:
-            msg = really_set_value + " has been set instead"
+            msg = str(really_set_value) + " has been set instead"
             if do_raise:
                 raise RuntimeError(msg)
             else:
@@ -173,7 +173,7 @@ salome_session = SalomeSession()
 salome.salome_init()
 
 # Create new study
-print "Creating new study..."
+print "Creating new study...",
 aStudy = salome.myStudyManager.NewStudy("Study1")
 if aStudy is None:
     raise RuntimeError("FAILED")
