@@ -35,5 +35,5 @@ for field_name in field_names:
         raise RuntimeError, "Created presentation is None!!!"
 
     # Display presentation and get snapshot
-    pic_name = picturedir + field_name + "_" + time + "_GAUSSPOINTS." + pictureext
+    pic_name = picturedir + field_name + "_" + str(time) + "_GAUSSPOINTS." + pictureext
     process_prs_for_test(prs, view, pic_name)
