@@ -24,10 +24,13 @@ IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
       A1
       A3
+      A5
       A6
       A7
+      B0
       B1
       B5
+      B6
       B7
       B8
       B9
