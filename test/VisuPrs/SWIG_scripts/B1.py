@@ -1,5 +1,6 @@
 # This case corresponds to: /visu/SWIG_scripts/B1 case
 
+import math
 from time import sleep
 
 from paravistest import datadir
@@ -8,7 +9,7 @@ import paravis
 import pvsimple
 
 
-DELAY = 0.5
+DELAY = 0.25
 
 my_paravis = paravis.myParavis
 
@@ -19,6 +20,7 @@ sleep(DELAY)
 # Destroy the view
 pvsimple.Delete(view)
 
+
 # Create view and set background
 view = pvsimple.CreateRenderView()
 reset_view(view)
@@ -28,12 +30,12 @@ view.Background = color
 pvsimple.Render()
 
 # Import MED file
-medFile = datadir + "pointe_236.med"
+med_file = datadir + "pointe_236.med"
 field_name = "fieldnodedouble"
 entity = EntityType.NODE
 timestamp = 1
 
-my_paravis.ImportFile(medFile)
+my_paravis.ImportFile(med_file)
 med_reader = pvsimple.GetActiveSource()
 
 # Create scalar map
@@ -65,7 +67,7 @@ for i in xrange(2, nb_colors):
     lt.RGBPoints[0] = x
     lt.RGBPoints[4] = y
     pvsimple.Render(view)
-    sleep(DELAY)
+    sleep(DELAY / 4.0)
 
 lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
@@ -73,7 +75,8 @@ lt.RGBPoints[4] = range_max
 print "pvsimple.ResetCamera(view)"
 pvsimple.ResetCamera(view)
 
-# Create another view
+
+# Create another view for cut planes
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
@@ -82,7 +85,9 @@ view.Background = color
 pvsimple.Render(view)
 
 displacement = 0.5
+orient = Orientation.YZ
 cutplanes = CutPlanesOnField(med_reader, entity, field_name, timestamp,
+                             orientation=orient,
                              displacement=displacement)
 print "CutPlanesOnField(...)"
 
@@ -91,7 +96,7 @@ print "display_only(cutplanes, view)"
 
 cam_pos = view.CameraPosition
 cam_pos[0] = cam_pos[0] + 10
-print "set view.CameraPosition"
+print "Set view.CameraPosition"
 cutplanes.Scale[0] = 3
 cutplanes.Scale[1] = 10
 pvsimple.Render(view)
@@ -102,21 +107,23 @@ pvsimple.ResetCamera(view)
 slice_filter = cutplanes.Input
 offset_vals = slice_filter.SliceOffsetValues
 nb_planes = len(offset_vals)
-cut_range = [offset_vals[0], offset_vals[-1]]
-
 nb_planes = 30
-#@MZN: FINISH ANGLES
+bounds = get_bounds(med_reader)
 for i in xrange(nb_planes, 1, -1):
-    pos = get_positions(cut_range, i, displacement)
+    x = math.pi / 2.0 * (nb_planes - i) / nb_planes
+    y = math.pi / 2.0 * (nb_planes - i) / nb_planes
+    normal = get_normal_by_orientation(orient, x, y)
+    slice_filter.SliceType.Normal = normal
+    pos = get_positions(i, normal, bounds, displacement)
     slice_filter.SliceOffsetValues = pos
     pvsimple.Render(view)
     sleep(DELAY)
 
 nb_planes = 10
-cut_range = get_y_range(med_reader)
-slice_filter.SliceType.Normal = [0, 1, 0]
+normal = [0, 1, 0]
+slice_filter.SliceType.Normal = normal
 for i in xrange(1, nb_planes):
-    pos = get_positions(cut_range, i, displacement)
+    pos = get_positions(i, normal, bounds, displacement)
     slice_filter.SliceOffsetValues = pos
     pvsimple.Render(view)
     sleep(DELAY)
@@ -126,7 +133,8 @@ slice_filter.UpdatePipeline()
 print "pvsimple.ResetCamera(view)"
 pvsimple.ResetCamera(view)
 
-# Create one more view
+
+# Create one more view fro isosurfaces
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
@@ -156,7 +164,7 @@ contour.UpdatePipeline()
 print "pvsimple.ResetCamera(view)"
 pvsimple.ResetCamera(view)
 
-# Create one more view
+# Create one more view for cut lines
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
@@ -173,16 +181,45 @@ pvsimple.ResetCamera(view)
 print "display_only(cutlines, view)"
 sleep(DELAY)
 
-# Create one more view
+#@MZN curves from cutlines
+
+# Create one more view for cut segment
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
-medFile = datadir + "TimeStamps_236.med"
+color = [0.0, 0.7, 0.3]
+view.Background = color
+pvsimple.Render(view)
+sleep(DELAY)
+
+point1 = [-1.0, 0.0, 2.5]
+point2 = [1.0, 0.0, 2.0]
+vmode = 'Magnitude'
+cutsegment = CutSegmentOnField(med_reader, entity, field_name, timestamp,
+                               point1, point2,
+                               vector_mode=vmode)
+
+display_only(cutsegment, view)
+pvsimple.ResetCamera(view)
+print "display_only(cutsegment, view)"
+sleep(DELAY)
+
+xy_view = pvsimple.CreateXYPlotView()
+curve = pvsimple.Show(cutsegment.Input, xy_view)
+curve.AttributeType = 'Point Data'
+curve.UseIndexForXAxis = 0
+curve.XArrayName = 'arc_length'
+
+# Create one more view for animation
+view = pvsimple.CreateRenderView()
+reset_view(view)
+
+med_file = datadir + "TimeStamps_236.med"
 field_name = "vitesse"
 entity = EntityType.NODE
 timestamp = 2
 
-my_paravis.ImportFile(medFile)
+my_paravis.ImportFile(med_file)
 med_reader = pvsimple.GetActiveSource()
 
 isosurf = IsoSurfacesOnField(med_reader, entity, field_name, timestamp)
