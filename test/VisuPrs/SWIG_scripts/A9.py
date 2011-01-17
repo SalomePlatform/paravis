@@ -1,8 +1,7 @@
-# This case corresponds to: /visu/SWIG_scripts/A8 case
-# Create table of real
 # This case corresponds to: /visu/SWIG_scripts/A9 case
-# Import MED file
-
+# Import MED file; create Scalar Map, Cut Planes, Cut Lines,
+# Cut Segment, Iso Surfaces, Animation; display curves.
+ 
 import math
 from time import sleep
 
