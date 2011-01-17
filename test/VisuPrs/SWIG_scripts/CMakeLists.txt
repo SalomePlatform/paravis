@@ -27,6 +27,8 @@ IF (PYTHON_EXECUTABLE)
       A5
       A6
       A7
+      A8
+      A9
       B0
       B1
       B5
@@ -34,6 +36,7 @@ IF (PYTHON_EXECUTABLE)
       B7
       B8
       B9
+      C3
       )
     ADD_TEST(SWIGSCRIPTS_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
     SET_TESTS_PROPERTIES(SWIGSCRIPTS_${tfile} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
