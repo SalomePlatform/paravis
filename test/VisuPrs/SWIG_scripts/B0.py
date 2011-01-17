@@ -2,7 +2,6 @@
 # Create table
 
 from paravistest import tablesdir
-from presentations import *
 import paravis
 import pvsimple
 

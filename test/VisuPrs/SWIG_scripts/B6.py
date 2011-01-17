@@ -2,14 +2,13 @@
 # Create table of integer, create table of real, create curves
 
 from paravistest import tablesdir
-from presentations import *
 import paravis
 import pvsimple
 
 
 # Define script for table of integer creation
 script_ti = """
-def addColumn(table, name, lst):
+def add_column(table, name, lst):
     col = vtk.vtkIntArray()
     col.SetName(name)
     for item in lst:
@@ -21,13 +20,13 @@ table = self.GetTableOutput()
 
 # Add columns
 lst = [1,2,3,4,5,6,7,8,9,10]
-addColumn(table, 'FR', lst)
+add_column(table, 'FR', lst)
 
 lst = [110,120,130,140,150,160,170,180,190,200]
-addColumn(table, 'SR', lst)
+add_column(table, 'SR', lst)
 
 lst = [-1,272,0,0,-642,10000,13,578,-578,99]
-addColumn(table, 'TR', lst)
+add_column(table, 'TR', lst)
 """
 
 # Define script for table of real creation

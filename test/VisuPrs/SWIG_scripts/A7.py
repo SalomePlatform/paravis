@@ -1,4 +1,4 @@
-# This case corresponds to: /visu/SWIG_scripts/A3 case
+# This case corresponds to: /visu/SWIG_scripts/A7 case
 
 import time
 

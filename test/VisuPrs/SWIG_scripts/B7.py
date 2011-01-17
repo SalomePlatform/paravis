@@ -1,4 +1,4 @@
-# This case corresponds to: /visu/SWIG_scripts/A6 case
+# This case corresponds to: /visu/SWIG_scripts/B7 case
 # Import a table from file and show it in 2D viewer
 
 from paravistest import tablesdir
