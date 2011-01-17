@@ -13,9 +13,13 @@ import warnings
 from math import sqrt, sin, cos, radians
 from string import upper
 
-import pvsimple as pv
-# TODO(MZN): to be removed (issue with Point Sprite texture)
-import paravisSM as sm
+try:
+    import pvsimple as pv
+    # TODO(MZN): to be removed (issue with Point Sprite texture)
+    import paravisSM as sm
+except:
+    import paraview.simple as pv
+    import paraview.servermanager as sm
 
 
 # Constants
@@ -243,7 +247,8 @@ def check_vector_mode(vector_mode, nb_components):
 
     if ((nb_components == 1 and (vector_mode == 'Y' or vector_mode == 'Z')) or
         (nb_components == 2 and  vector_mode == 'Z')):
-        raise ValueError("Incorrect vector mode " + vector_mode + " for " + nb_components + "-component field")
+        raise ValueError("Incorrect vector mode " + vector_mode + " for " +
+                         nb_components + "-component field")
 
 
 def get_vector_component(vector_mode):
@@ -300,10 +305,12 @@ def get_data_range(proxy, entity, field_name, vector_mode='Magnitude',
         data_range = entity_data_info[field_name].GetComponentRange(vcomp)
     else:
         pv_entity = EntityType.get_pvtype(entity)
-        warnings.warn("Field " + field_name + " is unknown for " + pv_entity + "!")
+        warnings.warn("Field " + field_name +
+                      " is unknown for " + pv_entity + "!")
 
     # Cut off the range
     if cut_off and (data_range[0] <= data_range[1]):
+        data_range = list(data_range)
         delta = abs(data_range[1] - data_range[0]) * GAP_COEFFICIENT
         data_range[0] += delta
         data_range[1] -= delta
@@ -558,7 +565,8 @@ def get_nb_components(proxy, entity, field_name):
         nb_comp = entity_data_info[field_name].GetNumberOfComponents()
     else:
         pv_entity = EntityType.get_pvtype(entity)
-        raise ValueError("Field " + field_name + " is unknown for " + pv_entity + "!")
+        raise ValueError("Field " + field_name +
+                         " is unknown for " + pv_entity + "!")
 
     return nb_comp
 
@@ -635,7 +643,8 @@ def get_calc_magnitude(proxy, array_entity, array_name):
         if (nb_components == 2):
             # Workaroud: calculator unable to compute magnitude
             # if number of components equal to 2
-            calculator.Function = "sqrt(" + array_name + "_X^2+" + array_name + "_Y^2)"
+            func = "sqrt(" + array_name + "_X^2+" + array_name + "_Y^2)"
+            calculator.Function = func
         else:
             calculator.Function = "mag(" + array_name + ")"
         calculator.ResultArrayName = array_name + "_magnitude"
@@ -1199,6 +1208,18 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     # Set cutting planes position
     cut_positions = get_positions(nb_lines, cut_normal,
                                   get_bounds(base_plane), displacement2)
+
+    # Get points for plot over line objects
+    pol_points = []
+    for pos in cut_positions:
+        cut_planes.SliceOffsetValues = pos
+        cut_planes.UpdatePipeline()
+        bounds = get_bounds(cut_planes)
+        point1 = [bounds[0], bounds[2], bounds[4]]
+        point2 = [bounds[1], bounds[3], bounds[5]]
+        points_tuple = (point1, point2)
+        pol_points.append(points_tuple)
+
     cut_planes.SliceOffsetValues = cut_positions
 
     # Get Cut Lines representation object
@@ -1224,7 +1245,71 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     # Add scalar bar
     add_scalar_bar(field_name, nb_components,
                    vector_mode, lookup_table, time_value)
+
     return cut_lines
+
+
+def CutSegmentOnField(proxy, entity, field_name, timestamp_nb,
+                      point1, point2, vector_mode='Magnitude'):
+    """Creates Cut Segment presentation on the given field.
+
+    Arguments:
+      proxy: the pipeline object, containig data
+      entity: the entity type from PrsTypeEnum
+      field_name: the field name
+      timestamp_nb: the number of time step (1, 2, ...)
+      point1: set the first point of the segment (as [x, y, z])
+      point1: set the second point of the segment (as [x, y, z])
+      vector_mode: the mode of transformation of vector values
+      into scalar values, applicable only if the field contains vector values.
+      Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
+
+    Returns:
+      Cut Segment as 3D representation object.
+
+    """
+    # Check vector mode
+    nb_components = get_nb_components(proxy, entity, field_name)
+    check_vector_mode(vector_mode, nb_components)
+
+    # Get time value
+    time_value = get_time(proxy, timestamp_nb)
+
+    # Set timestamp
+    pv.GetRenderView().ViewTime = time_value
+    pv.UpdatePipeline(time_value, proxy)
+
+    # Create plot over line filter
+    pol = pv.PlotOverLine(proxy, Source="High Resolution Line Source")
+    pol.Source.Point1 = point1
+    pol.Source.Point2 = point2
+    pol.UpdatePipeline()
+
+    # Get Cut Segment representation object
+    cut_segment = pv.GetRepresentation(pol)
+
+    # Get lookup table
+    lookup_table = get_lookup_table(field_name, nb_components, vector_mode)
+
+    # Set field range if necessary
+    data_range = get_data_range(proxy, entity,
+                                field_name, vector_mode)
+    lookup_table.LockScalarRange = 1
+    lookup_table.RGBPoints = [data_range[0], 0, 0, 1, data_range[1], 1, 0, 0]
+
+    # Set properties
+    cut_segment.ColorAttributeType = EntityType.get_pvtype(entity)
+    cut_segment.ColorArrayName = field_name
+    cut_segment.LookupTable = lookup_table
+
+    # Set wireframe represenatation mode
+    cut_segment.Representation = 'Wireframe'
+
+    # Add scalar bar
+    add_scalar_bar(field_name, nb_components,
+                   vector_mode, lookup_table, time_value)
+
+    return cut_segment
 
 
 def VectorsOnField(proxy, entity, field_name, timestamp_nb,
