@@ -24,6 +24,7 @@ IF (PYTHON_EXECUTABLE)
   FOREACH ( tfile
       A1
       A3
+      A4
       A5
       A6
       A7

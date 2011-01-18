@@ -38,8 +38,10 @@ timestamp = 1
 my_paravis.ImportFile(med_file)
 med_reader = pvsimple.GetActiveSource()
 
+
 # Create scalar map
 scalarmap = ScalarMapOnField(med_reader, entity, field_name, timestamp)
+print "ScalarMapOnField(...)"
 pvsimple.Show(scalarmap.Input)
 
 # Set view properties
@@ -73,7 +75,12 @@ lt.RGBPoints[0] = range_min
 lt.RGBPoints[4] = range_max
 
 print "pvsimple.ResetCamera(view)"
-pvsimple.ResetCamera(view)
+pvsimple.Render(view)
+sleep(DELAY)
+
+# Destroy the view
+print "Destroy the view with Scalar Map"
+pvsimple.Delete(view)
 
 
 # Create another view for cut planes
@@ -132,9 +139,14 @@ slice_filter.SliceType.Normal = [0, 0, 1]
 slice_filter.UpdatePipeline()
 print "pvsimple.ResetCamera(view)"
 pvsimple.ResetCamera(view)
+sleep(DELAY)
+
+# Destroy the view
+print "Destroy the view with Cut Planes"
+pvsimple.Delete(view)
 
 
-# Create one more view fro isosurfaces
+# Create one more view for isosurfaces
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
@@ -144,6 +156,7 @@ pvsimple.Render(view)
 sleep(DELAY)
 
 isosurf = IsoSurfacesOnField(med_reader, entity, field_name, timestamp)
+print "IsoSurfacesOnField(...)"
 display_only(isosurf, view)
 pvsimple.ResetCamera(view)
 print "display_only(isosurf, view)"
@@ -163,6 +176,12 @@ contour.Isosurfaces = get_contours(scalar_range, 10)
 contour.UpdatePipeline()
 print "pvsimple.ResetCamera(view)"
 pvsimple.ResetCamera(view)
+sleep(DELAY)
+
+# Destroy the view
+print "Destroy the view with Iso Surfaces"
+pvsimple.Delete(view)
+
 
 # Create one more view for cut lines
 view = pvsimple.CreateRenderView()
@@ -173,15 +192,33 @@ view.Background = color
 pvsimple.Render(view)
 sleep(DELAY)
 
-cutlines = CutLinesOnField(med_reader, entity, field_name, timestamp,
-                           orientation1=Orientation.ZX,
-                           orientation2=Orientation.YZ)
+cutlines, curves = CutLinesOnField(med_reader, entity, field_name, timestamp,
+                                   orientation1=Orientation.ZX,
+                                   orientation2=Orientation.YZ,
+                                   generate_curves=True)
+print "CutLinesOnField(...)"
 display_only(cutlines, view)
 pvsimple.ResetCamera(view)
 print "display_only(cutlines, view)"
 sleep(DELAY)
 
-#@MZN curves from cutlines
+xy_view = pvsimple.CreateXYPlotView()
+print "pvsimple.CreateXYPlotView()"
+for curve in curves:
+    xyrep = pvsimple.Show(curve, xy_view)
+    xyrep.AttributeType = 'Point Data'
+    xyrep.UseIndexForXAxis = 0
+    xyrep.XArrayName = 'arc_length'
+    set_visible_lines(xyrep, [field_name])
+
+pvsimple.Render(xy_view)
+sleep(DELAY)
+
+# Destroy two views
+#print "Destroy two views: with Cut Lines and the curves"
+#pvsimple.Delete(view)
+#pvsimple.Delete(xy_view)
+
 
 # Create one more view for cut segment
 view = pvsimple.CreateRenderView()
@@ -192,13 +229,12 @@ view.Background = color
 pvsimple.Render(view)
 sleep(DELAY)
 
-point1 = [-1.0, 0.0, 2.5]
-point2 = [1.0, 0.0, 2.0]
-vmode = 'Magnitude'
+point1 = [0.0, -2.0, 2.5]
+point2 = [0.0, 2.0, 2.5]
 cutsegment = CutSegmentOnField(med_reader, entity, field_name, timestamp,
-                               point1, point2,
-                               vector_mode=vmode)
+                               point1, point2)
 
+print "CutSegmentOnField(...)"
 display_only(cutsegment, view)
 pvsimple.ResetCamera(view)
 print "display_only(cutsegment, view)"
@@ -209,6 +245,11 @@ curve = pvsimple.Show(cutsegment.Input, xy_view)
 curve.AttributeType = 'Point Data'
 curve.UseIndexForXAxis = 0
 curve.XArrayName = 'arc_length'
+set_visible_lines(xyrep, [field_name])
+
+pvsimple.Render(xy_view)
+sleep(DELAY)
+set_visible_lines(xyrep, [field_name])
 
 # Create one more view for animation
 view = pvsimple.CreateRenderView()
@@ -223,6 +264,7 @@ my_paravis.ImportFile(med_file)
 med_reader = pvsimple.GetActiveSource()
 
 isosurf = IsoSurfacesOnField(med_reader, entity, field_name, timestamp)
+print "IsoSurfacesOnField(...)"
 pvsimple.ResetCamera(view)
 
 print "Start Animation"
