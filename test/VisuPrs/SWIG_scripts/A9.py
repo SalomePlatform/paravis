@@ -194,12 +194,16 @@ sleep(DELAY)
 
 xy_view = pv.CreateXYPlotView()
 print "pv.CreateXYPlotView()"
+index = 0
 for curve in curves:
     xyrep = pv.Show(curve, xy_view)
     xyrep.AttributeType = 'Point Data'
     xyrep.UseIndexForXAxis = 0
     xyrep.XArrayName = 'arc_length'
+    pvsimple.Render(xy_view)
     set_visible_lines(xyrep, [field_name])
+    xyrep.SeriesLabel = [field_name, 'Y' + str(index)]
+    index += 1
 
 pv.Render(xy_view)
 sleep(DELAY)
@@ -213,13 +217,11 @@ view.Background = color
 pv.Render(view)
 sleep(DELAY)
 
-point1 = [-1.0, 0.0, 2.5]
-point2 = [1.0, 0.0, 2.0]
-vmode = 'Magnitude'
+point1 = [0.0, -1.0, 2.5]
+point2 = [0.0, 1.0, 2.5]
 cutsegment = CutSegmentOnField(med_reader, entity, field_name, timestamp,
-                               point1, point2,
-                               vector_mode=vmode)
-
+                               point1, point2)
+print "CutSegmentOnField(...)"
 display_only(cutsegment, view)
 pv.ResetCamera(view)
 print "display_only(cutsegment, view)"
@@ -230,6 +232,11 @@ curve = pv.Show(cutsegment.Input, xy_view)
 curve.AttributeType = 'Point Data'
 curve.UseIndexForXAxis = 0
 curve.XArrayName = 'arc_length'
+set_visible_lines(xyrep, [field_name])
+
+pvsimple.Render(xy_view)
+sleep(DELAY)
+
 
 # Create one more view for animation
 view = pv.CreateRenderView()

@@ -227,6 +227,24 @@ def display_only(prs, view=None):
     pv.Render(view=view)
 
 
+def set_visible_lines(xy_prs, lines):
+    """Set visible only the given lines for XYChartRepresentation."""
+    sv = xy_prs.GetProperty("SeriesVisibilityInfo").GetData()
+    visible = '0'
+
+    for i in xrange(0, len(sv)):
+        if i % 2 == 0:
+            line_name = sv[i]
+            if line_name in lines:
+                visible = '1'
+            else:
+                visible = '0'
+        else:
+            sv[i] = visible
+
+    xy_prs.SeriesVisibility = sv
+
+
 def check_vector_mode(vector_mode, nb_components):
     """Check vector mode.
 
@@ -1134,6 +1152,7 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
                     orientation2=Orientation.YZ,
                     cut_angle1=0, cut_angle2=0,
                     displacement1=0.5, displacement2=0.5,
+                    generate_curves=False,
                     vector_mode='Magnitude'):
     """Creates Cut Lines presentation on the given field.
 
@@ -1156,12 +1175,15 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
       axis of the orientation2. Acceptable range: [-45, 45].
       displacement1: base plane displacement
       displacement2: cutting planes displacement
+      generate_curves: if true, 'PlotOverLine' filter will be created
+      for each cut line
       vector_mode: the mode of transformation of vector values
       into scalar values, applicable only if the field contains vector values.
       Possible modes: 'Magnitude', 'X', 'Y' or 'Z'.
 
     Returns:
-      Cut Lines as representation object.
+      Cut Lines as representation object if generate_curves == False,
+      (Cut Lines as representation object, list of 'PlotOverLine') otherwise
 
     """
     # Check vector mode
@@ -1209,18 +1231,31 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     cut_positions = get_positions(nb_lines, cut_normal,
                                   get_bounds(base_plane), displacement2)
 
-    # Get points for plot over line objects
-    pol_points = []
-    for pos in cut_positions:
-        cut_planes.SliceOffsetValues = pos
-        cut_planes.UpdatePipeline()
-        bounds = get_bounds(cut_planes)
-        point1 = [bounds[0], bounds[2], bounds[4]]
-        point2 = [bounds[1], bounds[3], bounds[5]]
-        points_tuple = (point1, point2)
-        pol_points.append(points_tuple)
+    # Generate curves
+    curves = []
+    if generate_curves:
+        index = 0
+        for pos in cut_positions:
+            # Get points for plot over line objects
+            cut_planes.SliceOffsetValues = pos
+            cut_planes.UpdatePipeline()
+            bounds = get_bounds(cut_planes)
+            point1 = [bounds[0], bounds[2], bounds[4]]
+            point2 = [bounds[1], bounds[3], bounds[5]]
+
+            # Create plot over line filter
+            pol = pv.PlotOverLine(cut_planes,
+                                  Source="High Resolution Line Source")
+            pv.RenameSource('Y' + str(index), pol)
+            pol.Source.Point1 = point1
+            pol.Source.Point2 = point2
+            pol.UpdatePipeline()
+            curves.append(pol)
+
+            index += 1
 
     cut_planes.SliceOffsetValues = cut_positions
+    cut_planes.UpdatePipeline()
 
     # Get Cut Lines representation object
     cut_lines = pv.GetRepresentation(cut_planes)
@@ -1246,7 +1281,12 @@ def CutLinesOnField(proxy, entity, field_name, timestamp_nb,
     add_scalar_bar(field_name, nb_components,
                    vector_mode, lookup_table, time_value)
 
-    return cut_lines
+    result = cut_lines
+    # If curves were generated return tuple (cut lines, list of curves)
+    if curves:
+        result = cut_lines, curves
+
+    return result
 
 
 def CutSegmentOnField(proxy, entity, field_name, timestamp_nb,
