@@ -1,6 +1,7 @@
 # This case corresponds to: /visu/SWIG_scripts/B1 case
 
 import math
+import random
 from time import sleep
 
 from paravistest import datadir
@@ -213,6 +214,10 @@ for curve in curves:
     pvsimple.Render(xy_view)
     set_visible_lines(xyrep, [field_name])
     xyrep.SeriesLabel = [field_name, 'Y' + str(index)]
+    r = str(random.random())
+    g = str(random.random())
+    b = str(random.random())
+    xyrep.SeriesColor = [field_name, r, g, b]
     index += 1
 
 pvsimple.Render(xy_view)
