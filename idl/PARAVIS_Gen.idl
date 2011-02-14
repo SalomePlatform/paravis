@@ -72,6 +72,8 @@ module PARAVIS {
     void ImportFile(in string theFileName);
 
 
+    void ExecuteScript(in string script);
+
     /*!
      * Returns trace string if trace is activated for current session. 
      * Otherwise it returns empty string.

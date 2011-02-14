@@ -128,6 +128,7 @@ public:
   virtual QString engineIOR() const;
 
   void openFile(const char* theName);
+  void executeScript(const char *script);
   void saveParaviewState(const char* theFileName);
   void loadParaviewState(const char* theFileName);
 

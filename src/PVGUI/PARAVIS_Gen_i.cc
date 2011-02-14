@@ -179,6 +179,12 @@ namespace PARAVIS
     ProcessVoidEvent(new TImportFile(mySalomeApp, theFileName));
   }
 
+  void PARAVIS_Gen_i::ExecuteScript(const char* script)
+  {
+    if(MYDEBUG) MESSAGE("PARAVIS_Gen_i::ExecuteScript: " <<script);
+    ProcessVoidEvent(new TExecuteScript(mySalomeApp, script));
+  }
+
   //----------------------------------------------------------------------------
   char* PARAVIS_Gen_i::GetTrace()
   {

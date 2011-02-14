@@ -174,6 +174,22 @@ namespace PARAVIS {
     }
   };
 
+  /*!
+   * Event to execute a script to PARAVIS
+   */
+  struct TExecuteScript: public TParavisFileEvent
+  {
+    TExecuteScript(SalomeApp_Application* theApp, const char* theFileName ) :
+      TParavisFileEvent(theApp, theFileName)
+    {}
+    
+    virtual void Execute()
+    {
+      PVGUI_Module* aPVModule = getModule();
+      if (aPVModule)
+        aPVModule->executeScript(myName);
+    }
+  };
 
   /*!
    * Event to save current Paraview state.

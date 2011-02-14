@@ -737,6 +737,18 @@ void PVGUI_Module::openFile(const char* theName)
   pqLoadDataReaction::loadData(aFiles);
 }
 
+void PVGUI_Module::executeScript(const char *script)
+{
+  pqPythonManager* manager = qobject_cast<pqPythonManager*>(
+                             pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
+  if (manager)  {
+    pqPythonDialog* pyDiag = manager->pythonShellDialog();
+    if (pyDiag) {
+      pyDiag->runString(script);  
+      }
+    }
+}
+
 /*!
   \brief Returns trace string
 */

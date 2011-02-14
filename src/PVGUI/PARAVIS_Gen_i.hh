@@ -104,6 +104,9 @@ namespace PARAVIS
 
     //! Import file to PARAVIS module by its name. 
     virtual void ImportFile(const char* theFileName);
+
+    //! Execute a PARAVIS script on Session
+    virtual void ExecuteScript(const char* script);
     
     //! Returns Trace string. If Trace is not activated then empty string is returned
     virtual char* GetTrace();

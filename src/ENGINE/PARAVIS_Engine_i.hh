@@ -60,6 +60,8 @@ namespace PARAVIS
     virtual char* GetIOR();
 
     virtual void ImportFile(const char* theFileName);
+
+    virtual void ExecuteScript(const char* script);
     
     virtual char* GetTrace();
     

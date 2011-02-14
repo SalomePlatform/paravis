@@ -172,6 +172,15 @@ namespace PARAVIS {
     myParaVisGen->ImportFile(theFileName);
   }
 
+  void PARAVIS_Gen_i::ExecuteScript(const char* script)
+  {
+    if (CORBA::is_nil(myParaVisGen)) {
+      MESSAGE("PARAVIS_Gen_i is null");
+      return;
+    }
+    myParaVisGen->ExecuteScript(script);
+  }
+
   //===========================================================================
   char* PARAVIS_Gen_i::GetTrace()
   {
