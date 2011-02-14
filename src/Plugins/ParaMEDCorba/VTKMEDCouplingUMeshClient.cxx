@@ -20,13 +20,17 @@
 #include "VTKMEDCouplingUMeshClient.hxx"
 
 #include "vtkPoints.h"
+#include "vtkCellArray.h"
 #include "vtkDoubleArray.h"
+#include "vtkSmartPointer.h"
 #include "vtkUnstructuredGrid.h"
 
+#include <set>
 #include <vector>
 #include <string>
+#include <algorithm>
 
-static const int ParaMEDMEM2VTKTypeTraducer[32]={1,3,21,5,9,7,22,-1,23,-1,-1,-1,-1,-1,10,14,13,-1,12,-1,24,-1,-1,27,-1,26,-1,-1,-1,-1,25,41};
+static const int ParaMEDMEM2VTKTypeTraducer[32]={1,3,21,5,9,7,22,-1,23,-1,-1,-1,-1,-1,10,14,13,-1,12,-1,24,-1,-1,27,-1,26,-1,-1,-1,-1,25,42};
 
 void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMeshCorbaInterface_ptr meshPtr, vtkUnstructuredGrid *ret)
 {
@@ -64,6 +68,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
     *pts++=(*a2Corba)[i];
   //
   int *tmp=new int[1000];
+  bool presenceOfPolyh=false;
   for(int i=0;i<nbOfCells;i++)
     {
       int pos=(*a1Corba)[i];
@@ -72,7 +77,27 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
       int typeOfCell=(*a1Corba)[pos+nbOfCells+1];
       for(int j=0;j<nbOfNodeInCurCell;j++)
         tmp[j]=(*a1Corba)[pos+1+j+nbOfCells+1];
-      ret->InsertNextCell(ParaMEDMEM2VTKTypeTraducer[typeOfCell],nbOfNodeInCurCell,tmp);
+      int vtkType=ParaMEDMEM2VTKTypeTraducer[typeOfCell];
+      if(vtkType!=42)
+        ret->InsertNextCell(vtkType,nbOfNodeInCurCell,tmp);
+      else
+        {//polyhedron
+          presenceOfPolyh=true;
+          std::set<int> s(tmp,tmp+nbOfNodeInCurCell);
+          vtkSmartPointer<vtkCellArray> faces=vtkSmartPointer<vtkCellArray>::New();
+          int nbOfFaces=std::count(tmp,tmp+nbOfNodeInCurCell,-1)+1;
+          int *work=tmp;
+          for(int i=0;i<nbOfFaces;i++)
+            {
+              int *work2=std::find(work,tmp+nbOfNodeInCurCell,-1);
+              int nbOfNodesInFace=std::distance(work,work2);
+              faces->InsertNextCell(nbOfNodesInFace,work);
+              work=work2+1;
+            }
+          s.erase(-1);
+          std::vector<int> v(s.begin(),s.end());
+          ret->InsertNextCell(VTK_POLYHEDRON,v.size(),&v[0],nbOfFaces,faces->GetPointer());
+        }
     }
   delete [] tmp;
   //
