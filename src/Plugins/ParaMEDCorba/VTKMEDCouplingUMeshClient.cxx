@@ -67,7 +67,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
   for(int i=0;i<myLgth;i++)
     *pts++=(*a2Corba)[i];
   //
-  int *tmp=new int[1000];
+  vtkIdType *tmp=new vtkIdType[1000];
   isPolyh=false;
   for(int i=0;i<nbOfCells;i++)
     {
@@ -86,10 +86,10 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
           std::set<int> s(tmp,tmp+nbOfNodeInCurCell);
           vtkSmartPointer<vtkCellArray> faces=vtkSmartPointer<vtkCellArray>::New();
           int nbOfFaces=std::count(tmp,tmp+nbOfNodeInCurCell,-1)+1;
-          int *work=tmp;
+          vtkIdType *work=tmp;
           for(int i=0;i<nbOfFaces;i++)
             {
-              int *work2=std::find(work,tmp+nbOfNodeInCurCell,-1);
+              vtkIdType *work2=std::find(work,tmp+nbOfNodeInCurCell,-1);
               int nbOfNodesInFace=std::distance(work,work2);
               faces->InsertNextCell(nbOfNodesInFace,work);
               work=work2+1;
