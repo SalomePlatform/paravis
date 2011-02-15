@@ -1,0 +1,12 @@
+SET(TABLETO3D_SRCS
+    vtkTableTo3D.cxx
+    )
+
+ADD_LIBRARY(vtkTableTo3D ${TABLETO3D_SRCS})
+
+INSTALL(
+    TARGETS vtkTableTo3D
+    RUNTIME DESTINATION .
+    LIBRARY DESTINATION lib/salome
+    ARCHIVE DESTINATION .
+    )
