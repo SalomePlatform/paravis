@@ -36,19 +36,21 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
 {
   meshPtr->Register();
   //
+  SALOME_TYPES::ListOfDouble *tinyD;
   SALOME_TYPES::ListOfLong *tinyI;
   SALOME_TYPES::ListOfString *tinyS;
-  meshPtr->getTinyInfo(tinyI,tinyS);
+  meshPtr->getTinyInfo(tinyD,tinyI,tinyS);
   //
   int spaceDim=(*tinyI)[1];
   int nbOfNodes=(*tinyI)[2];
-  int meshDim=(*tinyI)[3];
-  int nbOfCells=(*tinyI)[4];
-  int meshLength=(*tinyI)[5];
+  int meshDim=(*tinyI)[5];
+  int nbOfCells=(*tinyI)[6];
+  int meshLength=(*tinyI)[7];
   std::string name((*tinyS)[0]);
   //std::vector<std::string> compoNames(spaceDim);
   //for(int i=0;i<spaceDim;i++)
-  //  compoNames[i]=(*tinyS)[i+3];
+  //  compoNames[i]=(*tinyS)[i+4];
+  delete tinyD;
   delete tinyI;
   delete tinyS;
   //

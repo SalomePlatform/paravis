@@ -29,9 +29,10 @@
 void ParaMEDMEM2VTK::FillMEDCouplingCMeshInstanceFrom(SALOME_MED::MEDCouplingCMeshCorbaInterface_ptr meshPtr, vtkRectilinearGrid *ret)
 {
   meshPtr->Register();
+  SALOME_TYPES::ListOfDouble *tinyD;
   SALOME_TYPES::ListOfLong *tinyI;
   SALOME_TYPES::ListOfString *tinyS;
-  meshPtr->getTinyInfo(tinyI,tinyS);
+  meshPtr->getTinyInfo(tinyD,tinyI,tinyS);
   int sizePerAxe[3];
   sizePerAxe[0]=(*tinyI)[0];
   sizePerAxe[1]=(*tinyI)[1];
