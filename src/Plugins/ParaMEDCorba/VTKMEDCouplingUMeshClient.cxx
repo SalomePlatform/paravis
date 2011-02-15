@@ -83,7 +83,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
       else
         {//polyhedron
           isPolyh=true;
-          std::set<int> s(tmp,tmp+nbOfNodeInCurCell);
+          std::set<vtkIdType> s(tmp,tmp+nbOfNodeInCurCell);
           vtkSmartPointer<vtkCellArray> faces=vtkSmartPointer<vtkCellArray>::New();
           int nbOfFaces=std::count(tmp,tmp+nbOfNodeInCurCell,-1)+1;
           vtkIdType *work=tmp;
@@ -95,7 +95,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
               work=work2+1;
             }
           s.erase(-1);
-          std::vector<int> v(s.begin(),s.end());
+          std::vector<vtkIdType> v(s.begin(),s.end());
           ret->InsertNextCell(VTK_POLYHEDRON,v.size(),&v[0],nbOfFaces,faces->GetPointer());
         }
     }
