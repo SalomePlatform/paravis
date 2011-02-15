@@ -2,7 +2,7 @@
 #include "ui_CustomXYChartDisplayPanel.h"
 
 #include "vtkEventQtSlotConnect.h"
-#include "vtkSMXYChartRepresentationProxy.h"
+#include "vtkSMChartRepresentationProxy.h"
 #include "vtkSMPropertyHelper.h"
 #include "vtkDataArray.h"
 #include "vtkDataObject.h"
@@ -53,7 +53,7 @@ public:
     delete this->XAxisArrayAdaptor;
     }
 
-  vtkWeakPointer<vtkSMXYChartRepresentationProxy> ChartRepresentation;
+  vtkWeakPointer<vtkSMChartRepresentationProxy> ChartRepresentation;
   pqCustomPlotSettingsModel* SettingsModel;
   pqComboBoxDomain* XAxisArrayDomain;
   pqSignalAdaptorComboBox* XAxisArrayAdaptor;
@@ -156,8 +156,8 @@ void pqCustomXYChartDisplayPanel::setDisplay(pqRepresentation* disp)
 {
   this->setEnabled(false);
 
-  vtkSMXYChartRepresentationProxy* proxy =
-    vtkSMXYChartRepresentationProxy::SafeDownCast(disp->getProxy());
+  vtkSMChartRepresentationProxy* proxy =
+    vtkSMChartRepresentationProxy::SafeDownCast(disp->getProxy());
   this->Internal->ChartRepresentation = proxy;
   if (!this->Internal->ChartRepresentation)
     {
@@ -168,7 +168,7 @@ void pqCustomXYChartDisplayPanel::setDisplay(pqRepresentation* disp)
 
   // this is essential to ensure that when you undo-redo, the representation is
   // indeed update-to-date, thus ensuring correct domains etc.
-  proxy->Update();
+  proxy->UpdatePipeline();
 
   // The model for the plot settings
   this->Internal->SettingsModel->setRepresentation(
@@ -202,13 +202,14 @@ void pqCustomXYChartDisplayPanel::setDisplay(pqRepresentation* disp)
 //-----------------------------------------------------------------------------
 void pqCustomXYChartDisplayPanel::changeDialog(pqRepresentation* disp)
 {
-  vtkSMXYChartRepresentationProxy* proxy =
-    vtkSMXYChartRepresentationProxy::SafeDownCast(disp->getProxy());
+  vtkSMChartRepresentationProxy* proxy =
+    vtkSMChartRepresentationProxy::SafeDownCast(disp->getProxy());
   bool visible = true;
-  if (proxy->GetChartType() == vtkChart::BAR)
+  if (QString("Bar") == vtkSMPropertyHelper(proxy,"ChartType").GetAsString())
     {
-    visible = false;
+      visible = false;
     }
+  
   this->Internal->Thickness->setVisible(visible);
   this->Internal->ThicknessLabel->setVisible(visible);
   this->Internal->StyleList->setVisible(visible);

@@ -1,6 +1,6 @@
 #include "pqCustomPlotSettingsModel.h"
 
-#include "vtkSMXYChartRepresentationProxy.h"
+#include "vtkSMChartRepresentationProxy.h"
 #include "pqDataRepresentation.h"
 #include "vtkWeakPointer.h"
 #include "vtkSMPropertyHelper.h"
@@ -15,7 +15,7 @@ public:
   {
   }
 
-  vtkWeakPointer<vtkSMXYChartRepresentationProxy> RepresentationProxy;
+  vtkWeakPointer<vtkSMChartRepresentationProxy> RepresentationProxy;
   QPointer<pqDataRepresentation> Representation;
 };
 
@@ -45,7 +45,7 @@ void pqCustomPlotSettingsModel::setRepresentation(pqDataRepresentation* rep)
     }
 
   this->Implementation->RepresentationProxy =
-    vtkSMXYChartRepresentationProxy::SafeDownCast(rep->getProxy());
+    vtkSMChartRepresentationProxy::SafeDownCast(rep->getProxy());
   this->Implementation->Representation = rep;
 }
 
