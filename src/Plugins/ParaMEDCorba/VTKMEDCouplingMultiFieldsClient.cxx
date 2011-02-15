@@ -17,6 +17,9 @@
 //  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
 
+// To access to vtkUnstructuredGrid::Faces and FaceLocations
+#define protected public
+
 #include "VTKMEDCouplingMultiFieldsClient.hxx"
 #include "VTKMEDCouplingMeshClient.hxx"
 #include "VTKMEDCouplingFieldClient.hxx"
@@ -26,6 +29,7 @@
 #include "vtkDoubleArray.h"
 #include "vtkErrorCode.h"
 #include "vtkCellData.h"
+#include "vtkIdTypeArray.h"
 #include "vtkPointData.h"
 
 #include <sstream>
@@ -110,6 +114,19 @@ vtkDataSet *ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::buildDataSetOnTime(do
     {
       vtkUnstructuredGrid *ret1=vtkUnstructuredGrid::New();
       ret1->DeepCopy(ret0);
+      if(_is_meshes_polyhedron[meshId])//bug VTK polyhedron
+        {//bug VTK polyhedron part
+          ret1->Faces->UnRegister(ret1);
+          ret1->Faces=vtkIdTypeArray::New();
+          ret1->Faces->DeepCopy(((vtkUnstructuredGrid *)ret0)->GetFaces());
+          ret1->Faces->Register(ret1);
+          ret1->Faces->Delete();
+          ret1->FaceLocations->UnRegister(ret1);
+          ret1->FaceLocations=vtkIdTypeArray::New();
+          ret1->FaceLocations->DeepCopy(((vtkUnstructuredGrid *)ret0)->GetFaceLocations());
+          ret1->FaceLocations->Register(ret1);
+          ret1->FaceLocations->Delete();
+        }//end bug VTK polyhedron part
       appendFieldValueOnAlreadyFetchedData(ret1,fieldId);
       applyBufferingPolicy();
       return ret1;
@@ -161,6 +178,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::retrievesMainTinyInfo()
   delete tinyD;
   //
   _meshes.resize(nbOfMeshes+1);
+  _is_meshes_polyhedron.resize(nbOfMeshes+1);
   _arrays.resize(nbOfArrays+1);
   //
   _info_per_field.resize(nbOfFields);
@@ -201,7 +219,9 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchMeshes()
       SALOME_MED::MEDCouplingMeshCorbaInterface_var mPtr=_mfields_ptr->getMeshWithId(i);
       if(_meshes[i])
 	_meshes[i]->Delete();
-      _meshes[i]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr);
+      bool polyh=false;//bug VTK
+      _meshes[i]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr,polyh);//bug VTK
+      _is_meshes_polyhedron[i]=polyh;//bug VTK
       mPtr->Destroy();
     }
   unregisterRemoteServantIfAllFetched();
@@ -218,7 +238,9 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchDataIfNeeded(int fieldI
   if(!_meshes[meshId])
     {
       SALOME_MED::MEDCouplingMeshCorbaInterface_var mPtr=_mfields_ptr->getMeshWithId(meshId);
-      _meshes[meshId]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr);
+      bool polyh=false;//bug VTK
+      _meshes[meshId]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr,polyh);//bug VTK
+      _is_meshes_polyhedron[meshId]=polyh;//bug VTK
       mPtr->Destroy();
     }
   for(std::vector<int>::const_iterator it=arrayIds.begin();it!=arrayIds.end();it++)

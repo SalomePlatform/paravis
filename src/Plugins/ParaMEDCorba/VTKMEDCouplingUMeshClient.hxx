@@ -26,7 +26,7 @@ class vtkUnstructuredGrid;
 
 namespace ParaMEDMEM2VTK
 {
-  void FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMeshCorbaInterface_ptr meshPtr, vtkUnstructuredGrid *ret);
+  void FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMeshCorbaInterface_ptr meshPtr, vtkUnstructuredGrid *ret, bool& isPolyh);//isPolyh bug VTK
 }
 
 #endif

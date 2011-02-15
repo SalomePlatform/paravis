@@ -27,7 +27,7 @@ class vtkDataSet;
 namespace ParaMEDMEM2VTK
 {
   void FillMEDCouplingMeshInstanceFrom(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, vtkDataSet *ret);
-  vtkDataSet *BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr);
+  vtkDataSet *BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, bool& isPolyh);//isPolyh bug VTK
 }
 
 #endif

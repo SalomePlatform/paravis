@@ -32,7 +32,7 @@
 
 static const int ParaMEDMEM2VTKTypeTraducer[32]={1,3,21,5,9,7,22,-1,23,-1,-1,-1,-1,-1,10,14,13,-1,12,-1,24,-1,-1,27,-1,26,-1,-1,-1,-1,25,42};
 
-void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMeshCorbaInterface_ptr meshPtr, vtkUnstructuredGrid *ret)
+void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMeshCorbaInterface_ptr meshPtr, vtkUnstructuredGrid *ret, bool& isPolyh)
 {
   meshPtr->Register();
   //
@@ -68,7 +68,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
     *pts++=(*a2Corba)[i];
   //
   int *tmp=new int[1000];
-  bool presenceOfPolyh=false;
+  isPolyh=false;
   for(int i=0;i<nbOfCells;i++)
     {
       int pos=(*a1Corba)[i];
@@ -82,7 +82,7 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
         ret->InsertNextCell(vtkType,nbOfNodeInCurCell,tmp);
       else
         {//polyhedron
-          presenceOfPolyh=true;
+          isPolyh=true;
           std::set<int> s(tmp,tmp+nbOfNodeInCurCell);
           vtkSmartPointer<vtkCellArray> faces=vtkSmartPointer<vtkCellArray>::New();
           int nbOfFaces=std::count(tmp,tmp+nbOfNodeInCurCell,-1)+1;

@@ -40,7 +40,8 @@ void ParaMEDMEM2VTK::FillMEDCouplingMeshInstanceFrom(SALOME_MED::MEDCouplingMesh
           vtkErrorWithObjectMacro(ret,"Internal error in ParaMEDCorba plugin : mismatch between VTK type and CORBA type UMesh !");
           return ;
         }
-      ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(umeshPtr,ret1);
+      bool dummy;//VTK bug
+      ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(umeshPtr,ret1,dummy);//VTK bug
       return ;
     }
   SALOME_MED::MEDCouplingCMeshCorbaInterface_var cmeshPtr=SALOME_MED::MEDCouplingCMeshCorbaInterface::_narrow(meshPtr);
@@ -58,13 +59,13 @@ void ParaMEDMEM2VTK::FillMEDCouplingMeshInstanceFrom(SALOME_MED::MEDCouplingMesh
   vtkErrorWithObjectMacro(ret,"Error : CORBA mesh type ! Mesh type not managed !");
 }
 
-vtkDataSet *ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr)
+vtkDataSet *ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, bool& isPolyh)
 {
   SALOME_MED::MEDCouplingUMeshCorbaInterface_var umeshPtr=SALOME_MED::MEDCouplingUMeshCorbaInterface::_narrow(meshPtr);
   if(!CORBA::is_nil(umeshPtr))
     {
       vtkUnstructuredGrid *ret1=vtkUnstructuredGrid::New();
-      ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(umeshPtr,ret1);
+      ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(umeshPtr,ret1,isPolyh);
       return ret1;
     }
   SALOME_MED::MEDCouplingCMeshCorbaInterface_var cmeshPtr=SALOME_MED::MEDCouplingCMeshCorbaInterface::_narrow(meshPtr);

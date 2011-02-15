@@ -77,6 +77,7 @@ namespace ParaMEDMEM2VTK
     int _mesh_id_previous;
   private:
     std::vector<vtkDataSet *> _meshes;
+    std::vector<bool> _is_meshes_polyhedron;//to correct bug of polyhedrons in VTK on DeepCopy. BUG id :0011860
     std::vector<vtkDoubleArray *> _arrays;
   private:
     static const double EPS_TIME;

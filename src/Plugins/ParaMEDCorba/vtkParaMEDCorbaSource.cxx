@@ -207,7 +207,8 @@ int vtkParaMEDCorbaSource::RequestData(vtkInformation* request, vtkInformationVe
        SALOME_MED::MEDCouplingMeshCorbaInterface_var meshPtr=SALOME_MED::MEDCouplingMeshCorbaInterface::_narrow(obj);
        if(!CORBA::is_nil(meshPtr))
          {
-           vtkDataSet *ret=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(meshPtr);
+           bool dummy;//bug VTK
+           vtkDataSet *ret=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(meshPtr,dummy);//bug VTK
            if(!ret)
              return 0;
            ret0->SetBlock(0,ret);

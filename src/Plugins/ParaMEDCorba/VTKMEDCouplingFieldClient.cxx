@@ -145,7 +145,8 @@ vtkDataSet *ParaMEDMEM2VTK::BuildFullyFilledFromMEDCouplingFieldDoubleInstance(S
 {
   fieldPtr->Register();
   SALOME_MED::MEDCouplingMeshCorbaInterface_var meshPtr=fieldPtr->getMesh();
-  vtkDataSet *ret=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(meshPtr);
+  bool dummy;//VTK bug
+  vtkDataSet *ret=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(meshPtr,dummy);//VTK bug
   meshPtr->Destroy();
   //
   std::vector<double> ret2=FillMEDCouplingFieldDoublePartOnly(fieldPtr,ret);
