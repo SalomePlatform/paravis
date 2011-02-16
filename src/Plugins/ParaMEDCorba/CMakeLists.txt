@@ -1,8 +1,9 @@
 PROJECT( ParaMEDCorba )
 
   CMAKE_MINIMUM_REQUIRED( VERSION 2.6 )
-  SET( LIBRARY_OUTPUT_PATH ${ParaMEDCorba_BINARY_DIR}/bin CACHE INTERNAL "Single place for output" )
-  SET( EXECUTABLE_OUTPUT_PATH ${ParaMEDCorba_BINARY_DIR}/bin  CACHE INTERNAL "Single place for output" )
+  ## !!! This definition corrupts wrapping process
+  #SET( LIBRARY_OUTPUT_PATH ${ParaMEDCorba_BINARY_DIR}/bin CACHE INTERNAL "Single place for output" )
+  #SET( EXECUTABLE_OUTPUT_PATH ${ParaMEDCorba_BINARY_DIR}/bin  CACHE INTERNAL "Single place for output" )
   MARK_AS_ADVANCED(
     LIBRARY_OUTPUT_PATH
     EXECUTABLE_OUTPUT_PATH
