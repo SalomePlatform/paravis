@@ -18,4 +18,8 @@
     <parameter name="objectid" value="VISU.RESULT"/>
     <parameter name="method" value="onImportFromVisu"/>
   </section>
+  <!-- ParaViS shortcuts -->
+  <section name="shortcuts:ParaViS">
+    <parameter name="Create new ParaView view" value="Ctrl+Alt+F"/>
+  </section>
 </document>
