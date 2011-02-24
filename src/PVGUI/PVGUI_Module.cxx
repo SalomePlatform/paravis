@@ -261,6 +261,9 @@ void PVGUI_Module::initialize( CAM_Application* app )
 
   // Create ParaViS actions
   createActions();
+  // Create ParaViS menus
+  createMenus();
+
   // Uncomment to debug ParaView initialization
   // "aa" used instead of "i" as GDB doesn't like "i" variables :)
   /*
@@ -1069,6 +1072,14 @@ void PVGUI_Module::onShowTrace()
   myTraceWindow->show();
   myTraceWindow->raise();
   myTraceWindow->activateWindow();
+}
+
+/*!
+  \brief Show ParaView view.
+*/
+void PVGUI_Module::onNewParaViewWindow()
+{
+  showView(true);
 }
 
 /*!

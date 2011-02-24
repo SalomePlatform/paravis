@@ -115,6 +115,9 @@ class PVGUI_Module : public SalomeApp_Module
 	 ParaViewHelpId,
 	 EnableTooltipsId,
 
+	 // Menu "Window" - "New Window"
+	 ParaViewNewWindowId,
+
 	 // "Save state" ParaVis module root object popup
 	 SaveStatePopupId,
 
@@ -191,6 +194,9 @@ private:
   //! Create actions for ParaViS
   void createActions();
 
+  //! Create menus for ParaViS
+  void createMenus();
+
   //! Load selected state
   void loadSelectedState(bool toClear);
 
@@ -214,6 +220,8 @@ private slots:
   void onStartProgress();
   void onEndProgress();
   void onShowTrace();
+
+  void onNewParaViewWindow();
 
   void onSaveMultiState();
   void onAddState();

@@ -612,6 +612,12 @@ void PVGUI_Module::createActions()
 {
   QAction* anAction;
 
+  // New ParaView window
+  anAction = new QtxAction(tr("MEN_NEW_PV_VIEW"), tr("MEN_NEW_PV_VIEW"), 0, 
+			   this, false, "ParaViS:Create new ParaView view");
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onNewParaViewWindow()));
+  registerAction(ParaViewNewWindowId, anAction);
+
   // Save state under the module root object
   anAction = new QAction(tr("MEN_SAVE_MULTI_STATE"), this);
   connect(anAction, SIGNAL(triggered()), this, SLOT(onSaveMultiState()));
@@ -636,4 +642,15 @@ void PVGUI_Module::createActions()
   anAction = new QAction(tr("MEN_PARAVIS_DELETE"), this);
   connect(anAction, SIGNAL(triggered()), this, SLOT(onDelete()));
   registerAction(ParaVisDeleteId, anAction);
+}
+
+/*!
+  \brief Create actions for ParaViS
+*/
+void PVGUI_Module::createMenus()
+{
+  // "Window" - "New Window" - "ParaView view" menu
+  int aWindowMenu = createMenu(tr( "MEN_DESK_WINDOW" ), -1, -1);
+  int aNewWindowMenu = createMenu(tr( "MEN_DESK_NEWWINDOW"), aWindowMenu, -1, -1);
+  createMenu(ParaViewNewWindowId, aNewWindowMenu);
 }
