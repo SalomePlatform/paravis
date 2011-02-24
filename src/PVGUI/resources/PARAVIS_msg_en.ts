@@ -1152,6 +1152,10 @@
         <translation>Never save referenced files</translation>
     </message>
     <message>
+        <source>MEN_NEW_PV_VIEW</source>
+        <translation>ParaView view</translation>
+    </message>
+    <message>
         <source>MEN_SAVE_MULTI_STATE</source>
         <translation>Save state</translation>
     </message>
