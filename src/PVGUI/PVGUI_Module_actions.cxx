@@ -605,3 +605,35 @@ QMenu* PVGUI_Module::getMenu( const int id )
   }
   }*/
 
+/*!
+  \brief Create actions for ParaViS
+*/
+void PVGUI_Module::createActions()
+{
+  QAction* anAction;
+
+  // Save state under the module root object
+  anAction = new QAction(tr("MEN_SAVE_MULTI_STATE"), this);
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onSaveMultiState()));
+  registerAction(SaveStatePopupId, anAction);
+
+  // Restore the selected state by merging with the current one
+  anAction = new QAction(tr("MEN_ADD_STATE"), this);
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onAddState()));
+  registerAction(AddStatePopupId, anAction);
+
+  // Clean the current state and restore the selected one
+  anAction = new QAction(tr("MEN_CLEAN_ADD_STATE"), this);
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onCleanAddState()));
+  registerAction(CleanAndAddStatePopupId, anAction);
+
+  // Rename the selected object (Object Browser)
+  anAction = new QAction(tr("MEN_PARAVIS_RENAME"), this);
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onRename()));
+  registerAction(ParaVisRenameId, anAction);
+
+  // Delete the selected object (Object Browser)
+  anAction = new QAction(tr("MEN_PARAVIS_DELETE"), this);
+  connect(anAction, SIGNAL(triggered()), this, SLOT(onDelete()));
+  registerAction(ParaVisDeleteId, anAction);
+}

@@ -113,7 +113,18 @@ class PVGUI_Module : public SalomeApp_Module
 	 // Menu "Help" 
 	 AboutParaViewId,
 	 ParaViewHelpId,
-	 EnableTooltipsId
+	 EnableTooltipsId,
+
+	 // "Save state" ParaVis module root object popup
+	 SaveStatePopupId,
+
+	 // "Add state" and "Reload state" popups
+	 AddStatePopupId,
+	 CleanAndAddStatePopupId,
+
+	 // "Rename" and "Delete" popups (Object Browser)
+	 ParaVisRenameId,
+	 ParaVisDeleteId
   };
 
 public:
@@ -131,6 +142,7 @@ public:
   void executeScript(const char *script);
   void saveParaviewState(const char* theFileName);
   void loadParaviewState(const char* theFileName);
+  void clearParaviewState();
 
   QString getTraceString();
   void saveTrace(const char* theName);
@@ -138,6 +150,8 @@ public:
   pqServer* getActiveServer();
 
   virtual void createPreferences();
+
+  virtual void contextMenuPopup(const QString& theClient, QMenu* theMenu, QString& theTitle);
 
 public slots:
   void onImportFromVisu(QString theEntry);
@@ -174,6 +188,12 @@ private:
   
   //QList<QToolBar*>       getParaViewToolbars();
 
+  //! Create actions for ParaViS
+  void createActions();
+
+  //! Load selected state
+  void loadSelectedState(bool toClear);
+
 private slots:
 
   void showHelpForProxy( const QString& proxy );
@@ -195,10 +215,21 @@ private slots:
   void onEndProgress();
   void onShowTrace();
 
+  void onSaveMultiState();
+  void onAddState();
+  void onCleanAddState();
+
+  void onRename();
+  void onDelete();
+
 public slots:
   virtual bool           activateModule( SUIT_Study* );
   virtual bool           deactivateModule( SUIT_Study* );
   virtual void           onApplicationClosed( SUIT_Application* );
+  virtual void           studyClosed( SUIT_Study* );
+
+protected slots:
+  virtual void           onModelOpened();
 
 private:
   class pqImplementation;
@@ -222,6 +253,8 @@ private:
   vtkEventQtSlotConnect *VTKConnect;
 
   pqPythonScriptEditor* myTraceWindow;
+
+  int myStateCounter;
 };
 
 #endif // PVGUI_Module_H

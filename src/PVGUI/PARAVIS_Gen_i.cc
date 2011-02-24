@@ -306,6 +306,45 @@ namespace PARAVIS
     return true;
   }
 
+  //----------------------------------------------------------------------------
+  QStringList getAllSavedStates(SALOMEDS::SComponent_ptr theComponent, 
+				QString theNewPath = QString())
+  {
+    QStringList aStateFiles;
+
+    if (!CORBA::is_nil(theComponent)) {
+      SALOMEDS::Study_var aStudy = theComponent->GetStudy();
+      SALOMEDS::ChildIterator_var anIter = aStudy->NewChildIterator(theComponent);
+      for (; anIter->More(); anIter->Next()) {
+	SALOMEDS::SObject_var aSObj = anIter->Value();
+	SALOMEDS::GenericAttribute_var anAttr;
+	if (!aSObj->FindAttribute(anAttr, "AttributeLocalID")) {
+	  continue;
+	}
+	SALOMEDS::AttributeLocalID_var anID = SALOMEDS::AttributeLocalID::_narrow(anAttr);
+	if (!anID->Value() == PVSTATEID) {
+	  continue;
+	}
+	if (aSObj->FindAttribute(anAttr, "AttributeString")) {
+	  SALOMEDS::AttributeString_var aStringAttr = SALOMEDS::AttributeString::_narrow(anAttr);
+	  QString aStateFile(aStringAttr->Value());
+	  printf("getAllSavedStates, aStateFile = %s\n", aStateFile.toLatin1().constData());
+	  // Replace the old path with the new one
+	  if (!theNewPath.isEmpty()) {
+	    QFileInfo aFileInfo(aStateFile);
+	    QString aPath = aFileInfo.path();
+	    aStateFile.replace(aPath, theNewPath);
+	    aStringAttr->SetValue(aStateFile.toLatin1().constData());
+	    
+	    printf("getAllSavedStates, aStateFile NEW = %s\n", aStateFile.toLatin1().constData());
+	  }
+	  aStateFiles<<aStateFile;
+	}
+      }
+    }
+
+    return aStateFiles;
+  }
 
   SALOMEDS::TMPFile* SaveState(long thePID, SalomeApp_Application* theApp, SALOMEDS::SComponent_ptr theComponent, 
                                const char* theURL, bool isMultiFile)
@@ -321,6 +360,9 @@ namespace PARAVIS
 
     std::string aFile = aTmpDir + aFileName;
     ProcessVoidEvent(new TSaveStateFile(theApp, aFile.c_str()));
+
+    // Get saved states
+    QStringList aSavedStates = getAllSavedStates(theComponent);
 
     // Collect all files from state
     SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
@@ -340,8 +382,16 @@ namespace PARAVIS
       
         if (aIsBuiltIn)
         {
-          // Find referenced files and collect their paths nullyfying references
+	  // Find referenced files and collect their paths nullyfying references:
+	  
+	  // for saved states
+	  foreach (QString aState, aSavedStates) {
+	    processAllFilesInState(aState.toLatin1().constData(), aFileNames, 0);
+	  }
+
+	  // for main state
           processAllFilesInState(aFile.c_str(), aFileNames, 0); 
+
           SetRestoreParam(theComponent, true);
         } else {
           SetRestoreParam(theComponent, false);
@@ -351,6 +401,13 @@ namespace PARAVIS
     case 1: //Save referenced files when they are accessible
       {
         // Find referenced files and collect their paths nullyfying references
+
+	// for saved states
+	foreach (QString aState, aSavedStates) {
+	  processAllFilesInState(aState.toLatin1().constData(), aFileNames, 0);
+	}
+	
+	// for main state
         processAllFilesInState(aFile.c_str(), aFileNames, 0);
         SetRestoreParam(theComponent, true);
       }
@@ -359,7 +416,16 @@ namespace PARAVIS
       SetRestoreParam(theComponent, false);
       break;
     }
+
+    // Add saved states
+    foreach (QString aSavedState, aSavedStates) {
+      aFileNames<<aSavedState;
+    }
+
+    // Add main state to the end of the list
     aFileNames<<QString(aFile.c_str());
+
+    // File names for main state and its data files
     foreach(QString aFile, aFileNames) {
       QFileInfo aInfo(aFile);
       aNames<<aInfo.fileName();
@@ -403,16 +469,24 @@ namespace PARAVIS
     bool aRestore = GetRestoreParam(theComponent);
     MESSAGE("PARAVIS_Gen_i::Restore path - "<<aRestore);
 
+    // Process main state
     std::string aFile = aTmpDir + std::string(aSeq[aSeq->length() - 1]);
     QStringList aEmptyList;
     processAllFilesInState(aFile.c_str(), aEmptyList, aTmpDir.c_str(), aRestore);
     ProcessVoidEvent(new TLoadStateFile(theApp, aFile.c_str()));
 
+    // Process saved states
+    QStringList aSavedStates = getAllSavedStates(theComponent, QString(aTmpDir.c_str()));
+    foreach(QString aState, aSavedStates) {
+      processAllFilesInState(aState.toLatin1().constData(), 
+			     aEmptyList, aTmpDir.c_str(), aRestore);
+    }
+    
     return true;
   }
 
   //----------------------------------------------------------------------------
-  bool PARAVIS_Gen_i::Load(SALOMEDS::SComponent_ptr theComponent,	 const SALOMEDS::TMPFile& theStream,
+  bool PARAVIS_Gen_i::Load(SALOMEDS::SComponent_ptr theComponent, const SALOMEDS::TMPFile& theStream,
                            const char* theURL, bool isMultiFile)
   {
     return LoadState(mySalomeApp, theComponent, theStream, theURL, isMultiFile);

@@ -28,6 +28,8 @@
 
 #include "PARAVIS_Gen_i.hh"
 
+#include "SALOMEDSClient_Study.hxx"
+
 class CAM_Module;
 
 namespace PARAVIS 
@@ -35,6 +37,7 @@ namespace PARAVIS
   
   PARAVIS_Gen_i* GetParavisGen(const CAM_Module* theModule);
 
+  _PTR(Study)    GetCStudy(const CAM_Module* theModule);
 };
 
 #endif // PVGUI_Tools_H

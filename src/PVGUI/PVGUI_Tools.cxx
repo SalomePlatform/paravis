@@ -29,6 +29,7 @@
 #include "CAM_Module.h"
 #include "SALOME_LifeCycleCORBA.hxx"
 #include "SalomeApp_Application.h"
+#include "SalomeApp_Study.h"
 #include <stdexcept>
 
 using namespace std;
@@ -53,4 +54,17 @@ namespace PARAVIS
     return aGen;
   }
 
+  //------------------------------------------------------------
+  _PTR(Study) GetCStudy(const CAM_Module* theModule)
+  {
+    if (theModule && theModule->application()) {
+      SalomeApp_Study* activeStudy = 
+	dynamic_cast<SalomeApp_Study*>(theModule->application()->activeStudy());
+      if (activeStudy) {
+	return activeStudy->studyDS();
+      }
+    }
+    
+    return _PTR(Study)();
+  }
 }

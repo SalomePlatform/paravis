@@ -35,6 +35,8 @@
 
 #include "PARAVIS_Gen_i.hh"
 
+#include "PV_Tools.h"
+
 #include "PVGUI_Module_impl.h"
 #include "PVGUI_ViewModel.h"
 #include "PVGUI_ViewManager.h"
@@ -42,6 +44,7 @@
 #include "PVGUI_Tools.h"
 #include "PVGUI_ParaViewSettingsPane.h"
 
+#include <SUIT_DataBrowser.h>
 #include <SUIT_Desktop.h>
 #include <SUIT_MessageBox.h>
 #include <SUIT_ResourceMgr.h>
@@ -51,6 +54,9 @@
 // SALOME Includes
 #include "SALOME_LifeCycleCORBA.hxx"
 #include "SALOMEDS_SObject.hxx"
+
+#include "LightApp_SelectionMgr.h"
+#include "LightApp_NameDlg.h"
 
 #include <SalomeApp_Application.h>
 #include <SalomeApp_Study.h>
@@ -69,6 +75,7 @@
 #include <QFileInfo>
 #include <QIcon>
 #include <QInputDialog>
+#include <QMenu>
 #include <QStatusBar>
 #include <QString>
 #include <QStringList>
@@ -229,7 +236,8 @@ PVGUI_Module::PVGUI_Module()
     myMacrosMenuId(-1),
     myToolbarsMenuId(-1),
     myOldMsgHandler(0),
-    myTraceWindow(0)
+    myTraceWindow(0),
+    myStateCounter(0)
 {
   ParavisModule = this;
 }
@@ -251,6 +259,8 @@ void PVGUI_Module::initialize( CAM_Application* app )
 {
   SalomeApp_Module::initialize( app );
 
+  // Create ParaViS actions
+  createActions();
   // Uncomment to debug ParaView initialization
   // "aa" used instead of "i" as GDB doesn't like "i" variables :)
   /*
@@ -718,6 +728,50 @@ void PVGUI_Module::onApplicationClosed( SUIT_Application* theApp )
 
 
 /*!
+  \brief Called when study is closed.
+
+  Removes data model from the \a study.
+
+  \param study study being closed
+*/
+void PVGUI_Module::studyClosed(SUIT_Study* study)
+{
+  clearParaviewState();
+
+  SalomeApp_Module::studyClosed(study);
+}
+
+/*!
+  \brief Called when study is opened.
+*/
+void PVGUI_Module::onModelOpened()
+{
+  _PTR(Study) studyDS = PARAVIS::GetCStudy(this);
+  if(!studyDS) {
+    return;
+  }
+  
+  _PTR(SComponent) paravisComp = 
+    studyDS->FindComponent(PARAVIS::GetParavisGen(this)->ComponentDataType());
+  if(!paravisComp) {
+    return;
+  }
+
+  _PTR(ChildIterator) anIter(studyDS->NewChildIterator(paravisComp));
+  for (; anIter->More(); anIter->Next()) {
+    _PTR(SObject) aSObj = anIter->Value();
+    _PTR(GenericAttribute) anAttr;
+    if (!aSObj->FindAttribute(anAttr, "AttributeLocalID")) {
+      continue;
+    }
+    _PTR(AttributeLocalID) anID(anAttr);
+    if (anID->Value() == PVSTATEID) {
+      myStateCounter++;
+    }
+  }
+}
+
+/*!
   \brief Returns IOR of current engine
 */
 QString PVGUI_Module::engineIOR() const
@@ -808,7 +862,20 @@ void PVGUI_Module::saveParaviewState(const char* theFileName)
 }
 
 /*!
+  \brief Delete all objects for Paraview Pipeline Browser
+*/
+void PVGUI_Module::clearParaviewState()
+{
+  QAction* deleteAllAction = action(DeleteAllId);
+  if (deleteAllAction) {
+    deleteAllAction->activate(QAction::Trigger);
+  }
+}
+
+/*!
   \brief Restores ParaView state from a disk file
+
+  If toClear == true, the current ojects will be deleted
 */
 void PVGUI_Module::loadParaviewState(const char* theFileName)
 {
@@ -902,15 +969,15 @@ pqServer* PVGUI_Module::getActiveServer()
 void PVGUI_Module::createPreferences()
 {
   // Paraview settings tab
-  int aSettingsTab = addPreference( tr( "TIT_PVSETTINGS" ) );
-  int aPanel = addPreference(QString(), aSettingsTab, LightApp_Preferences::UserDefined, "PARAVIS", "");
+  int aParaViewSettingsTab = addPreference( tr( "TIT_PVIEWSETTINGS" ) );
+  int aPanel = addPreference(QString(), aParaViewSettingsTab, LightApp_Preferences::UserDefined, "PARAVIS", "");
   setPreferenceProperty(aPanel, "content", (qint64)(new PVGUI_ParaViewSettingsPane()));
 
-  // Paravis properties tab
-  int TraceTab = addPreference( tr( "TIT_TRACE" ) );
-  addPreference( tr( "PREF_STOP_TRACE" ), TraceTab, LightApp_Preferences::Bool, "PARAVIS", "stop_trace");
+  // Paravis settings tab
+  int aParaVisSettingsTab = addPreference( tr( "TIT_PVISSETTINGS" ) );
+  addPreference( tr( "PREF_STOP_TRACE" ), aParaVisSettingsTab, LightApp_Preferences::Bool, "PARAVIS", "stop_trace");
 
-  int aSaveType = addPreference(tr( "PREF_SAVE_TYPE_LBL" ), TraceTab,
+  int aSaveType = addPreference(tr( "PREF_SAVE_TYPE_LBL" ), aParaVisSettingsTab,
                                 LightApp_Preferences::Selector,
                                 "PARAVIS", "savestate_type");
   QList<QVariant> aIndices;
@@ -921,6 +988,76 @@ void PVGUI_Module::createPreferences()
   aStrings<<tr("PREF_SAVE_TYPE_2");
   setPreferenceProperty(aSaveType, "strings", aStrings);
   setPreferenceProperty(aSaveType, "indexes", aIndices);
+}
+
+/*!
+  \brief Creates ParaViS context menu popup
+*/
+void PVGUI_Module::contextMenuPopup(const QString& theClient, QMenu* theMenu, QString& theTitle)
+{
+  SalomeApp_Module::contextMenuPopup(theClient, theMenu, theTitle);
+  
+  // Check if we are in Object Browser
+  SUIT_DataBrowser* ob = getApp()->objectBrowser();
+  bool isOBClient = (ob && theClient == ob->popupClientType());
+  if (!isOBClient) {
+    return;
+  }
+
+  // Get list of selected objects
+  LightApp_SelectionMgr* aSelectionMgr = getApp()->selectionMgr();
+  SALOME_ListIO aListIO;
+  aSelectionMgr->selectedObjects(aListIO);
+  if (aListIO.Extent() == 1 && aListIO.First()->hasEntry()) {
+    QString entry = QString(aListIO.First()->getEntry());
+    
+    // Get active study
+    SalomeApp_Study* activeStudy = 
+      dynamic_cast<SalomeApp_Study*>(getApp()->activeStudy());
+    if(!activeStudy) {
+      return;
+    }
+
+    // Get SALOMEDS client study 
+    _PTR(Study) studyDS = activeStudy->studyDS();
+    if(!studyDS) {
+      return;
+    }
+
+    QString paravisDataType(PARAVIS::GetParavisGen(this)->ComponentDataType());
+    if(activeStudy && activeStudy->isComponent(entry) && 
+       activeStudy->componentDataType(entry) == paravisDataType) {
+      // ParaViS module object
+      theMenu->addSeparator();
+      theMenu->addAction(action(SaveStatePopupId));
+    }
+    else {
+      // Try to get state object
+      _PTR(SObject) stateSObj = 
+	studyDS->FindObjectID(entry.toLatin1().constData());
+      if (!stateSObj) {
+	return;
+      }
+      
+      // Check local id
+      _PTR(GenericAttribute) anAttr;
+      if (!stateSObj->FindAttribute(anAttr, "AttributeLocalID")) {
+	return;
+      }
+
+      _PTR(AttributeLocalID) anID(anAttr);
+      
+      if (anID->Value() == PVSTATEID) {
+	// Paraview state object
+	theMenu->addSeparator();
+	theMenu->addAction(action(AddStatePopupId));
+	theMenu->addAction(action(CleanAndAddStatePopupId));
+	theMenu->addSeparator();
+	theMenu->addAction(action(ParaVisRenameId));
+	theMenu->addAction(action(ParaVisDeleteId));
+      }
+    }
+  }
 }
 
 void PVGUI_Module::onShowTrace()
@@ -934,6 +1071,241 @@ void PVGUI_Module::onShowTrace()
   myTraceWindow->activateWindow();
 }
 
+/*!
+  \brief Save state under the module root object.
+*/
+void PVGUI_Module::onSaveMultiState()
+{
+  // Create state study object
+  
+  // Get SALOMEDS client study
+  _PTR(Study) studyDS = PARAVIS::GetCStudy(this);
+  if(!studyDS) {
+    return;
+  }
+  
+  _PTR(SComponent) paravisComp = 
+    studyDS->FindComponent(PARAVIS::GetParavisGen(this)->ComponentDataType());
+  if(!paravisComp) {
+    return;
+  }
+
+  // Unlock the study if it is locked
+  bool isLocked = studyDS->GetProperties()->IsLocked();
+  if (isLocked) {
+    studyDS->GetProperties()->SetLocked(false);
+  }
+  
+  QString stateName = tr("SAVED_PARAVIEW_STATE_NAME") + 
+    QString::number(myStateCounter + 1);
+
+  _PTR(StudyBuilder) studyBuilder = studyDS->NewBuilder();
+  _PTR(SObject) newSObj = studyBuilder->NewObject(paravisComp);
+
+  // Set name
+  _PTR(GenericAttribute) anAttr;
+  anAttr = studyBuilder->FindOrCreateAttribute(newSObj, "AttributeName");
+  _PTR(AttributeName) nameAttr(anAttr);
+  
+  nameAttr->SetValue(stateName.toLatin1().constData());
+
+  // Set local id
+  anAttr = studyBuilder->FindOrCreateAttribute(newSObj, "AttributeLocalID");
+  _PTR(AttributeLocalID) localIdAttr(anAttr);
+  
+  localIdAttr->SetValue(PVSTATEID);
+
+  // Set file name
+  QString stateEntry = QString::fromStdString(newSObj->GetID());
+ 
+  // File name for state saving
+  QString tmpDir = QString::fromStdString(SALOMEDS_Tool::GetTmpDir());
+  QString fileName = QString("%1_paravisstate:%2").arg(tmpDir, 
+						       stateEntry);
+
+  anAttr = studyBuilder->FindOrCreateAttribute(newSObj, "AttributeString");
+  _PTR(AttributeString) stringAttr(anAttr);
+  
+  stringAttr->SetValue(fileName.toLatin1().constData());
+
+  // Lock the study back if necessary
+  if (isLocked) {
+    studyDS->GetProperties()->SetLocked(true);
+  }
+  
+  // Save state
+  saveParaviewState(fileName.toLatin1().constData());
+  
+  // Increment the counter
+  myStateCounter++;
+
+  updateObjBrowser();
+}
+
+/*!
+  \brief Restore the selected state by merging with the current one.
+*/
+void PVGUI_Module::onAddState()
+{
+  loadSelectedState(false);
+}
+
+/*!
+  \brief Clean the current state and restore the selected one.
+*/
+void PVGUI_Module::onCleanAddState()
+{
+  loadSelectedState(true);
+}
+
+/*!
+  \brief Rename the selected object.
+*/
+void PVGUI_Module::onRename()
+{
+  LightApp_SelectionMgr* aSelectionMgr = getApp()->selectionMgr();
+  SALOME_ListIO aListIO;
+  aSelectionMgr->selectedObjects(aListIO);
+  
+  if (aListIO.Extent() == 1 && aListIO.First()->hasEntry()) {
+    std::string entry = aListIO.First()->getEntry();
+    
+    // Get SALOMEDS client study 
+    _PTR(Study) studyDS = PARAVIS::GetCStudy(this);
+    if(!studyDS) {
+      return;
+    }
+    
+    // Unlock the study if it is locked
+    bool isLocked = studyDS->GetProperties()->IsLocked();
+    if (isLocked) {
+      studyDS->GetProperties()->SetLocked(false);
+    }
+    
+    // Rename the selected state object
+    _PTR(SObject) stateSObj = studyDS->FindObjectID(entry);
+    if (!stateSObj) {
+      return;
+    }
+    
+    _PTR(GenericAttribute) anAttr;
+    if (stateSObj->FindAttribute(anAttr, "AttributeName")) {
+      _PTR(AttributeName) nameAttr (anAttr);
+      QString newName = 
+	LightApp_NameDlg::getName(getApp()->desktop(), nameAttr->Value().c_str());
+      if (!newName.isEmpty()) {
+	nameAttr->SetValue(newName.toLatin1().constData());
+	aListIO.First()->setName(newName.toLatin1().constData());
+      }
+    }
+    
+    // Lock the study back if necessary
+    if (isLocked) {
+      studyDS->GetProperties()->SetLocked(true);
+    }
+    
+    // Update object browser
+    updateObjBrowser();
+    
+  }
+}
+
+/*!
+  \brief Delete the selected objects.
+*/
+void PVGUI_Module::onDelete()
+{
+  LightApp_SelectionMgr* aSelectionMgr = getApp()->selectionMgr();
+  SALOME_ListIO aListIO;
+  aSelectionMgr->selectedObjects(aListIO);
+  
+  if (aListIO.Extent() == 1 && aListIO.First()->hasEntry()) {
+    std::string entry = aListIO.First()->getEntry();
+    
+    // Get SALOMEDS client study 
+    _PTR(Study) studyDS = PARAVIS::GetCStudy(this);
+    if(!studyDS) {
+      return;
+    }
+    
+    // Unlock the study if it is locked
+    bool isLocked = studyDS->GetProperties()->IsLocked();
+    if (isLocked) {
+      studyDS->GetProperties()->SetLocked(false);
+    }
+    
+    // Remove the selected state from the study
+    _PTR(StudyBuilder) studyBuilder = studyDS->NewBuilder();
+    _PTR(SObject) stateSObj = studyDS->FindObjectID(entry);
+    studyBuilder->RemoveObject(stateSObj);
+    
+    // Lock the study back if necessary
+    if (isLocked) {
+      studyDS->GetProperties()->SetLocked(true);
+    }
+    
+    // Update object browser
+    updateObjBrowser();
+  }
+}
+
+/*!
+  \brief Load selected paraview state
+
+  If toClear == true, the current state will be cleared
+*/
+void PVGUI_Module::loadSelectedState(bool toClear)
+{
+  QString fileName;
+
+  LightApp_SelectionMgr* aSelectionMgr = getApp()->selectionMgr();
+  SALOME_ListIO aListIO;
+  aSelectionMgr->selectedObjects(aListIO);
+  
+  if (aListIO.Extent() == 1 && aListIO.First()->hasEntry()) {
+    std::string entry = aListIO.First()->getEntry();
+    
+    // Get SALOMEDS client study 
+    _PTR(Study) studyDS = PARAVIS::GetCStudy(this);
+    if(!studyDS) {
+      return;
+    }
+
+    // Check local id
+    _PTR(SObject) stateSObj = studyDS->FindObjectID(entry);
+    _PTR(GenericAttribute) anAttr;
+    if (!stateSObj->FindAttribute(anAttr, "AttributeLocalID")) {
+      return;
+    }
+    _PTR(AttributeLocalID) anID(anAttr);
+    if (!anID->Value() == PVSTATEID) {
+      return;
+    }
+
+    // Get state file name
+    if (stateSObj->FindAttribute(anAttr, "AttributeString")) {
+      _PTR(AttributeString) aStringAttr(anAttr);
+      QString stringValue(aStringAttr->Value().c_str());
+
+      if (QFile::exists(stringValue)) {
+	fileName = stringValue;
+      }
+    }
+  }
+  
+  if (!fileName.isEmpty()) {
+    if (toClear) {
+      clearParaviewState();
+    }
+
+    loadParaviewState(fileName.toLatin1().constData());
+  } 
+  else {
+    SUIT_MessageBox::critical(getApp()->desktop(),
+			      tr("ERR_ERROR"),
+			      tr("ERR_STATE_CANNOT_BE_RESTORED"));
+  }
+}
 
 /*!
   \fn CAM_Module* createModule();

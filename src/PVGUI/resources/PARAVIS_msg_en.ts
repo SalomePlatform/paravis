@@ -1124,11 +1124,11 @@
         <translation>Deactivate Trace (for next session only)</translation>
     </message>
     <message>
-        <source>TIT_TRACE</source>
-        <translation>Trace</translation>
+        <source>TIT_PVISSETTINGS</source>
+        <translation>ParaVis Settings</translation>
     </message>
     <message>
-        <source>TIT_PVSETTINGS</source>
+        <source>TIT_PVIEWSETTINGS</source>
         <translation>ParaView Settings</translation>
     </message>
     <message>
@@ -1141,7 +1141,7 @@
     </message>
     <message>
         <source>PREF_SAVE_TYPE_0</source>
-        <translation>Save referenced files only for builin server</translation>
+        <translation>Save referenced files only for builtin server</translation>
     </message>
     <message>
         <source>PREF_SAVE_TYPE_1</source>
@@ -1150,6 +1150,38 @@
     <message>
         <source>PREF_SAVE_TYPE_2</source>
         <translation>Never save referenced files</translation>
+    </message>
+    <message>
+        <source>MEN_SAVE_MULTI_STATE</source>
+        <translation>Save state</translation>
+    </message>
+    <message>
+        <source>MEN_ADD_STATE</source>
+        <translation>Add state</translation>
+    </message>
+    <message>
+        <source>MEN_CLEAN_ADD_STATE</source>
+        <translation>Clean and add state</translation>
+    </message>
+    <message>
+        <source>MEN_PARAVIS_RENAME</source>
+        <translation>Rename</translation>
+    </message>
+    <message>
+        <source>MEN_PARAVIS_DELETE</source>
+        <translation>Delete</translation>
+    </message>
+    <message>
+        <source>SAVED_PARAVIEW_STATE_NAME</source>
+        <translation>Paraview state:</translation>
+    </message>
+    <message>
+        <source>ERR_ERROR</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <source>ERR_STATE_CANNOT_BE_RESTORED</source>
+        <translation>The state can't be restored.</translation>
     </message>
 </context>
 </TS>
