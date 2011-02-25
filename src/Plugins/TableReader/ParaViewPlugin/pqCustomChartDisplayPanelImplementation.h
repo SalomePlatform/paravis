@@ -1,12 +1,7 @@
 #ifndef _pqCustomChartDisplayPanelImplementation_h
 #define _pqCustomChartDisplayPanelImplementation_h
 
-// #include <QWidget>
-// #include <QVariant>
 #include "pqDisplayPanelInterface.h"
-// #include "pqRepresentation.h"
-// #include "vtkSMProxy.h"
-// #include "pqDisplayProxyEditor.h"
 
 #include <QObject>
 
