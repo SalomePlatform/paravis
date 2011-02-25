@@ -1146,6 +1146,7 @@ void PVGUI_Module::onSaveMultiState()
   
   // Save state
   saveParaviewState(fileName.toLatin1().constData());
+  myTemporaryFiles.append(fileName);
   
   // Increment the counter
   myStateCounter++;
