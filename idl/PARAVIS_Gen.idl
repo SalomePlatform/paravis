@@ -21,7 +21,6 @@
 //
 //  File   : PARAVIS_Gen.idl
 //  Author : Vitaly Smetannikov
-//
 
 /*! \file PARAVIS_Gen.idl This file conatins a set of interfaces of the %PARAVIS module.
  *     This module provides access to PARAVIEW functionality integrated to %SALOME application.
@@ -58,7 +57,7 @@ module PARAVIS {
    * \brief The main interface class for PARAVIS server. 
    * Instantiation of this class has to be done before access to any other PARAVIS interfaces
    */
-  interface PARAVIS_Gen : Engines::Component, SALOMEDS::Driver
+  interface PARAVIS_Gen : Engines::EngineComponent, SALOMEDS::Driver
   {
     /*!
      * \brief Returns IOR of the current object.

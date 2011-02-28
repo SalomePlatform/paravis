@@ -21,7 +21,6 @@
 //
 // File   : PVGUI_Module.cxx
 // Author : Julia DOROVSKIKH
-//
 
 #include <vtkPython.h> // Python first
 #include "PVGUI_Module.h"
@@ -917,7 +916,7 @@ void PVGUI_Module::onImportFromVisu(QString theEntry)
   SALOME_NamingService* aNamingService = SalomeApp_Application::namingService();
   SALOME_LifeCycleCORBA aLCC(aNamingService);
 
-  Engines::Component_var aComponent = aLCC.FindOrLoad_Component("FactoryServer","VISU");
+  Engines::EngineComponent_var aComponent = aLCC.FindOrLoad_Component("FactoryServer","VISU");
   VISU::VISU_Gen_var aVISU = VISU::VISU_Gen::_narrow(aComponent);
   if(CORBA::is_nil(aVISU)) return;
 

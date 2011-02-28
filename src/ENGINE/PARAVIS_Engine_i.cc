@@ -18,7 +18,7 @@
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
 //
 //  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
-//
+
 #include "PARAVIS_Engine_i.hh"
 #include "utilities.h"
 
@@ -85,9 +85,9 @@ namespace PARAVIS {
     _thisObj = this ;
     _id = _poa->activate_object(_thisObj);
 #ifndef WIN32
-    Engines::Component_var aComponent = session->GetComponent("libPARAVIS.so");
+    Engines::EngineComponent_var aComponent = session->GetComponent("libPARAVIS.so");
 #else
-    Engines::Component_var aComponent = session->GetComponent("PARAVIS.dll");
+    Engines::EngineComponent_var aComponent = session->GetComponent("PARAVIS.dll");
 #endif
     if (CORBA::is_nil(aComponent)) {
       MESSAGE("Component PARAVIS is null");

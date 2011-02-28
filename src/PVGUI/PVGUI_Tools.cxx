@@ -23,7 +23,6 @@
 //  File   : PVGUI_Tools.cxx
 //  Author : Vitaly Smetannikov
 //  Module : PARAVIS
-//
 
 #include "PVGUI_Tools.h"
 #include "CAM_Module.h"
@@ -43,7 +42,7 @@ namespace PARAVIS
     static PARAVIS_Gen_i* aGen = NULL;
     if(!aGen){
       SALOME_LifeCycleCORBA aLCC(SalomeApp_Application::namingService());
-      Engines::Component_var aComponent = aLCC.FindOrLoad_Component("FactoryServer","PARAVIS");
+      Engines::EngineComponent_var aComponent = aLCC.FindOrLoad_Component("FactoryServer","PARAVIS");
       PARAVIS_Gen_var aPARAVIS = PARAVIS_Gen::_narrow(aComponent);
       if(!CORBA::is_nil(aPARAVIS)){
         aGen = PARAVIS_Gen_i::GetParavisGenImpl();
