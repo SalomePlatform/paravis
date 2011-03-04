@@ -111,5 +111,5 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
   points->SetData(da);
   da->Delete();
   //
-  meshPtr->Destroy();
+  meshPtr->UnRegister();
 }

@@ -81,5 +81,5 @@ void ParaMEDMEM2VTK::FillMEDCouplingCMeshInstanceFrom(SALOME_MED::MEDCouplingCMe
       da->Delete();
     }
   delete bigD;
-  meshPtr->Destroy();
+  meshPtr->UnRegister();
 }

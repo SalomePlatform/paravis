@@ -35,10 +35,10 @@ std::vector<double> ParaMEDMEM2VTK::FillMEDCouplingFieldDoubleInstanceFrom(SALOM
   //
   SALOME_MED::MEDCouplingMeshCorbaInterface_var meshPtr=fieldPtr->getMesh();
   ParaMEDMEM2VTK::FillMEDCouplingMeshInstanceFrom(meshPtr,ret);
-  meshPtr->Destroy();
+  meshPtr->UnRegister();
   //
   std::vector<double> ret2=FillMEDCouplingFieldDoublePartOnly(fieldPtr,ret);
-  fieldPtr->Destroy();
+  fieldPtr->UnRegister();
   //
   return ret2;
 }
@@ -147,12 +147,12 @@ vtkDataSet *ParaMEDMEM2VTK::BuildFullyFilledFromMEDCouplingFieldDoubleInstance(S
   SALOME_MED::MEDCouplingMeshCorbaInterface_var meshPtr=fieldPtr->getMesh();
   bool dummy;//VTK bug
   vtkDataSet *ret=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(meshPtr,dummy);//VTK bug
-  meshPtr->Destroy();
+  meshPtr->UnRegister();
   //
   std::vector<double> ret2=FillMEDCouplingFieldDoublePartOnly(fieldPtr,ret);
   times=ret2;
   //
-  fieldPtr->Destroy();
+  fieldPtr->UnRegister();
   return ret;
 }
 

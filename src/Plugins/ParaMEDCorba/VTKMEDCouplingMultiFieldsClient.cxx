@@ -58,7 +58,7 @@ ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::~MEDCouplingMultiFieldsFetcher()
 	(*it2)->Delete();
     }
   if(!_mfields_ptr_released)
-    _mfields_ptr->Destroy();
+    _mfields_ptr->UnRegister();
 }
 
 std::vector<double> ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::getTimeStepsForPV()
@@ -203,7 +203,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchAll()
       if(_arrays[i])
 	_arrays[i]->Delete();
       _arrays[i]=ParaMEDMEM2VTK::BuildFromMEDCouplingFieldDoubleArr(daPtr);
-      daPtr->Destroy();
+      daPtr->UnRegister();
     }
   unregisterRemoteServantIfAllFetched();
 }
@@ -222,7 +222,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchMeshes()
       bool polyh=false;//bug VTK
       _meshes[i]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr,polyh);//bug VTK
       _is_meshes_polyhedron[i]=polyh;//bug VTK
-      mPtr->Destroy();
+      mPtr->UnRegister();
     }
   unregisterRemoteServantIfAllFetched();
 }
@@ -241,7 +241,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchDataIfNeeded(int fieldI
       bool polyh=false;//bug VTK
       _meshes[meshId]=ParaMEDMEM2VTK::BuildFromMEDCouplingMeshInstance(mPtr,polyh);//bug VTK
       _is_meshes_polyhedron[meshId]=polyh;//bug VTK
-      mPtr->Destroy();
+      mPtr->UnRegister();
     }
   for(std::vector<int>::const_iterator it=arrayIds.begin();it!=arrayIds.end();it++)
     {
@@ -249,7 +249,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::fetchDataIfNeeded(int fieldI
         {
           SALOME_MED::DataArrayDoubleCorbaInterface_var daPtr=_mfields_ptr->getArray(*it);
           _arrays[*it]=ParaMEDMEM2VTK::BuildFromMEDCouplingFieldDoubleArr(daPtr);
-          daPtr->Destroy();
+          daPtr->UnRegister();
         }
     }
   unregisterRemoteServantIfAllFetched();
@@ -270,7 +270,7 @@ void ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::unregisterRemoteServantIfAll
   if(!_mfields_ptr_released)
     {
       _mfields_ptr_released=true;
-      _mfields_ptr->Destroy();
+      _mfields_ptr->UnRegister();
     }
 }
 
