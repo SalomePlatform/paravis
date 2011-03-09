@@ -58,16 +58,30 @@ void ParaMEDMEM2VTK::FillMEDCouplingUMeshInstanceFrom(SALOME_MED::MEDCouplingUMe
   ret->Allocate(nbOfCells);
   vtkPoints *points=vtkPoints::New();
   vtkDoubleArray *da=vtkDoubleArray::New();
-  da->SetNumberOfComponents(spaceDim);
+  da->SetNumberOfComponents(3);
   da->SetNumberOfTuples(nbOfNodes);
   double *pts=da->GetPointer(0);
   //
   SALOME_TYPES::ListOfLong *a1Corba;
   SALOME_TYPES::ListOfDouble *a2Corba;
   meshPtr->getSerialisationData(a1Corba,a2Corba);
-  int myLgth=a2Corba->length();
-  for(int i=0;i<myLgth;i++)
-    *pts++=(*a2Corba)[i];
+  if(spaceDim==3)
+    {
+      int myLgth=a2Corba->length();
+      for(int i=0;i<myLgth;i++)
+        *pts++=(*a2Corba)[i];
+    }
+  else
+    {
+      int offset=3-spaceDim;
+      for(int i=0;i<nbOfNodes;i++)
+        {
+          for(int j=0;j<spaceDim;j++)
+            *pts++=(*a2Corba)[spaceDim*i+j];
+          std::fill(pts,pts+offset,0.);
+          pts+=offset;
+        }
+    }
   //
   vtkIdType *tmp=new vtkIdType[1000];
   isPolyh=false;
