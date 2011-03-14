@@ -666,7 +666,20 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
     }
   }
 
+  QList<QToolBar*> allToolbars = application()->desktop()->findChildren<QToolBar*>();
+  QMap<QToolBar*, bool> foreign;
+  foreach(QToolBar* aBar, allToolbars) {
+    if ( !myToolbarState.contains( aBar ) && aBar->parent() == application()->desktop() ) {
+      foreign[aBar] = aBar->isVisible();
+    }
+  }
+
   restoreDockWidgetsState();
+
+  QMap<QToolBar*, bool>::const_iterator it;
+  for ( it = foreign.constBegin(); it != foreign.constEnd(); ++it ) {
+    it.key()->setVisible( it.value() );
+  }
 
   return isDone;
 }
@@ -693,7 +706,20 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
   setMenuShown( false );
   setToolShown( false );
 
+  QList<QToolBar*> allToolbars = application()->desktop()->findChildren<QToolBar*>();
+  QMap<QToolBar*, bool> foreign;
+  foreach(QToolBar* aBar, allToolbars) {
+    if ( !myToolbarState.contains( aBar ) && aBar->parent() == application()->desktop() ) {
+      foreign[aBar] = aBar->isVisible();
+    }
+  }
+
   saveDockWidgetsState();
+
+  QMap<QToolBar*, bool>::const_iterator it;
+  for ( it = foreign.constBegin(); it != foreign.constEnd(); ++it ) {
+    it.key()->setVisible( it.value() );
+  }
 
   // hide toolbars
   QList<QToolBar*> aToolbars = myToolbarState.keys();
@@ -702,9 +728,10 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
     aBar->hide();
     aBar->setParent(0);
   }
-
+  
   if (myOldMsgHandler)
     qInstallMsgHandler(myOldMsgHandler);
+
   return SalomeApp_Module::deactivateModule( study );
 }
 
