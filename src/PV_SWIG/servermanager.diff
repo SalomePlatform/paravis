@@ -13,7 +13,7 @@
 > #     PURPOSE.  See the above copyright notice for more information.
 > #
 > #==============================================================================
-> import paraview, re, os, new, sys, vtk
+> import paraview, re, os, os.path, new, sys, vtk
 > 
 > if not paraview.compatibility.minor:
 >     paraview.compatibility.major = 3
@@ -34,14 +34,14 @@
 ---
 >     if paraview.compatibility.GetVersion() >= 3.5 and \
 >       smproperty.IsA("vtkSMStringVectorProperty"):
-230,232c247,248
+232,234c249,250
 <             ## VSV using IsSame instead ==
 <             return self.SMProxy.IsSame(other.SMProxy)
 <         return self.SMProxy.IsSame(other)
 ---
 >             return self.SMProxy == other.SMProxy
 >         return self.SMProxy == other
-327,330c343,346
+329,332c345,348
 <         # VSV: Observers are not supported
 < ##         if not c.HasObserver("ModifiedEvent"):
 < ##             self.ObserverTag =c.AddObserver("ModifiedEvent", _makeUpdateCameraMethod(weakref.ref(self)))
@@ -51,31 +51,76 @@
 >             self.ObserverTag =c.AddObserver("ModifiedEvent", \
 >                               _makeUpdateCameraMethod(weakref.ref(self)))
 >             self.Observed = c
-433a450
+376c392
+<  
+---
+> 
+436,453c452,470
+<     def FileNameChanged(self):
+<         "Called when the filename changes. Selects all variables."
+<         SourceProxy.FileNameChanged(self)
+<         self.SelectAllVariables()
+< 
+<     def SelectAllVariables(self):
+<         "Select all available variables for reading."
+<         for prop in ('PointVariables', 'EdgeVariables', 'FaceVariables',
+<                      'ElementVariables', 'GlobalVariables'):
+<             f = getattr(self, prop)
+<             f.SelectAll()
+< 
+<     def DeselectAllVariables(self):
+<         "Deselects all variables."
+<         for prop in ('PointVariables', 'EdgeVariables', 'FaceVariables',
+<                      'ElementVariables', 'GlobalVariables'):
+<             f = getattr(self, prop)
+<             f.DeselectAll()
+---
 >     if paraview.compatibility.GetVersion() >= 3.5:
-1041,1042c1058
+>         def FileNameChanged(self):
+>             "Called when the filename changes. Selects all variables."
+>             SourceProxy.FileNameChanged(self)
+>             self.SelectAllVariables()
+> 
+>         def SelectAllVariables(self):
+>             "Select all available variables for reading."
+>             for prop in ('PointVariables', 'EdgeVariables', 'FaceVariables',
+>                 'ElementVariables', 'GlobalVariables'):
+>                 f = getattr(self, prop)
+>                 f.SelectAll()
+> 
+>         def DeselectAllVariables(self):
+>             "Deselects all variables."
+>             for prop in ('PointVariables', 'EdgeVariables', 'FaceVariables',
+>                 'ElementVariables', 'GlobalVariables'):
+>                 f = getattr(self, prop)
+>                 f.DeselectAll()
+1043,1044c1060
 <             ## VSV: ==
 <             if proxy.IsSame(px):
 ---
 >             if proxy == px:
-1219c1235
+1221c1237
 <         return vtkDataObjectTypes.GetClassNameFromTypeId(self.GetDataSetType())
 ---
 >         return vtk.vtkDataObjectTypes.GetClassNameFromTypeId(self.GetDataSetType())
-1260a1277,1279
+1262a1279,1281
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >        def Range(self, component=0):
 >            return self.GetRange(component)
-1520c1539
+1522c1541
 <         collection = vtkCollection()
 ---
 >         collection = vtk.vtkCollection()
-2017,2018c2036
+1910c1929
+<        
+---
+> 
+2019,2020c2038
 <         #VSV: ==
 <         try: isRep = rep.Input.IsSame(aProxy)
 ---
 >         try: isRep = rep.Input == aProxy
-2266,2267c2284,2300
+2271,2272c2289,2305
 <     """Is not supported because of not supported observers"""
 <     pass
 ---
@@ -96,17 +141,23 @@
 >     elif GetProgressPrintingIsEnabled():
 >         vtkProcessModule.GetProcessModule().RemoveObserver(progressObserverTag)
 >         progressObserverTag = None
-2293a2327
+2299,2300c2332,2334
+<     if smproxy.GetXMLLabel():
+<         xmlName = smproxy.GetXMLLabel()
+---
 >     if paraview.compatibility.GetVersion() >= 3.5:
-2334a2369
+>         if smproxy.GetXMLLabel():
+>             xmlName = smproxy.GetXMLLabel()
+2340c2374,2377
+<         return self.GetPropertyValue(propName)
+---
 >         if paraview.compatibility.GetVersion() >= 3.5:
-2335a2371,2372
+>             return self.GetPropertyValue(propName)
 >         else:
 >             return self.GetProperty(propName)
-2455,2464c2492
-<     """Make a string into a valid Python variable name.  Return None if
-<     the name contains parentheses."""
-<     if not name or '(' in name or ')' in name:
+2460,2469c2497
+<     """"Make a string into a valid Python variable name."""
+<     if not name:
 <         return None
 <     import string
 <     valid_chars = "_%s%s" % (string.ascii_letters, string.digits)
@@ -114,51 +165,85 @@
 <     if not name[0].isalpha():
 <         name = 'a' + name
 <     return name
+< 
 ---
 >     return paraview.make_name_valid(name)
-2483c2511,2512
+2488c2516,2517
 <         if proto.GetXMLLabel():
 ---
 >         if paraview.compatibility.GetVersion() >= 3.5 and\
 >            proto.GetXMLLabel():
-2498c2527,2529
+2503,2504c2532,2535
 <             if (prop.GetInformationOnly() and propName != "TimestepValues" ) or prop.GetIsInternal():
+<                 continue
 ---
 >             if paraview.compatibility.GetVersion() >= 3.5:
 >                 if (prop.GetInformationOnly() and propName != "TimestepValues" ) \
 >                   or prop.GetIsInternal():
-2500a2532
+>                     continue
+2506c2537,2538
+<             names = [iter.PropertyLabel]
+---
 >             if paraview.compatibility.GetVersion() >= 3.5:
-2645a2678,2683
+>                 names = [iter.PropertyLabel]
+2651,2654c2683,2692
+<     ss = sources.Sphere(Radius=2, ThetaResolution=32)
+<     shr = filters.Shrink(Input=OutputPort(ss,0))
+<     cs = sources.Cone()
+<     app = filters.AppendDatasets()
+---
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >         ss = sources.SphereSource(Radius=2, ThetaResolution=32)
 >         shr = filters.ShrinkFilter(Input=OutputPort(ss,0))
 >         cs = sources.ConeSource()
 >         app = filters.Append()
 >     else:
-2669a2708,2710
+>         ss = sources.Sphere(Radius=2, ThetaResolution=32)
+>         shr = filters.Shrink(Input=OutputPort(ss,0))
+>         cs = sources.Cone()
+>         app = filters.AppendDatasets()
+2675c2713,2716
+<     arraySelection = reader.PointVariables
+---
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >         arraySelection = reader.PointResultArrayStatus
 >     else:
-2703a2745,2747
+>         arraySelection = reader.PointVariables
+2709c2750,2753
+<             print "Range:", ai.GetRange(j)
+---
 >             if paraview.compatibility.GetVersion() <= 3.4:
 >                 print "Range:", ai.Range(j)
 >             else:
-2734a2779,2781
+>                 print "Range:", ai.GetRange(j)
+2740c2784,2787
+<     source = sources.Wavelet()
+---
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >         source = sources.RTAnalyticSource()
 >     else:
-2765a2813,2817
+>         source = sources.Wavelet()
+2771,2773c2818,2825
+<     probe = filters.ResampleWithDataset(Input=source)
+<     # with a line
+<     line = sources.Line(Resolution=60)
+---
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >         probe = filters.Probe(Input=source)
 >         # with a line
 >         line = sources.LineSource(Resolution=60)
 >     else:
-2811a2864,2866
+>         probe = filters.ResampleWithDataset(Input=source)
+>         # with a line
+>         line = sources.Line(Resolution=60)
+2817c2869,2872
+<     sphere = sources.Sphere()
+---
 >     if paraview.compatibility.GetVersion() <= 3.4:
 >         sphere = sources.SphereSource()
 >     else:
-2860,2865c2915,2920
+>         sphere = sources.Sphere()
+2865,2870c2920,2925
 < #    pvoptions = None Not applicable for SALOME Python console
 < #    if paraview.options.batch:
 < #      pvoptions = vtkPVOptions();
@@ -172,13 +257,13 @@
 >       pvoptions.SetProcessType(0x40)
 >       if paraview.options.symmetric:
 >         pvoptions.SetSymmetricMPIMode(True)
-2901,2902c2956,2957
+2906,2907c2961,2962
 <         ## VSV: Observers are not supported
 <         ##self.Tag = vtkSMObject.GetProxyManager().AddObserver("RegisterEvent", _proxyDefinitionsUpdated)
 ---
 >         self.Tag = vtkSMObject.GetProxyManager().AddObserver("RegisterEvent",
 >           _proxyDefinitionsUpdated)
-2909,2917c2964
+2914,2922c2969
 < # Definitions for working in SALOME GUI mode
 < aParams = myParavis.GetConnectionParameters()
 < ActiveConnection = Connection(aParams[0])
@@ -190,7 +275,9 @@
 < ##if not paraview.fromFilter:
 ---
 > if not paraview.fromFilter:
-2926,2928d2972
-< 
-< #print vtkSMProxyManager.GetParaViewSourceVersion();
-< 
+2925,2926c2972,2973
+< global _defUpdater
+< _defUpdater = __DefinitionUpdater()
+---
+>     global _defUpdater
+>     _defUpdater = __DefinitionUpdater()

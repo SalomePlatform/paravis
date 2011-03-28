@@ -53,29 +53,29 @@ def run(filesour, impth, nframes):
   results = []
 
   # Start with these defaults
-  v.UseImmediateMode = 0
-  v.UseTriangleStrips = 0
+  #v.UseImmediateMode = 0
+  #v.UseTriangleStrips = 0
   
   # Test different configurations
   title = 'display lists, no triangle strips, solid color'
-  v.UseImmediateMode = 0
-  v.UseTriangleStrips = 0
+  #v.UseImmediateMode = 0
+  #v.UseTriangleStrips = 0
   results.append(render(ss, v, title, nframes))
   WriteImage(filename = (impth + "demo0_1.png"), view=v, Magnification=2)
 
   title = 'display lists, triangle strips, solid color'
-  v.UseTriangleStrips = 1
+  #v.UseTriangleStrips = 1
   results.append(render(ss, v, title, nframes))
   #WriteImage(filename = (impth + "demo0_2.png"), view=v, Magnification=2)
 
   title = 'no display lists, no triangle strips, solid color'
-  v.UseImmediateMode = 1
-  v.UseTriangleStrips = 0
+  #v.UseImmediateMode = 1
+  #v.UseTriangleStrips = 0
   results.append(render(ss, v, title, nframes))
   #WriteImage(filename = (impth + "demo0_3.png"), view=v, Magnification=2)
 
   title = 'no display lists, triangle strips, solid color'
-  v.UseTriangleStrips = 1
+  #v.UseTriangleStrips = 1
   results.append(render(ss, v, title, nframes))
   #WriteImage(filename = (impth + "demo0_4.png"), view=v, Magnification=2)
 
@@ -89,25 +89,25 @@ def run(filesour, impth, nframes):
   lt.VectorComponent = 0
   
   title = 'display lists, no triangle strips, color by array'
-  v.UseImmediateMode = 0
-  v.UseTriangleStrips = 0
+  #v.UseImmediateMode = 0
+  #v.UseTriangleStrips = 0
   results.append(render(ss, v, title, nframes))
   #WriteImage(filename = (impth + "demo0_5.png"), view=v, Magnification=2)
 
   title = 'display lists, triangle strips, color by array'
-  v.UseTriangleStrips = 1
+  #v.UseTriangleStrips = 1
   results.append(render(ss, v, title, nframes))
-  v.UseImmediateMode = 1
+  #v.UseImmediateMode = 1
   #WriteImage(filename = (impth + "demo0_6.png"), view=v, Magnification=2)
 
   title = 'no display lists, no triangle strips, color by array'
-  v.UseImmediateMode = 1
-  v.UseTriangleStrips = 0
+  #v.UseOCImmediateMode = 1
+  #v.UseTriangleStrips = 0
   results.append(render(ss, v, title, nframes))
   #WriteImage(filename = (impth + "demo0_7.png"), view=v, Magnification=2)
 
   title = 'no display lists, triangle strips, color by array'
-  v.UseTriangleStrips = 1
+  #v.UseTriangleStrips = 1
   results.append(render(ss, v, title, nframes))
   WriteImage(filename = (impth + "demo0_8.png"), view=v, Magnification=2)
 

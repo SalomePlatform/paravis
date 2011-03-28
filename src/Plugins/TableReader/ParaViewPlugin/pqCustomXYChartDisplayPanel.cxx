@@ -12,6 +12,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkTable.h"
 #include "vtkChart.h"
+#include "vtkWeakPointer.h"
 
 #include <QColorDialog>
 #include <QHeaderView>

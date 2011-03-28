@@ -107,7 +107,9 @@ SET(libPARAVIS_la_CPPFLAGS
   ${VISU_PARAVIS_DEFINES}
   )
 
-#	
+# remove deprecation warnings from Paraview
+SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
 # resources files
 SET(nodist_salomeres_DATA
   PARAVIS_images.qm

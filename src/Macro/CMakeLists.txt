@@ -1,0 +1,2 @@
+FILE(GLOB copy_FILES "*py")
+INSTALL(FILES ${copy_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/salome/Macros)

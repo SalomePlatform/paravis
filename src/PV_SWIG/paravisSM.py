@@ -150,11 +150,17 @@ class Proxy(object):
             self.Port = args['port']
             del args['port']
 
+        update = True
+        if 'no_update' in args:
+            if args['no_update']:
+                update = False
+            del args['no_update']
+
         if 'proxy' in args:
             self.InitializeFromProxy(args['proxy'])
             del args['proxy']
         else:
-            self.Initialize()
+            self.Initialize(None, update)
         if 'registrationGroup' in args:
             registrationGroup = args['registrationGroup']
             del args['registrationGroup']
@@ -164,11 +170,6 @@ class Proxy(object):
                 del args['registrationName']
             pxm = ProxyManager()
             pxm.RegisterProxy(registrationGroup, registrationName, self.SMProxy)
-        update = True
-        if 'no_update' in args:
-            if args['no_update']:
-                update = False
-            del args['no_update']
         if update:
             self.UpdateVTKObjects()
         for key in args.keys():
@@ -207,12 +208,13 @@ class Proxy(object):
         if self.SMProxy and (self.SMProxy, self.Port) in _pyproxies:
             del _pyproxies[(self.SMProxy, self.Port)]
 
-    def InitializeFromProxy(self, aProxy):
+    def InitializeFromProxy(self, aProxy, update=True):
         """Constructor. Assigns proxy to self.SMProxy, updates the server
         object as well as register the proxy in _pyproxies dictionary."""
         import weakref
         self.SMProxy = aProxy
-        self.SMProxy.UpdateVTKObjects()
+        if update:
+            self.SMProxy.UpdateVTKObjects()
         _pyproxies[(self.SMProxy, self.Port)] = weakref.ref(self)
 
     def Initialize(self):
@@ -334,7 +336,7 @@ class Proxy(object):
         """With the exception of a few overloaded methods,
         returns the SMProxy method"""
         if not self.SMProxy:
-            raise AttributeError("class has no attribute %s" % name)
+            raise AttributeError("class %s has no attribute %s" % ("None", name))
             return None
         # Handle GetActiveCamera specially.
         if name == "GetActiveCamera" and \
@@ -2107,12 +2109,15 @@ def LoadPlugin(filename,  remote=True, connection=None):
     plinfo = plm.LoadPlugin(filename, connection.ID, serverURI, remote)
     
     if not plinfo or not plinfo.GetLoaded():
-        # Assume that it is an xml file
-        f = open(filename, 'r')
-        try:
-            LoadXML(f.read())
-        except RuntimeError:
-            raise RuntimeError, "Problem loading plugin %s: %s" % (filename, pld.GetProperty("Error").GetElement(0))
+        if os.path.splitext(filename)[1].lower() == ".xml":
+            # Assume that it is an xml file
+            f = open(filename, 'r')
+            try:
+                LoadXML(f.read())
+            except RuntimeError:
+                raise RuntimeError, "Problem loading plugin %s" % (filename)
+        else:
+            raise RuntimeError, "Problem loading plugin %s" % (filename)
     else:
         updateModules()
 
@@ -2318,14 +2323,14 @@ def _createInitialize(group, name):
     of Proxy"""
     pgroup = group
     pname = name
-    def aInitialize(self, connection=None):
+    def aInitialize(self, connection=None, update=True):
         if not connection:
             connection = ActiveConnection
         if not connection:
             raise RuntimeError,\
                   'Cannot create a proxy without a connection.'
         self.InitializeFromProxy(\
-            CreateProxy(pgroup, pname, connection))
+            CreateProxy(pgroup, pname, connection), update)
     return aInitialize
 
 def _createGetProperty(pName):
@@ -2452,9 +2457,8 @@ class PVModule(object):
     pass
 
 def _make_name_valid(name):
-    """Make a string into a valid Python variable name.  Return None if
-    the name contains parentheses."""
-    if not name or '(' in name or ')' in name:
+    """"Make a string into a valid Python variable name."""
+    if not name:
         return None
     import string
     valid_chars = "_%s%s" % (string.ascii_letters, string.digits)
@@ -2462,6 +2466,7 @@ def _make_name_valid(name):
     if not name[0].isalpha():
         name = 'a' + name
     return name
+
 
 def createModule(groupName, mdl=None):
     """Populates a module with proxy classes defined in the given group.
