@@ -3,7 +3,7 @@
 
 #include "vtkObject.h"
 
-class vtkMedString : public vtkObject
+class VTK_EXPORT vtkMedString : public vtkObject
 {
 public:
   static vtkMedString* New();
@@ -17,7 +17,7 @@ public:
 
   // Description:
 	// returns the internal pointer
-	char* GetString() const
+	const char* GetString() const
 	{
 		return this->String;
 	}

@@ -6,6 +6,7 @@
 
 class vtkMedIntArray;
 class vtkMedString;
+class vtkMedFile;
 
 class VTK_EXPORT vtkMedProfile : public vtkObject
 {
@@ -34,17 +35,28 @@ public :
 
 	// Description:
 	// The index of this field in the med file
-	vtkSetMacro(MedIndex, med_int);
-	vtkGetMacro(MedIndex, med_int);
+	vtkSetMacro(MedIterator, med_int);
+	vtkGetMacro(MedIterator, med_int);
+
+	// Description:
+	// Load the profile ids
+	void	Load();
+
+  // Description:
+  // this is the file where this Profile is stored
+  virtual void	SetParentFile(vtkMedFile*);
+  vtkGetObjectMacro(ParentFile, vtkMedFile);
 
 protected:
 	vtkMedProfile();
   virtual ~vtkMedProfile();
 
-  med_int MedIndex;
+  med_int MedIterator;
   vtkIdType NumberOfElement;
   vtkMedIntArray* Ids;
   vtkMedString* Name;
+  med_geometry_type GeometryType;
+  vtkMedFile* ParentFile;
 
 private:
 	vtkMedProfile(const vtkMedProfile&); // Not implemented.

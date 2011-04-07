@@ -3,14 +3,16 @@
 
 // Description :
 // This class represents the intersection between a family and an entity.
-// This is the smallest partition of the the support in a med file.
 
 #include "vtkObject.h"
 #include "vtkMed.h"
+#include "vtkMedUtilities.h"
 
 class vtkMedEntityArray;
 class vtkMedFamily;
-class vtkMedMesh;
+class vtkMedGrid;
+class vtkMedFamilyOnEntityOnProfile;
+class vtkMedIntArray;
 
 class VTK_EXPORT vtkMedFamilyOnEntity : public vtkObject
 {
@@ -19,14 +21,20 @@ public :
   vtkTypeRevisionMacro(vtkMedFamilyOnEntity, vtkObject)
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  virtual void	SetFamily(vtkMedFamily*);
+  // Description:
+  // This is the family of this family on entity.
+  virtual void  SetFamily(vtkMedFamily*);
   vtkGetObjectMacro(Family, vtkMedFamily);
 
-  virtual void	SetEntityArray(vtkMedEntityArray*);
+  // Description:
+  // This is the entity array this family on entity is on.
+  virtual void  SetEntityArray(vtkMedEntityArray*);
   vtkGetObjectMacro(EntityArray, vtkMedEntityArray);
 
-  virtual void  SetMesh(vtkMedMesh*);
-  vtkGetObjectMacro(Mesh, vtkMedMesh);
+  // Description:
+  // This is the grid this family on entity is reffering to
+  virtual void  SetParentGrid(vtkMedGrid*);
+  vtkGetObjectMacro(ParentGrid, vtkMedGrid);
 
   // Description :
   //  Returns vtkMedUtilities::OnPoint (0) or vtkMedUtilities::OnCell (1)
@@ -36,26 +44,35 @@ public :
   // Returns true if the family is on points or if the entity is MED_POINT
   virtual int  GetVertexOnly();
 
-  virtual med_entite_maillage	GetType();
-  virtual med_geometrie_element	GetGeometry();
+  // Description:
+  // returns the entity descriptor associated with this family on entity
+  virtual vtkMedEntity GetEntity();
 
   // Description:
-  // This flag says if this vtkMedFamilyOnEntity covers all the points of the mesh or not.
-  // -1 means it has not been computed, 1/0 means it covers or not all the points.
-  vtkSetMacro(AllPoints, int)
-  vtkGetMacro(AllPoints, int)
+  // Fields can use profile to be stored on a subset of entities.
+  // a priori, profiles and families are independent notions.
+  // In case there are profiles, we create the intersection of the profile and
+  // the FamilyOnEntity to be able to map the field on the geometry.
+  // BEFORE calling those function, you have to have assigned a profile
+  // to the vtkMedFamilyOnEntityOnProfile
+  void  AddFamilyOnEntityOnProfile(vtkMedFamilyOnEntityOnProfile*);
+  int GetNumberOfFamilyOnEntityOnProfile();
+  vtkMedFamilyOnEntityOnProfile* GetFamilyOnEntityOnProfile(vtkMedProfile*);
+  vtkMedFamilyOnEntityOnProfile* GetFamilyOnEntityOnProfile(int index);
 
 protected:
-	vtkMedFamilyOnEntity();
+  vtkMedFamilyOnEntity();
   virtual ~vtkMedFamilyOnEntity();
 
   vtkMedFamily* Family;
   vtkMedEntityArray* EntityArray;
-  vtkMedMesh* Mesh;
-  int AllPoints;
+  vtkMedGrid* ParentGrid;
+
+  std::map<vtkMedProfile*, vtkSmartPointer<vtkMedFamilyOnEntityOnProfile> >
+      FamilyOnEntityOnProfile;
 
 private:
-	vtkMedFamilyOnEntity(const vtkMedFamilyOnEntity&); // Not implemented.
+  vtkMedFamilyOnEntity(const vtkMedFamilyOnEntity&); // Not implemented.
   void operator=(const vtkMedFamilyOnEntity&); // Not implemented.
 
 };

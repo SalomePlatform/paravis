@@ -5,6 +5,8 @@
 #include "vtkMed.h"
 #include "vtkMedSetGet.h"
 
+#include <vector>
+
 class vtkDataArray;
 
 class VTK_EXPORT vtkMedRegularGrid : public vtkMedGrid
@@ -16,30 +18,34 @@ public :
 
 	// Description:
 	// Container of the families in this mesh
-	vtkGetObjectVectorMacro(Coordinates, vtkDataArray);
-	vtkSetAbstractObjectVectorMacro(Coordinates, vtkDataArray);
+	vtkGetObjectVectorMacro(AxisCoordinate, vtkDataArray);
+	vtkSetAbstractObjectVectorMacro(AxisCoordinate, vtkDataArray);
 
 	// Description:
-	// overloaded to set the number of coordinates arrays. Do not allocate each array.
+	// overloaded to set the number of coordinates arrays.
+	// Do not allocate each array.
 	virtual void	SetDimension(med_int);
+	virtual int	GetDimension();
 
   // Description:
   // the size of each dimension of the grid.
-  virtual void	SetSize(med_int* size);
-  virtual med_int* GetSize();
-  virtual med_int GetSize(int dim);
+  // SetDimension has to have been called before
+  virtual void	SetAxisSize(int axis, med_int size);
+  virtual med_int GetAxisSize(int dim);
 
   // Description:
   // returns the number of points of this grid.
   virtual med_int GetNumberOfPoints();
 
+  virtual void  LoadCoordinates();
+
 protected:
 	vtkMedRegularGrid();
   virtual ~vtkMedRegularGrid();
 
-  med_int *Size;
+  std::vector<med_int> AxisSize;
   //BTX
-  vtkObjectVector<vtkDataArray>* Coordinates;
+  vtkObjectVector<vtkDataArray>* AxisCoordinate;
   //ETX
 
 private:

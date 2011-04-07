@@ -11,8 +11,8 @@ vtkStandardNewMacro(vtkMedGroup)
 vtkMedGroup::vtkMedGroup()
 {
 	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_TAILLE_LNOM);
-	this->PointOrCell = vtkMedUtilities::OnCell;
+	this->Name->SetSize(MED_LNAME_SIZE);
+	this->Name->SetString(vtkMedUtilities::NoGroupName);
 }
 
 vtkMedGroup::~vtkMedGroup()

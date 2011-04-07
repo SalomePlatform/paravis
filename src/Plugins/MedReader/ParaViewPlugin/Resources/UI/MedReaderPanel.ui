@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>649</width>
-    <height>786</height>
+    <height>839</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -72,13 +72,13 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="cellTypesTab">
+        <widget class="QWidget" name="entityTab">
          <attribute name="title">
           <string>Cell Type</string>
          </attribute>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="pqTreeView" name="CellTypes">
+           <widget class="pqTreeView" name="Entity">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -111,7 +111,7 @@
      <property name="title">
       <string>Fields</string>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <layout class="QVBoxLayout" name="verticalLayout_4">
       <property name="spacing">
        <number>6</number>
       </property>
@@ -136,6 +136,13 @@
         </column>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="GenerateVectors">
+        <property name="text">
+         <string>Generate Vectors</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -152,7 +159,62 @@
      </property>
     </spacer>
    </item>
-   <item row="3" column="1">
+   <item row="4" column="0" rowspan="2">
+    <widget class="QGroupBox" name="timeGroupBox">
+     <property name="title">
+      <string>Animation</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="AnimationModeLabel">
+          <property name="text">
+           <string>Animation Mode</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="AnimationModeCombo"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="TimeLayout">
+        <item>
+         <widget class="QLabel" name="TimeLabel">
+          <property name="text">
+           <string>Time</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="TimeCombo"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="pqTreeWidget" name="Modes">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>100</height>
+         </size>
+        </property>
+        <property name="rootIsDecorated">
+         <bool>false</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string>Modes</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="5" column="1">
     <spacer>
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -165,36 +227,7 @@
      </property>
     </spacer>
    </item>
-   <item row="2" column="0" rowspan="2">
-    <widget class="QGroupBox" name="timeGroupBox">
-     <property name="title">
-      <string>Animation</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="AnimationModeLabel">
-        <property name="text">
-         <string>Animation Mode</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="AnimationModeCombo"/>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="TimeCombo"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="TimeLabel">
-        <property name="text">
-         <string>Time</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="4" column="0">
+   <item row="6" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Cache</string>

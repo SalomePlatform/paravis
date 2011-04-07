@@ -47,7 +47,7 @@
          <bool>true</bool>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="groupTab">
          <attribute name="title">
@@ -78,7 +78,7 @@
          </attribute>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="pqTreeView" name="CellTypes">
+           <widget class="pqTreeView" name="Entity">
             <property name="minimumSize">
              <size>
               <width>0</width>

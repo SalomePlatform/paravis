@@ -2,7 +2,8 @@ set(MEDREADER_HDRS)
 set(EXTRACTGROUP_HDRS)
 
 include(${MedReader_BINARY_DIR}/IO/vtkMedReader_IOKit.cmake)
-include(${MedReader_BINARY_DIR}/Filtering/vtkExtractGroup_FilteringKit.cmake)
+
+include_directories(${VTK_MEDREADER_IO_HEADER_DIR})
 
 foreach(class ${VTK_MEDREADER_IO_CLASSES})
     set(MEDREADER_HDRS ${MEDREADER_HDRS} ${VTK_MEDREADER_IO_HEADER_DIR}/${class}.h)
@@ -16,17 +17,8 @@ foreach(class ${VTK_MEDREADER_IO_CLASSES_WRAP_EXCLUDE})
     set_source_files_properties(${VTK_MEDREADER_IO_HEADER_DIR}/${class}.h PROPERTIES WRAP_EXCLUDE 1)
 endforeach(class)
 
-foreach(class ${VTK_EXTRACTGROUP_Filtering_CLASSES})
-    set(EXTRACTGROUP_HDRS ${EXTRACTGROUP_HDRS} ${VTK_EXTRACTGROUP_Filtering_HEADER_DIR}/${class}.h)
-endforeach(class)
-
 SET(SM_SRCS
-    vtkSMMedReaderProxy.cxx 
-    vtkSMExtractGroupProxy.cxx
-    vtkSMInformationKeyDomain.cxx
-    vtkSMInformationKeyDomainHelper.cxx
-    vtkPVServerInformationKey.cxx
-    vtkSMMedHelper.cxx
+    vtkSMMedGroupSelectionDomain.cxx
     )
 
 IF(PARAVIEW_BUILD_QT_GUI)
@@ -60,11 +52,11 @@ IF(PARAVIEW_BUILD_QT_GUI)
     )
     
     # create the med reader plugin itself
-    ADD_PARAVIEW_PLUGIN(MedReaderPlugin "3.0"
+    ADD_PARAVIEW_PLUGIN(MedReaderPlugin "4.0"
         SERVER_MANAGER_SOURCES ${MEDREADER_HDRS} ${EXTRACTGROUP_HDRS} ${SM_SRCS}
-        SERVER_MANAGER_XML Resources/MedReaderServer.xml Resources/ExtractGroupServer.xml
+        SERVER_MANAGER_XML Resources/MedReaderServer.xml
         GUI_INTERFACES ${MEDREADER_IFACES} ${EXTRACTGROUP_IFACES}
-        GUI_RESOURCES Resources/pqMedReader.qrc Resources/pqExtractGroup.qrc
+        GUI_RESOURCES Resources/pqMedReader.qrc
         GUI_SOURCES ${CLIENT_SRCS}
               ${CLIENT_UI_SRCS}
               ${MOC_SRCS}
@@ -75,14 +67,14 @@ IF(PARAVIEW_BUILD_QT_GUI)
 ELSE(PARAVIEW_BUILD_QT_GUI)
           
     # create the med reader plugin itself
-    ADD_PARAVIEW_PLUGIN(MedReaderPlugin "3.0"
+    ADD_PARAVIEW_PLUGIN(MedReaderPlugin "4.0"
         SERVER_MANAGER_SOURCES ${MEDREADER_HDRS} ${EXTRACTGROUP_HDRS} ${SM_SRCS}
-        SERVER_MANAGER_XML Resources/MedReaderServer.xml Resources/ExtractGroupServer.xml
+        SERVER_MANAGER_XML Resources/MedReaderServer.xml
     )
     
 ENDIF(PARAVIEW_BUILD_QT_GUI)
 
-TARGET_LINK_LIBRARIES(MedReaderPlugin vtkMedReader vtkExtractGroup)
+TARGET_LINK_LIBRARIES(MedReaderPlugin vtkMedReader)
 
 # Install
 INSTALL(

@@ -1,17 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    $RCSfile$
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
 // .NAME vtkMedIntArrayInternal - dynamic, self-adjusting array of med_int
 // .SECTION Description
 // vtkMedIntArray is an array of values of type med_int.

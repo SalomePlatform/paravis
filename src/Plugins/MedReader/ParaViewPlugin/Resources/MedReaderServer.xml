@@ -1,7 +1,7 @@
 <ServerManagerConfiguration>
   <ProxyGroup
     name="sources">
-    <MedReaderProxy
+    <SourceProxy
       name="MedReader"
       class="vtkMedReader"
       label="MED Reader">
@@ -106,20 +106,49 @@
       </StringVectorProperty>
 
       <StringVectorProperty
-        name="CellTypes"
-        label="CellTypes"
-        command="SetCellTypeStatus"
+        name="ElnoFieldsArrayInfo"
+        information_only="1">
+        <ArraySelectionInformationHelper
+          attribute_name="ElnoField" />
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="ElnoFieldsArrayStatus"
+        command="SetElnoFieldArrayStatus"
+        number_of_elements="0"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="ElnoFieldsArrayInfo"
+        label="Elno Point Arrays">
+        <ArraySelectionDomain
+          name="array_list">
+          <RequiredProperties>
+            <Property
+              name="ElnoFieldsArrayInfo"
+              function="ArrayList" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
+        <Documentation>
+          This property lists which integration-point-centered arrays to read.
+       </Documentation>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Entity"
+        label="Entity"
+        command="SetEntityStatus"
         number_of_elements="2"
         repeat_command="1"
         number_of_elements_per_command="2"
         element_types="2 0"
-        information_property="CellTypeInfo">
+        information_property="EntityInfo">
         <SILDomain
           name="array_list"
-          subtree="CellTypes">
+          subtree="Entity">
           <RequiredProperties>
             <Property
-              name="CellTypeInfo"
+              name="EntityInfo"
               function="ArrayList" />
           </RequiredProperties>
         </SILDomain>
@@ -132,16 +161,16 @@
         </Hints>
         <Documentation>
           This property can be used to select the cell types to load.
-          Example : CellTypes = ['MED_MAILLE/MED_TRIA3']
+          Example : ['MED_CELL/MED_TRIA3']
         </Documentation>
       </StringVectorProperty>
 
       <StringVectorProperty
-        name="CellTypeInfo"
+        name="EntityInfo"
         information_only="1">
         <SILInformationHelper
           timestamp_command="GetSILUpdateStamp"
-          subtree="CellTypes">
+          subtree="Entity">
         </SILInformationHelper>
       </StringVectorProperty>
 
@@ -154,7 +183,7 @@
         number_of_elements_per_command="2"
         element_types="2 0"
         information_property="GroupInfo">
-        <SILDomain
+        <MedGroupSelectionDomain
           name="array_list"
           subtree="Groups">
           <RequiredProperties>
@@ -162,19 +191,11 @@
               name="GroupInfo"
               function="ArrayList" />
           </RequiredProperties>
-        </SILDomain>
-        <Hints>
-          <!--
-            This overrides the GUI's default mechanism to not set the default
-            value for this property using the domain
-            when the proxy is created
-          -->
-          <NoDefault />
-        </Hints>
+        </MedGroupSelectionDomain>
         <Documentation>
           Set the groups on cells to be loaded.
-          Example : SetGroups(['MAILLAGE/OnCell/GROUP_NAME',
-            'MAILLAGE/OnPoints/GROUP_NAME']).
+          Example : SetGroups(['GROUP/MAILLAGE/OnCell/GROUP_NAME',
+            'GROUP/MAILLAGE/OnPoints/GROUP_NAME']).
         </Documentation>
       </StringVectorProperty>
 
@@ -206,19 +227,29 @@
         default_values="0">
         <EnumerationDomain
           name="enum">
-          <Entry
-            value="0"
-            text="Default" />
-          <Entry
-            value="1"
-            text="Time" />
-          <Entry
-            value="2"
-            text="Iteration" />
-          <Entry
-            value="3"
-            text="Mode" />
+          <Entry value="0" text="Default" />
+          <Entry value="1" text="Times" />
+          <Entry value="2" text="Iterations" />
+          <Entry value="3" text="Modes" />
         </EnumerationDomain>
+        <Documentation>
+          The animation modes defines how the animation controls of ParaView
+          browse the computing steps available in the med file.
+          Default : It is the same as "Times" if there is any time defined
+          in the med file.
+          It is the same as "Iteration" if there is no times but iterations.
+          Times : The reader advertise the availbale times in the med file.
+          If there are multiple iterations for a given time,
+          the reader will load the last one.
+          Iterations : You also have to specify the TimeIndexForIterations
+          parameter. The reader will then advertise iterations at the given
+          time index.
+          Modes : This mode is made for modal analysis post-processing : all
+          selected frequencies (use the FrequencyArrayStatus property)
+          are loaded so that the user can easily switch from
+          a frequency to another.
+          The reader reports no time but a time range of -PI/PI.
+        </Documentation>
       </IntVectorProperty>
 
       <DoubleVectorProperty
@@ -230,20 +261,12 @@
         <DoubleArrayInformationHelper />
       </DoubleVectorProperty>
 
-      <DoubleVectorProperty
-        name="Time"
-        command="SetTime"
+      <IntVectorProperty
+        name="TimeIndexForIterations"
+        command="SetTimeIndexForIterations"
         number_of_elements="1"
         default_values="0.0">
-        <EnumerationDomain
-          name="enum">
-          <RequiredProperties>
-            <Property
-              name="TableIds"
-              function="Enumeration" />
-          </RequiredProperties>
-        </EnumerationDomain>
-      </DoubleVectorProperty>
+      </IntVectorProperty>
 
       <DoubleVectorProperty
         name="TimestepValues"
@@ -255,32 +278,45 @@
         </Documentation>
       </DoubleVectorProperty>
 
-      <DoubleVectorProperty
-        name="TimeRange"
-        repeatable="1"
+      <StringVectorProperty
+        name="FrequencyArrayInfo"
         information_only="1">
-        <TimeRangeInformationHelper />
+        <ArraySelectionInformationHelper
+          attribute_name="Frequency" />
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="FrequencyArrayStatus"
+        command="SetFrequencyArrayStatus"
+        number_of_elements="0"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="FrequencyArrayInfo"
+        label="Frequencies">
+        <ArraySelectionDomain
+          name="array_list">
+          <RequiredProperties>
+            <Property
+              name="FrequencyArrayInfo"
+              function="ArrayList" />
+          </RequiredProperties>
+        </ArraySelectionDomain>
         <Documentation>
-          Available time (or frequency) range.
-        </Documentation>
-      </DoubleVectorProperty>
+          This property lists which frequencies are in the med file for
+          modal analysis.
+       </Documentation>
+      </StringVectorProperty>
 
       <IntVectorProperty
         name="CacheStrategy"
         command="SetCacheStrategy"
         number_of_elements="1"
         default_values="2">
-        <EnumerationDomain
-          name="enum">
-          <Entry
-            value="0"
-            text="Nothing" />
-          <Entry
-            value="1"
-            text="Geometry" />
-          <Entry
-            value="2"
-            text="All" />
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Nothing" />
+          <Entry value="1" text="Geometry" />
+          <Entry value="2" text="All" />
         </EnumerationDomain>
         <Documentation>
           Set the strategy to cache data read from the disk.
@@ -295,6 +331,143 @@
         </Documentation>
       </IntVectorProperty>
 
-    </MedReaderProxy>
+      <IntVectorProperty
+        name="GenerateVectors"
+        command="SetGenerateVectors"
+        number_of_elements="1"
+        default_values="1">
+        <BooleanDomain name="bool"/>
+        <Documentation>
+          If this flag is set, the reader will generate a vector field for
+          each field in the file that has 2 or more components.
+          If the field has 2 components, a third compoenent with the value
+          0 will be added.
+          If the field has more than 3 components, the first 3 components will
+          be extracted.
+        </Documentation>
+      </IntVectorProperty>
+
+    </SourceProxy>
+  </ProxyGroup>
+
+  <ProxyGroup
+    name="filters">
+    <SourceProxy
+      name="ExtractGroup"
+      class="vtkExtractGroup"
+      label="Extract Group">
+
+     <InputProperty
+        name="Input"
+        command="SetInputConnection">
+           <ProxyGroupDomain name="groups">
+             <Group name="sources"/>
+             <Group name="filters"/>
+           </ProxyGroupDomain>
+           <DataTypeDomain name="input_type">
+             <DataType value="vtkMultiBlockDataSet"/>
+           </DataTypeDomain>
+           <Documentation>
+             This property specifies the input to the Level Scalars filter.
+           </Documentation>
+     </InputProperty>
+
+      <StringVectorProperty
+        name="Entity"
+        label="Cell Type"
+        command="SetEntityStatus"
+        number_of_elements="2"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="EntityInfo">
+        <SILDomain
+          name="array_list"
+          subtree="Entity">
+          <RequiredProperties>
+            <Property name="EntityInfo" function="ArrayList" />
+          </RequiredProperties>
+        </SILDomain>
+        <Hints>
+          <!--
+            This overrides the GUI's default mechanism to not set the default
+            value for this property using the domain
+            when the proxy is created
+          -->
+          <NoDefault />
+        </Hints>
+        <Documentation>
+          This property can be used to select the cell types to load.
+          Example : ['MED_MAILLE/MED_TRIA3']
+        </Documentation>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="EntityInfo"
+        information_only="1">
+        <SILInformationHelper
+          timestamp_command="GetSILUpdateStamp"
+          subtree="Entitys">
+        </SILInformationHelper>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="Groups"
+        label="Groups"
+        command="SetGroupStatus"
+        number_of_elements="2"
+        repeat_command="1"
+        number_of_elements_per_command="2"
+        element_types="2 0"
+        information_property="GroupInfo">
+        <MedGroupSelectionDomain
+          name="array_list"
+          subtree="Groups">
+          <RequiredProperties>
+            <Property name="GroupInfo" function="ArrayList" />
+          </RequiredProperties>
+        </MedGroupSelectionDomain>
+
+        <Documentation>
+          Set the groups on cells to be loaded.
+          Example : SetGroups(['GROUP/MAILLAGE/OnCell/GROUP_NAME',
+            'GROUP/MAILLAGE/OnPoints/GROUP_NAME']).
+        </Documentation>
+      </StringVectorProperty>
+
+      <StringVectorProperty
+        name="GroupInfo"
+        information_only="1">
+        <SILInformationHelper
+          timestamp_command="GetSILUpdateStamp"
+          subtree="Groups">
+        </SILInformationHelper>
+      </StringVectorProperty>
+
+      <IntVectorProperty
+        name="SILUpdateStamp"
+        command="GetSILUpdateStamp"
+        information_only="1">
+        <SimpleIntInformationHelper />
+        <Documentation>
+          Information property indicating the update stamp of the SIL. Every
+          time the SIL is rebuild, this
+          time stamp is changed.
+        </Documentation>
+      </IntVectorProperty>
+
+      <IntVectorProperty
+        name="PruneOutput"
+        command="SetPruneOutput"
+        number_of_elements="1"
+        default_values="1">
+        <BooleanDomain name="bool" />
+        <Documentation>
+          If set to true, this filter will prune the empty parts in the output.
+          If not, empty datasets will be kept.
+        </Documentation>
+      </IntVectorProperty>
+
+    </SourceProxy>
   </ProxyGroup>
 </ServerManagerConfiguration>

@@ -4,6 +4,7 @@
 //BTX
 template <class T> class vtkObjectVector;
 template <class T> class vtkList;
+template <class T> class vtkMedComputeStepMap;
 
 #define vtkGetObjectVectorMacro(name, type)\
 	virtual type* Get##name (int index);\
@@ -11,8 +12,9 @@ template <class T> class vtkList;
 
 #define vtkSetObjectVectorMacro(name, type)\
 	virtual void	AllocateNumberOf##name (vtkIdType size);\
-	virtual void Set##name (vtkIdType index, type* obj);\
-	virtual void	Append##name (type* obj);
+	virtual void  Set##name (vtkIdType index, type* obj);\
+	virtual void	Append##name (type* obj);\
+	virtual void	Remove##name (type* obj);
 
 #define vtkSetAbstractObjectVectorMacro(name, type)\
 	virtual void SetNumberOf##name (vtkIdType size);\
@@ -50,7 +52,7 @@ template <class T> class vtkList;
 	{\
 		if(index < 0 || index >= this->name->size())\
 		{\
-			vtkWarningMacro("has not been allocated before setting value, please call AllocateNumberOf##name before" );\
+			vtkWarningMacro("has not been allocated before setting value" );\
 			return;\
 		}\
 		if( this->name->at(index) == obj)\
@@ -62,6 +64,21 @@ template <class T> class vtkList;
 	{\
 		this->name->resize(this->name->size()+1);\
 		this->name->at(this->name->size()-1) = obj;\
+		this->Modified();\
+	}\
+	void	class::Remove##name (type* obj)\
+	{\
+		vtkIdType index=0;\
+		for(index=0; index < this->name->size(); index++)\
+		 {\
+			 if(this->name->at(index) == obj) break;\
+		 }\
+		if(index == this->name->size()) return;\
+		for(vtkIdType id=index; id < this->name->size()-1; id++)\
+			{\
+				this->name->at(id) = this->name->at(id+1);\
+			}\
+		this->name->resize(this->name->size()-1);\
 		this->Modified();\
 	}
 
@@ -80,7 +97,7 @@ template <class T> class vtkList;
 	{\
 		if(index < 0 || index >= this->name->size())\
 		{\
-			vtkWarningMacro("has not been allocated before setting value, please call AllocateNumberOf##name before" );\
+			vtkWarningMacro("has not been allocated before setting value" );\
 			return;\
 		}\
 		if( this->name->at(index) == obj)\

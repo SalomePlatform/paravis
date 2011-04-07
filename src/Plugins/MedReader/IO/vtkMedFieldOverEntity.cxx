@@ -3,40 +3,36 @@
 #include "vtkObjectFactory.h"
 #include "vtkSmartPointer.h"
 
-#include "vtkMedFieldStep.h"
 #include "vtkMedUtilities.h"
+#include "vtkMedString.h"
+#include "vtkMedMesh.h"
+#include "vtkDataArray.h"
+#include "vtkMedFieldOnProfile.h"
+#include "vtkMedFieldStep.h"
+#include "vtkMedField.h"
 
-vtkCxxGetObjectVectorMacro(vtkMedFieldOverEntity, Step, vtkMedFieldStep);
-vtkCxxSetObjectVectorMacro(vtkMedFieldOverEntity, Step, vtkMedFieldStep);
+vtkCxxGetObjectVectorMacro(vtkMedFieldOverEntity, FieldOnProfile, vtkMedFieldOnProfile);
+vtkCxxSetObjectVectorMacro(vtkMedFieldOverEntity, FieldOnProfile, vtkMedFieldOnProfile);
+
+vtkCxxSetObjectMacro(vtkMedFieldOverEntity, ParentStep, vtkMedFieldStep);
 
 vtkCxxRevisionMacro(vtkMedFieldOverEntity, "$Revision$")
 vtkStandardNewMacro(vtkMedFieldOverEntity)
 
 vtkMedFieldOverEntity::vtkMedFieldOverEntity()
 {
-  this->MedType = MED_NOEUD;
-  this->Geometry = MED_NONE;
-  this->Step = new vtkObjectVector<vtkMedFieldStep>();
-  this->IsELNO = 0;
+	this->FieldOnProfile = new vtkObjectVector<vtkMedFieldOnProfile>();
+	this->HasProfile = false;
+	this->ParentStep = NULL;
 }
 
 vtkMedFieldOverEntity::~vtkMedFieldOverEntity()
 {
-	delete this->Step;
-}
-
-med_entite_maillage vtkMedFieldOverEntity::GetType()
-{
-  if(this->IsELNO == 1 && this->MedType == MED_NOEUD_MAILLE)
-    return MED_MAILLE;
-  return this->MedType;
+	delete this->FieldOnProfile;
+	this->SetParentStep(NULL);
 }
 
 void vtkMedFieldOverEntity::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  PRINT_IVAR(os, indent, MedType);
-  PRINT_IVAR(os, indent, Geometry);
-  PRINT_IVAR(os, indent, IsELNO);
-  PRINT_OBJECT_VECTOR(os, indent, Step);
 }

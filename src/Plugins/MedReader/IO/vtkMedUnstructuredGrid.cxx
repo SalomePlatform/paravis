@@ -7,9 +7,9 @@
 #include "vtkMedUtilities.h"
 #include "vtkMedEntityArray.h"
 #include "vtkMedString.h"
-
-vtkCxxGetObjectVectorMacro(vtkMedUnstructuredGrid, EntityArray, vtkMedEntityArray);
-vtkCxxSetObjectVectorMacro(vtkMedUnstructuredGrid, EntityArray, vtkMedEntityArray);
+#include "vtkMedMesh.h"
+#include "vtkMedFile.h"
+#include "vtkMedDriver.h"
 
 vtkCxxSetObjectMacro(vtkMedUnstructuredGrid,Coordinates,vtkDataArray);
 
@@ -20,92 +20,62 @@ vtkMedUnstructuredGrid::vtkMedUnstructuredGrid()
 {
 	this->Coordinates = NULL;
 	this->NumberOfPoints = 0;
-	this->CoordinateSystem = MED_CART;
-  this->EntityArray = new vtkObjectVector<vtkMedEntityArray>();
 }
 
 vtkMedUnstructuredGrid::~vtkMedUnstructuredGrid()
 {
 	this->SetCoordinates(NULL);
-	delete this->EntityArray;
 }
 
 int vtkMedUnstructuredGrid::IsCoordinatesLoaded()
 {
-	return this->Coordinates != NULL && this->Coordinates->GetNumberOfTuples()
-			== this->NumberOfPoints;
-}
-
-vtkMedEntityArray* vtkMedUnstructuredGrid::GetEntityArray(med_entite_maillage type, med_geometrie_element geometry)
-{
-	for(int id = 0; id < this->EntityArray->size(); id++)
-		{
-		vtkMedEntityArray* array = this->EntityArray->at(id);
-		if(array->GetType() == type && array->GetGeometry() == geometry)
-			return array;
-		}
-	return NULL;
+  return this->Coordinates != NULL && this->Coordinates->GetNumberOfTuples()
+     == this->NumberOfPoints;
 }
 
 void  vtkMedUnstructuredGrid::InitializeCellGlobalIds()
 {
   vtkIdType ncells = 0;
 
-  med_entite_maillage type = MED_MAILLE;
-  for(int geomIndex = 0; geomIndex < vtkMedUtilities::NumberOfCellGeometry; geomIndex++)
+  for(int entityIndex = 0; entityIndex < MED_N_ENTITY_TYPES; entityIndex++)
     {
-    med_geometrie_element geom = vtkMedUtilities::CellGeometry[geomIndex];
-    vtkMedEntityArray* array = this->GetEntityArray(type, geom);
-    if(array == NULL)
+    vtkMedEntity entity;
+    entity.EntityType = MED_GET_ENTITY_TYPE[entityIndex+1];
+    if(entity.EntityType == MED_NODE)
       continue;
 
-    array->SetInitialGlobalId(ncells + 1);
+    for(int geomIndex = 0; geomIndex < MED_N_CELL_FIXED_GEO; geomIndex++)
+      {
+      entity.GeometryType = MED_GET_CELL_GEOMETRY_TYPE[geomIndex+1];
+      vtkMedEntityArray* array = this->GetEntityArray(entity);
 
-    ncells += array->GetNumberOfEntity();
-    }
+      if(array == NULL)
+        continue;
 
-  type = MED_FACE;
-  for(int geomIndex = 0; geomIndex < vtkMedUtilities::NumberOfFaceGeometry; geomIndex++)
-    {
-    med_geometrie_element geom = vtkMedUtilities::FaceGeometry[geomIndex];
-    vtkMedEntityArray* array = this->GetEntityArray(type, geom);
-    if(array == NULL)
-      continue;
+      array->SetInitialGlobalId(ncells + 1);
 
-    array->SetInitialGlobalId(ncells + 1);
+      ncells += array->GetNumberOfEntity();
+      }
+   }
+}
 
-    ncells += array->GetNumberOfEntity();
-    }
+void  vtkMedUnstructuredGrid::ClearMedSupports()
+{
+	this->Superclass::ClearMedSupports();
+	for(int id = 0; id < this->EntityArray->size(); id++)
+		{
+		vtkMedEntityArray* array = this->EntityArray->at(id);
+		array->Initialize();
+		}
+}
 
-  type = MED_ARETE;
-  for(int geomIndex = 0; geomIndex < vtkMedUtilities::NumberOfEdgeGeometry; geomIndex++)
-    {
-    med_geometrie_element geom = vtkMedUtilities::EdgeGeometry[geomIndex];
-    vtkMedEntityArray* array = this->GetEntityArray(type, geom);
-    if(array == NULL)
-      continue;
-
-    array->SetInitialGlobalId(ncells + 1);
-
-    ncells += array->GetNumberOfEntity();
-    }
-
-  type = MED_NOEUD;
-  for(int geomIndex = 0; geomIndex < vtkMedUtilities::NumberOfVertexGeometry; geomIndex++)
-    {
-    med_geometrie_element geom = vtkMedUtilities::VertexGeometry[geomIndex];
-    vtkMedEntityArray* array = this->GetEntityArray(type, geom);
-    if(array == NULL)
-      continue;
-
-    array->SetInitialGlobalId(ncells + 1);
-
-    ncells += array->GetNumberOfEntity();
-    }
+void  vtkMedUnstructuredGrid::LoadCoordinates()
+{
+	this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
 }
 
 void vtkMedUnstructuredGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
-	PRINT_IVAR(os, indent, NumberOfPoints);
+  this->Superclass::PrintSelf(os, indent);
+  PRINT_IVAR(os, indent, NumberOfPoints);
 }

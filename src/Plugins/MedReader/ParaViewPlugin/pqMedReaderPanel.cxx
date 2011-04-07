@@ -17,9 +17,9 @@
 #include "vtkStringArray.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkProcessModuleConnectionManager.h"
+#include "vtkMedReader.h"
 
 #include "vtkMedUtilities.h"
-#include "vtkSMMedReaderProxy.h"
 
 #include "pqTreeWidgetItemObject.h"
 #include "pqSMAdaptor.h"
@@ -74,18 +74,18 @@ pqMedReaderPanel::pqMedReaderPanel(pqProxy* object_proxy, QWidget* p) :
   this->UI->groupModel->setSourceModel(&this->UI->SILModel);
 
   // connect cell types to "EntityRoot"
-  proxyModel = new pqProxySILModel("CellTypeTree", &this->UI->SILModel);
+  proxyModel = new pqProxySILModel("EntityTree", &this->UI->SILModel);
   proxyModel->setSourceModel(&this->UI->SILModel);
-  this->UI->CellTypes->setModel(proxyModel);
-  this->UI->CellTypes->setHeaderHidden(true);
+  this->UI->Entity->setModel(proxyModel);
+  this->UI->Entity->setHeaderHidden(true);
 
-  this->UI->entityModel = new pqProxySILModel("CellTypes", &this->UI->SILModel);
+  this->UI->entityModel = new pqProxySILModel("Entity", &this->UI->SILModel);
   this->UI->entityModel->setSourceModel(&this->UI->SILModel);
 
   this->updateSIL();
 
   this->UI->Groups->header()->setStretchLastSection(true);
-  this->UI->CellTypes->header()->setStretchLastSection(true);
+  this->UI->Entity->header()->setStretchLastSection(true);
 
   this->linkServerManagerProperties();
 
@@ -101,8 +101,14 @@ pqMedReaderPanel::pqMedReaderPanel(pqProxy* object_proxy, QWidget* p) :
       new pqTreeViewSelectionHelper(tree);
       }
 
-  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
-  this->connect(this->UI->entityModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
+  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()),
+                this, SLOT(setModified()));
+  this->connect(this->UI->entityModel, SIGNAL(valuesChanged()),
+                this, SLOT(setModified()));
+  this->connect(this->UI->TimeCombo, SIGNAL(currentIndexChanged(int)),
+                this, SLOT(setModified()));
+  this->connect(this->UI->GenerateVectors, SIGNAL(stateChanged(int)),
+                this, SLOT(setModified()));
 
   this->UI->tabWidget->setCurrentIndex(0);
 
@@ -132,10 +138,11 @@ void pqMedReaderPanel::addSelectionToTreeWidget(const QString& name,
     const QString& realName, QTreeWidget* tree, PixmapType pix,
     const QString& prop, int propIdx)
 {
-  static QPixmap pixmaps[] = { QPixmap(
-      ":/ParaViewResources/Icons/pqPointData16.png"), QPixmap(
-      ":/ParaViewResources/Icons/pqCellData16.png"), QPixmap(
-      ":/ParaViewResources/Icons/pqQuadratureData16.png") };
+  static QPixmap pixmaps[] = {
+    QPixmap(":/ParaViewResources/Icons/pqPointData16.png"),
+    QPixmap(":/ParaViewResources/Icons/pqCellData16.png"),
+    QPixmap(":/ParaViewResources/Icons/pqQuadratureData16.png"),
+    QPixmap(":/ParaViewResources/Icons/pqElnoData16.png") };
 
   vtkSMProperty* SMProperty = this->proxy()->GetProperty(prop.toAscii().data());
 
@@ -168,7 +175,11 @@ void pqMedReaderPanel::linkServerManagerProperties()
 
   this->UI->Links.addPropertyLink(this->UI->entityModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
-          "CellTypes"));
+          "Entity"));
+
+  this->UI->Links.addPropertyLink(this->UI->GenerateVectors, "checked",
+      SIGNAL(toggled(bool)), this->proxy(), this->proxy()->GetProperty(
+          "GenerateVectors"));
 
   this->Superclass::linkServerManagerProperties();
 
@@ -182,10 +193,13 @@ void pqMedReaderPanel::linkServerManagerProperties()
   this->addSelectionsToTreeWidget("QuadratureFieldsArrayStatus",
       this->UI->Variables, PM_QUADRATURE);
 
-  this->setupTimeModeWidget();
+  // do the Elno variables
+  this->addSelectionsToTreeWidget("ElnoFieldsArrayStatus",
+      this->UI->Variables, PM_ELNO);
+  this->setupAnimationModeWidget();
 }
 
-void pqMedReaderPanel::setupTimeModeWidget()
+void pqMedReaderPanel::setupAnimationModeWidget()
 {
   this->UI->AnimationModeCombo->clear();
   QList<QVariant> modes = pqSMAdaptor::getEnumerationPropertyDomain(
@@ -200,71 +214,44 @@ void pqMedReaderPanel::setupTimeModeWidget()
       SIGNAL(currentIndexChanged(int)), this->proxy(),
       this->proxy()->GetProperty("AnimationMode"));
 
-  this->connect(this->UI->AnimationModeCombo, SIGNAL(currentIndexChanged(int)),
-      this, SLOT(timeModeChanged(int)));
+  this->connect(this->UI->AnimationModeCombo,
+      SIGNAL(currentIndexChanged(int)), this, SLOT(animationModeChanged(int)));
 
-  timeModeChanged(0);
+  this->UI->Links.addPropertyLink(this->UI->TimeCombo, "currentIndex",
+      SIGNAL(currentIndexChanged(int)), this->proxy(),
+      this->proxy()->GetProperty("TimeIndexForIterations"));
 
-  this->connect(this->UI->TimeCombo, SIGNAL(currentIndexChanged(int)), this,
-      SLOT(timeComboChanged(int)));
+  this->addSelectionsToTreeWidget("FrequencyArrayStatus",
+      this->UI->Modes, PM_NONE);
 
-  timeComboChanged(0);
+  vtkSMPropertyHelper helper(this->proxy(), "AnimationMode");
+  int mode = helper.GetAsInt(0);
+  this->animationModeChanged(mode);
+  this->updateAvailableTimes();
 }
 
-void pqMedReaderPanel::timeComboChanged(int timeStep)
+void pqMedReaderPanel::animationModeChanged(int mode)
 {
-  int timeMode = this->UI->AnimationModeCombo->currentIndex();
-  double timeValue;
-
-  if (( timeMode == 2 ) || ( timeMode == 3 ))
-  {
-  vtkSMDoubleVectorProperty* prop = vtkSMDoubleVectorProperty::SafeDownCast(
-      this->proxy()->GetProperty("AvailableTimes"));
-
-  if (( timeStep > prop->GetNumberOfElements()/2 ) || ( timeStep < 0 ))
-  {
-      timeValue = prop->GetElement(0);
-  }
-  else
-  {
-      timeValue = prop->GetElement(2*timeStep);
-  }
-
-  vtkSMDoubleVectorProperty::SafeDownCast(
-              this->proxy()->GetProperty("Time"))->SetElements1(timeValue);
-
-    this->proxy()->UpdateVTKObjects();
-    this->setModified();
-  }
-
-}
-
-void pqMedReaderPanel::timeModeChanged(int timeMode)
-{
-
-  // 0: default / 1: physical time / 2 : iteration / 3 : modes
-  vtkSMIntVectorProperty::SafeDownCast(this->proxy()->GetProperty(
-      "AnimationMode"))->SetElements1(timeMode);
-  if(timeMode == 0 || timeMode == 1)
+  if(mode == vtkMedReader::Default || mode == vtkMedReader::PhysicalTime)
     {
-    this->UI->TimeLabel->setText(tr("Time"));
     this->UI->TimeCombo->hide();
     this->UI->TimeLabel->hide();
+    this->UI->Modes->hide();
     }
-  else if(timeMode == 2)
+  else if(mode == vtkMedReader::Iteration)
     {
-    this->UI->TimeLabel->setText(tr("Time"));
-    this->updateAvailableTimes();
     this->UI->TimeCombo->show();
     this->UI->TimeLabel->show();
+    this->UI->Modes->hide();
     }
-  else
+  else // vtkMedReader::Modes
     {
-    this->UI->TimeLabel->setText(tr("Frequency"));
-    this->updateAvailableTimes();
-    this->UI->TimeCombo->show();
-    this->UI->TimeLabel->show();
+    this->UI->TimeCombo->hide();
+    this->UI->TimeLabel->hide();
+    this->UI->Modes->show();
     }
+  vtkSMPropertyHelper(this->proxy(), "AnimationMode").Set(mode);
+  this->proxy()->UpdateVTKObjects();
   this->setModified();
 }
 
@@ -273,41 +260,39 @@ void pqMedReaderPanel::updateAvailableTimes()
   vtkSMDoubleVectorProperty* prop = vtkSMDoubleVectorProperty::SafeDownCast(
       this->proxy()->GetProperty("AvailableTimes"));
 
-  prop->GetInformationHelper()->UpdateProperty( vtkProcessModuleConnectionManager::GetRootServerConnectionID(),
+  prop->GetInformationHelper()->UpdateProperty(
+      vtkProcessModuleConnectionManager::GetRootServerConnectionID(),
       vtkProcessModule::DATA_SERVER,
       this->proxy()->GetID(),
       prop);
 
-  int timeMode = this->UI->AnimationModeCombo->currentIndex();
   this->UI->TimeCombo->clear();
   double *aux = prop->GetElements();
 
-  for(int tid = 0; tid < prop->GetNumberOfElements()/2; tid++)
-    if (timeMode == 3)
-      this->UI->TimeCombo->addItem( "[" + QString::number(aux[2*tid+1]) + "] " + QString::number(aux[2*tid]) );
-    else
-      this->UI->TimeCombo->addItem( QString::number(aux[2*tid]) );
+  for(int tid = 0; tid < prop->GetNumberOfElements(); tid++)
+    {
+    this->UI->TimeCombo->addItem( QString::number(aux[tid]) );
+    }
 
 }
 
 void pqMedReaderPanel::updateSIL()
 {
-  vtkSMMedReaderProxy* reader = vtkSMMedReaderProxy::SafeDownCast(
-      this->proxy());
-  reader->UpdatePropertyInformation(reader->GetProperty("SILUpdateStamp"));
+  this->proxy()->UpdatePropertyInformation(
+      this->proxy()->GetProperty("SILUpdateStamp"));
 
-  int stamp = vtkSMPropertyHelper(reader, "SILUpdateStamp").GetAsInt();
+  int stamp = vtkSMPropertyHelper(this->proxy(), "SILUpdateStamp").GetAsInt();
   if(stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
     vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
-    pm->GatherInformation(reader->GetConnectionID(),
-        vtkProcessModule::DATA_SERVER, info, reader->GetID());
+    pm->GatherInformation(this->proxy()->GetConnectionID(),
+        vtkProcessModule::DATA_SERVER, info, this->proxy()->GetID());
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
-    this->UI->CellTypes->expandAll();
+    this->UI->Entity->expandAll();
 
     info->Delete();
     }

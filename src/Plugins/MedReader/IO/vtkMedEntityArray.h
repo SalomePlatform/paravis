@@ -3,6 +3,7 @@
 
 #include "vtkObject.h"
 #include "vtkMedSetGet.h"
+#include "vtkMedUtilities.h"
 #include "vtkMed.h"
 
 class vtkMedIntArray;
@@ -10,6 +11,8 @@ class vtkFamilyIdSet;
 class vtkMedFamily;
 class vtkMedFamilyOnEntity;
 class vtkMedMesh;
+class vtkMedGrid;
+class vtkIdList;
 
 class VTK_EXPORT vtkMedEntityArray: public vtkObject
 {
@@ -25,99 +28,131 @@ public:
 
   // Description:
   // the support of the cells : one of
-  // MED_MAILLE, MED_FACE, MED_ARETE, MED_NOEUD, MED_NOEUD_MAILLE
-  vtkSetMacro(Type, med_entite_maillage);
-  vtkGetMacro(Type, med_entite_maillage);
-
-  // Description:
-  // The type of the cells : one of
-  // MED_POINT1, MED_SEG2, MED_SEG3, MED_TRIA3, MED_QUAD4, MED_TRIA6, MED_QUAD8,
-	// MED_TETRA4, MED_PYRA5, MED_PENTA6, MED_HEXA8, MED_TETRA10, MED_PYRA13,
-	// MED_PENTA15, MED_HEXA20, MED_POLYGONE, MED_POLYEDRE
-  vtkSetMacro(Geometry, med_geometrie_element);
-  vtkGetMacro(Geometry, med_geometrie_element);
+  void  SetEntity(const vtkMedEntity& entity){this->Entity = entity;}
+  const vtkMedEntity& GetEntity(){return this->Entity;}
 
   // Description:
   // This connectivity type of this entity : one of
-  // MED_NOD, MED_DESC
-  vtkSetMacro(Connectivity, med_connectivite);
-  vtkGetMacro(Connectivity, med_connectivite);
+  // MED_NODAL, MED_DESCENDING, MED_NO_CMODE
+  vtkSetMacro(Connectivity, med_connectivity_mode);
+  vtkGetMacro(Connectivity, med_connectivity_mode);
 
   // Description:
   // This array stores the family ids of each entity.
-  virtual void	SetConnectivityArray(vtkMedIntArray*);
+  virtual void SetConnectivityArray(vtkMedIntArray*);
   vtkGetObjectMacro(ConnectivityArray, vtkMedIntArray);
 
   // Description:
   // This array stores the connectivity array for this entity.
-  virtual void	SetFamilyIds(vtkMedIntArray*);
-  vtkGetObjectMacro(FamilyIds, vtkMedIntArray);
+  virtual void SetFamilyIds(vtkMedIntArray*);
+  virtual med_int GetFamilyId(med_int id);
 
   // Description:
   // This array stores the global Ids of the entities.
-  virtual void	SetGlobalIds(vtkMedIntArray*);
+  virtual void SetGlobalIds(vtkMedIntArray*);
   vtkGetObjectMacro(GlobalIds, vtkMedIntArray);
 
   // Description:
-  // For polygons, this array stores the index of each edge described in the connectivity array
-  // For polyhedrons, this arrays stores the index of each face described in the Index1 array
-  virtual void	SetIndex0(vtkMedIntArray*);
-  vtkGetObjectMacro(Index0, vtkMedIntArray);
+  // For polygons, this array stores the index of each edge described in
+  // the connectivity array
+  // For polyhedrons, this arrays stores the index of each face described
+  // in the NodeIndex array
+  virtual void SetFaceIndex(vtkMedIntArray*);
+  vtkGetObjectMacro(FaceIndex, vtkMedIntArray);
 
   // Description:
   // For polyhedrons, this arrays can store either
-  // the index of each node of each face described in the Index1 array (node connectivity)
-  // or the type each face described in the Index1 array (hierarchical connectivity)
-  virtual void	SetIndex1(vtkMedIntArray*);
-  vtkGetObjectMacro(Index1, vtkMedIntArray);
+  // the index of each node of each face described in the Index1 array
+  // (node connectivity) or the type each face described in the Index1
+  // array (hierarchical connectivity)
+  virtual void SetNodeIndex(vtkMedIntArray*);
+  vtkGetObjectMacro(NodeIndex, vtkMedIntArray);
 
+  // Description:
+  // Arrays of entities are partitionned over families.
   vtkSetObjectVectorMacro(FamilyOnEntity, vtkMedFamilyOnEntity);
   vtkGetObjectVectorMacro(FamilyOnEntity, vtkMedFamilyOnEntity);
 
   // Description:
+  // For polyhedrons, this arrays can store either
+  // the index of each node of each face described in the Index1 array
+  // (node connectivity) or the type each face described in the Index1
+  // array (hierarchical connectivity)
+  virtual void	SetParentGrid(vtkMedGrid*);
+  vtkGetObjectMacro(ParentGrid, vtkMedGrid);
+
+  // Description:
   // Compute the list of families that are on this array
-  virtual void	ComputeFamilies(vtkMedMesh*);
+  virtual void	ComputeFamilies();
 
   // Description:
   // returns true if there are cells of the given family on this entity.
-  virtual int	HasFamily(vtkMedFamily*);
+  virtual int HasFamily(vtkMedFamily*);
 
   // Description:
-  // returns 1 if the connectivity array is set and matches the number of connectivity elements.
-  virtual int	IsConnectivityLoaded();
+  // returns 1 if the connectivity array is set and matches the number of
+  // connectivity elements.
+  virtual int IsConnectivityLoaded();
 
   // Description:
   // returns 1 if the family ids is set and matches the number of entities.
-  virtual int	IsFamilyIdsLoaded();
+  virtual int IsFamilyIdsLoaded();
 
   // Description:
   // returns 1 if the global ids is set and matches the number of entities.
-  virtual int	IsGlobalIdsLoaded();
+  virtual int IsGlobalIdsLoaded();
 
   // Description :
   // This gives the global id of the first element of this array.
   vtkSetMacro(InitialGlobalId, vtkIdType);
   vtkGetMacro(InitialGlobalId, vtkIdType);
 
+  // Description :
+  // resets all to default status, release memory
+  virtual void Initialize();
+
+  // Description:
+  // Get the indices of the vertices used by a given cell.
+  void  GetCellVertices(vtkIdType, vtkIdList*);
+
+  virtual void  LoadConnectivity();
+
+  // Description:
+  // This flag is set to false when building the
+  // connectivity if it is not valid.
+  vtkGetMacro(Valid, int);
+  vtkSetMacro(Valid, int);
+
 protected:
   vtkMedEntityArray();
   virtual ~vtkMedEntityArray();
 
   vtkIdType NumberOfEntity;
-  med_geometrie_element	Geometry;
-  med_entite_maillage	Type;
-  med_connectivite Connectivity;
+  vtkMedEntity Entity;
+
+  med_connectivity_mode Connectivity;
   vtkIdType InitialGlobalId;
+
+  vtkMedGrid* ParentGrid;
 
   vtkMedIntArray* FamilyIds;
   vtkMedIntArray* GlobalIds;
   vtkMedIntArray* ConnectivityArray;
-  vtkMedIntArray* Index0; // used by polygons and polyhedrons
-  vtkMedIntArray* Index1; // used by polygons and polyhedrons
+  vtkMedIntArray* FaceIndex;
+  vtkMedIntArray* NodeIndex;
+
+  int FamilyIdStatus;
+  enum{
+    FAMILY_ID_NOT_LOADED,
+    FAMILY_ID_IMPLICIT,
+    FAMILY_ID_EXPLICIT
+  };
 
   //BTX
 	vtkObjectVector<vtkMedFamilyOnEntity>* FamilyOnEntity;
 	//ETX
+
+	int Valid;
 
 private:
   vtkMedEntityArray(const vtkMedEntityArray&); // Not implemented.

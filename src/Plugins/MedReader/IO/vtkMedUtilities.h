@@ -3,13 +3,19 @@
 
 #include "vtkObject.h"
 #include "vtkSmartPointer.h"
+#include "vtkMultiBlockDataSet.h"
+#include "vtkStringArray.h"
 #include "vtkMedSetGet.h"
 #include "vtkMed.h"
+#include "vtkMedReader.h"
+#include "vtkMedString.h"
 
 #include <utility>
 #include <string>
 #include <vector>
 #include <list>
+#include <set>
+#include <map>
 
 class vtkDataArray;
 class vtkMedString;
@@ -18,13 +24,90 @@ class vtkMedFamily;
 class vtkMedGroup;
 class vtkIdList;
 class vtkMutableDirectedGraph;
+class vtkInformationIntegerKey;
 
-class VTK_EXPORT vtkMedUtilities: public vtkObject
+//BTX
+class vtkMedComputeStep
+{
+public :
+  med_int IterationIt;
+  med_int TimeIt;
+  med_float TimeOrFrequency;
+
+  vtkMedComputeStep()
+    {
+    this->IterationIt = MED_NO_IT;
+    this->TimeIt = MED_NO_DT;
+    this->TimeOrFrequency = MED_UNDEF_DT;
+    }
+};
+
+bool operator==(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1);
+bool operator!=(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1);
+bool operator<(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1);
+
+class vtkMedEntity
+{
+public :
+  vtkMedEntity() : EntityType(MED_NODE),
+                     GeometryType(MED_NONE),
+                     GeometryName(vtkMedString::New())
+    {
+    this->GeometryName->SetSize(MED_NAME_SIZE);
+    }
+
+  vtkMedEntity(med_entity_type type, med_geometry_type geometry) :
+      EntityType(type),
+      GeometryType(geometry),
+      GeometryName(vtkMedString::New())
+    {
+    this->GeometryName->SetSize(MED_NAME_SIZE);
+    }
+
+  ~vtkMedEntity()
+    {
+    this->GeometryName->Delete();
+    }
+
+  const vtkMedString*  GetGeometryName() const {return this->GeometryName;}
+  vtkMedString*  GetGeometryName() {return this->GeometryName;}
+
+  vtkMedEntity(const vtkMedEntity& entity) :
+      EntityType(entity.EntityType),
+      GeometryType(entity.GeometryType)
+    {
+    this->GeometryName = vtkMedString::New();
+    this->GeometryName->SetSize(MED_NAME_SIZE);
+    this->GeometryName->SetString(entity.GetGeometryName()->GetString());
+    }
+
+  void operator=(const vtkMedEntity& entity)
+    {
+    this->EntityType = entity.EntityType;
+    this->GeometryType = entity.GeometryType;
+    this->GeometryName = vtkMedString::New();
+    this->GeometryName->SetSize(MED_NAME_SIZE);
+    this->GeometryName->SetString(entity.GetGeometryName()->GetString());
+    }
+
+  med_entity_type EntityType;
+  med_geometry_type GeometryType;
+
+protected :
+  vtkMedString* GeometryName;
+};
+
+bool operator==(const vtkMedEntity& cs0, const vtkMedEntity& cs1);
+bool operator!=(const vtkMedEntity& cs0, const vtkMedEntity& cs1);
+bool operator<(const vtkMedEntity& cs0, const vtkMedEntity& cs1);
+//ETX
+
+class VTK_EXPORT vtkMedUtilities
 {
 public:
-  static vtkMedUtilities* New();
-vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
-  void PrintSelf(ostream& os, vtkIndent indent);
+  static vtkInformationIntegerKey* ELNO();
+  static vtkInformationIntegerKey* ELGA();
+  static vtkInformationStringVectorKey* BLOCK_NAME();
 
   // Description:
   // return an array to store the coordinates of nodes.
@@ -34,7 +117,7 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   // Description:
   // returns an array to store data of a given type.
   // the type corresponds to med types.
-  static vtkDataArray* NewArray(med_type_champ type);
+  static vtkDataArray* NewArray(med_field_type type);
 
   //BTX
   enum
@@ -45,75 +128,69 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
 
   //BTX
   // Description:
-  // returns the ith med_geometrie_element
-  static const int NumberOfCellGeometry=MED_NBR_GEOMETRIE_MAILLE+3;
-  static const med_geometrie_element CellGeometry[NumberOfCellGeometry];
-  static const int NumberOfFaceGeometry=MED_NBR_GEOMETRIE_FACE+1;
-  static const med_geometrie_element FaceGeometry[NumberOfFaceGeometry];
-  static const int NumberOfEdgeGeometry=MED_NBR_GEOMETRIE_ARETE;
-  static const med_geometrie_element EdgeGeometry[NumberOfEdgeGeometry];
-  static const int NumberOfVertexGeometry=1;
-  static const med_geometrie_element VertexGeometry[NumberOfVertexGeometry];
+  // returns a name for the given med_geometry_type
+  static const char* GeometryName(med_geometry_type geometry);
 
   // Description:
-  // returns a name for the given med_geometrie_element
-  static const char* GeometryName(med_geometrie_element geometry);
+  // returns a name for the given med_geometry_type
+  static const char* EntityName(med_entity_type type);
 
   // Description:
-  // returns a name for the given med_geometrie_element
-  static const char* TypeName(med_entite_maillage type);
+  // returns a name for the given med_connectivity_mode
+  static const char* ConnectivityName(med_connectivity_mode conn);
 
-  // Description:
-  // returns a name for the given med_connectivite
-  static const char* ConnectivityName(med_connectivite conn);
+//  // Description:
+//  // returns the ith med_connectivity_mode
+//  static const int NumberOfConnectivity = 2;
+//  static const med_connectivity_mode Connectivity[NumberOfConnectivity];
 
-  // Description:
-  // returns the ith med_connectivite
-  static const int NumberOfConnectivity=2;
-  static const med_connectivite Connectivity[NumberOfConnectivity];
-
-  // Description:
-  // returns the ith med_entite_maillage
-  static const int NumberOfEntityType=5;
-  static const med_entite_maillage EntityType[NumberOfEntityType];
+//  // Description:
+//  // returns the ith med_entity_type
+//  static const int NumberOfEntityType = 7;
+//  static const med_entity_type EntityType[NumberOfEntityType];
 
   static const std::string SimplifyName(const char* medName);
   static const std::string SimplifyName(const vtkMedString*);
+
+  static const std::string FamilyKey(vtkMedString* meshName, int pointOrCell,
+      vtkMedString* familyName);
+  static const std::string GroupKey(vtkMedString* meshName, int pointOrCell,
+      vtkMedString* groupName);
 
   static const std::string FamilyKey(const char* meshName, int pointOrCell,
       const char* familyName);
   static const std::string GroupKey(const char* meshName, int pointOrCell,
       const char* groupName);
 
-  static const std::string
-  CellTypeKey(med_entite_maillage type, med_geometrie_element geometry);
+  static const std::string EntityKey(const vtkMedEntity&);
 
-  static int GetNumberOfPoint(med_geometrie_element geometry);
-  static int GetDimension(med_geometrie_element geometry);
+  static int GetNumberOfPoint(med_geometry_type geometry);
+  static int GetDimension(med_geometry_type geometry);
 
   // returns the VTK cell type (as described in the vtkCellType.h file)
-  // corresponding to the given med_geometrie_element
-  static int GetVTKCellType(med_geometrie_element geometry);
+  // corresponding to the given med_geometry_type
+  static int GetVTKCellType(med_geometry_type geometry);
 
   // returns the number of sub entity : the number of faces for cells,
   // the number of edges for faces, the number of nodes for edges
-  static int GetNumberOfSubEntity(med_geometrie_element geometry);
+  static int GetNumberOfSubEntity(med_geometry_type geometry);
   //ETX
 
-  static med_entite_maillage GetSubType(med_entite_maillage type);
-  static med_geometrie_element GetSubGeometry(med_geometrie_element geometry,
+  static med_entity_type GetSubType(med_entity_type type);
+  static med_geometry_type GetSubGeometry(med_geometry_type geometry,
       int index);
 
-  static int GetParentNodeIndex(med_geometrie_element parentGeometry,
+  static int GetParentNodeIndex(med_geometry_type parentGeometry,
       int subEntityIndex, int subEntityNodeIndex);
 
   // Description :
   // Project the ids gathered in the sub entity to the parent entity.
   // used for MED_DESC connectivity.
-  // Rem : no check is performed, and do not work for MED_POLYHEDRE
-  // and MED_POLYGON
-  static void ProjectConnectivity(med_geometrie_element parentGeometry,
-      vtkIdList* parentIds, vtkIdList* subEntityIds, int subEntityIndex);
+  // Rem : no check is performed, and do not work for
+  // MED_POLYHEDRE and MED_POLYGON
+  static void ProjectConnectivity(med_geometry_type parentGeometry,
+      vtkIdList* parentIds, vtkIdList* subEntityIds, int subEntityIndex,
+      bool invert);
 
   static char Separator;
 
@@ -124,6 +201,14 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
   //BTX
   static void SplitGroupKey(const char* name, vtkstd::string& mesh,
       vtkstd::string& entity, vtkstd::string& group);
+
+  static std::string GetModeKey(int index, double frequency);
+  static int  GetModeFromKey(const char*, int& index, double& frequency);
+
+  static int MedToVTKIndex(int vtktype, int node);
+
+  static vtkMultiBlockDataSet* GetParent(vtkMultiBlockDataSet* root,
+                                  vtkStringArray* path);
   //ETX
 };
 
@@ -132,6 +217,167 @@ vtkTypeRevisionMacro(vtkMedUtilities, vtkObject)
 template<class T>
 class vtkObjectVector: public std::vector<vtkSmartPointer<T> >
 {
+};
+
+template<class T>
+class vtkMedComputeStepMap: public
+    std::map<med_int, std::map<med_int, vtkSmartPointer<T> > >
+{
+public :
+  void  AddObject(const vtkMedComputeStep& cs, T* obj)
+    {
+    (*this)[cs.TimeIt][cs.IterationIt] = obj;
+    this->TimeIt[cs.TimeOrFrequency] = cs.TimeIt;
+    }
+
+  T* GetObject(const vtkMedComputeStep& cs)
+    {
+    if(this->find(cs.TimeIt) == this->end())
+      return NULL;
+
+    std::map<med_int, vtkSmartPointer<T> >& itmap = (*this)[cs.TimeIt];
+
+    if(itmap.find(cs.IterationIt) == itmap.end())
+      return NULL;
+
+    return itmap[cs.IterationIt];
+    }
+
+  med_int GetNumberOfObject()
+    {
+    med_int nb = 0;
+    typename vtkMedComputeStepMap<T>::iterator it = this->begin();
+    while(it != this->end())
+      {
+      nb += it->second.size();
+      it++;
+      }
+    return nb;
+    }
+
+  T* GetObject(med_int id)
+    {
+    med_int nb = 0;
+    if(id < 0)
+      return NULL;
+
+    typename vtkMedComputeStepMap<T>::iterator it = this->begin();
+    while(it != this->end())
+      {
+      std::map<med_int, vtkSmartPointer<T> >& itmap = it->second;
+      nb += itmap.size();
+      if(id < nb)
+        {
+        typename std::map<med_int, vtkSmartPointer<T> >::iterator iterationit =
+            itmap.begin();
+        for(int ii=0; ii<nb-id-1; ii++)
+          iterationit++;
+        return iterationit->second;
+        }
+      it++;
+      }
+    return NULL;
+    }
+
+  T* FindObject(const vtkMedComputeStep& cs, int strategy)
+    {
+    // first test if the given compute step is present
+    T* obj = this->GetObject(cs);
+    if(obj != NULL)
+      return obj;
+
+    if(this->size() == 0)
+      return NULL;
+
+    // let us first find the iterator that corresponds to the given time
+    med_int timeit = this->FindTimeIterator(cs.TimeOrFrequency, cs.TimeIt);
+
+    std::map<med_int, vtkSmartPointer<T> >& itmap =
+        (*this)[timeit];
+
+    if(itmap.size() == 0)
+      return NULL;
+
+    if(strategy == vtkMedReader::PhysicalTime
+       || strategy == vtkMedReader::Modes)
+      {
+      // in this strategies, we return the last iteration for each time.
+      return itmap.rbegin()->second;
+      }
+    else if(strategy == vtkMedReader::Iteration)
+      {
+      // in this case, we look for the real iteration
+      typename std::map<med_int, vtkSmartPointer<T> >::iterator iterationit
+          = itmap.lower_bound(cs.IterationIt);
+
+      // if this is not exactly the same step and if this is not the first
+      // step, rool back one step to choose the one just before the asked time.
+      if(iterationit->first != cs.IterationIt && iterationit != itmap.begin())
+        iterationit--;
+
+      // the time iterator asked for is higher than all times,
+      // let us pick the last one.
+      if(iterationit == itmap.end())
+        iterationit--;
+
+      return iterationit->second;
+      }
+    }
+
+  void  GatherTimes(std::set<med_float>& times)
+    {
+    typename std::map<med_float, med_int>::iterator it
+        = this->TimeIt.begin();
+    while(it != this->TimeIt.end())
+      {
+      times.insert(it->first);
+      it++;
+      }
+    }
+
+  void  GatherIterations(med_float time, std::set<med_int>& iterations)
+    {
+    med_int timeit = this->FindTimeIterator(time, -1);
+    if(timeit == -1)
+      return;
+
+    std::map<med_int, vtkSmartPointer<T> >& itmap =
+        (*this)[timeit];
+
+    typename std::map<med_int, vtkSmartPointer<T> >::iterator it =
+        itmap.begin();
+
+    while(it != itmap.end())
+      {
+      iterations.insert(it->first);
+      it++;
+      }
+    }
+
+protected :
+
+  med_int FindTimeIterator(med_float time, med_int defaultit)
+    {
+    if(this->TimeIt.size() == 0)
+      return defaultit;
+
+    typename std::map<med_float, med_int>::iterator it
+        = this->TimeIt.lower_bound(time);
+
+    // if this is not exactly the same step and if this is not the first step,
+    // rool back one step to choose the one just before the asked time.
+    if(it->first != time && it != this->TimeIt.begin())
+      it--;
+
+    // if the time iterator asked for is higher than all times,
+    // let us pick the last one.
+    if(it == this->TimeIt.end())
+      it--;
+
+    return it->second;
+    }
+
+  std::map<med_float, med_int> TimeIt;
 };
 
 template<class T>
@@ -156,8 +402,6 @@ struct IsSameTraits<T1, T1>
     return true;
   }
 };
-
-typedef std::pair<med_entite_maillage, med_geometrie_element> Entity;
 
 #define PRINT_IVAR(os, indent, name) \
 	os << indent << #name << " : "  << name << endl;

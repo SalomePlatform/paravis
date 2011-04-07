@@ -13,6 +13,11 @@ vtkMedPolarGrid::~vtkMedPolarGrid()
 {
 }
 
+void  vtkMedPolarGrid::LoadCoordinates()
+{
+  //TODO
+}
+
 void vtkMedPolarGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

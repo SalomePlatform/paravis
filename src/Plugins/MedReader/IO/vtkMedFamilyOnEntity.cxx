@@ -5,55 +5,96 @@
 #include "vtkMedFamily.h"
 #include "vtkMedEntityArray.h"
 #include "vtkMedMesh.h"
+#include "vtkMedGrid.h"
+#include "vtkMedFamilyOnEntityOnProfile.h"
 
-vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, Family, vtkMedFamily)
-vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, EntityArray, vtkMedEntityArray)
-vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, Mesh, vtkMedMesh)
+vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, Family, vtkMedFamily);
+vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, EntityArray, vtkMedEntityArray);
 
-vtkCxxRevisionMacro(vtkMedFamilyOnEntity, "$Revision$")
+vtkCxxSetObjectMacro(vtkMedFamilyOnEntity, ParentGrid,vtkMedGrid);
+
+vtkCxxRevisionMacro(vtkMedFamilyOnEntity, "$Revision$");
 vtkStandardNewMacro(vtkMedFamilyOnEntity)
 
 vtkMedFamilyOnEntity::vtkMedFamilyOnEntity()
 {
   this->Family = NULL;
-  this->Mesh = NULL;
   this->EntityArray = NULL;
-  this->AllPoints = -1;
+  this->ParentGrid = NULL;
 }
 
 vtkMedFamilyOnEntity::~vtkMedFamilyOnEntity()
 {
   this->SetFamily(NULL);
   this->SetEntityArray(NULL);
-  this->SetMesh(NULL);
+  this->SetParentGrid(NULL);
 }
 
-med_entite_maillage vtkMedFamilyOnEntity::GetType()
+vtkMedEntity vtkMedFamilyOnEntity::GetEntity()
 {
   if(this->EntityArray != NULL)
-    return this->EntityArray->GetType();
-  return MED_NOEUD;
-}
+    {
+    return this->EntityArray->GetEntity();
+    }
 
-med_geometrie_element vtkMedFamilyOnEntity::GetGeometry()
-{
-  if(this->EntityArray != NULL)
-    return this->EntityArray->GetGeometry();
-  return MED_NONE;
+  return vtkMedEntity(MED_NODE, MED_POINT1);
 }
 
 int vtkMedFamilyOnEntity::GetPointOrCell()
 {
-  if(this->GetType() == MED_NOEUD)
+  if(this->GetEntity().EntityType == MED_NODE)
     return vtkMedUtilities::OnPoint;
   return vtkMedUtilities::OnCell;
 }
 
 int vtkMedFamilyOnEntity::GetVertexOnly()
 {
-  return this->GetPointOrCell() == vtkMedUtilities::OnPoint
-      || this->EntityArray == NULL || this->EntityArray->GetGeometry()
-      == MED_POINT1 || this->EntityArray->GetGeometry() == MED_NONE;
+  if(this->GetPointOrCell() == vtkMedUtilities::OnPoint ||
+     this->EntityArray == NULL)
+    return true;
+
+  vtkMedEntity entity = this->EntityArray->GetEntity();
+  if(entity.EntityType == MED_POINT1 || entity.GeometryType == MED_NONE)
+    return true;
+
+  return false;
+}
+
+void  vtkMedFamilyOnEntity::AddFamilyOnEntityOnProfile(
+    vtkMedFamilyOnEntityOnProfile* foep)
+{
+  this->FamilyOnEntityOnProfile[foep->GetProfile()] = foep;
+}
+
+int vtkMedFamilyOnEntity::GetNumberOfFamilyOnEntityOnProfile()
+{
+  return this->FamilyOnEntityOnProfile.size();
+}
+
+vtkMedFamilyOnEntityOnProfile* vtkMedFamilyOnEntity::
+    GetFamilyOnEntityOnProfile(vtkMedProfile* profile)
+{
+  if(this->FamilyOnEntityOnProfile.find(profile)
+    != this->FamilyOnEntityOnProfile.end())
+    return this->FamilyOnEntityOnProfile[profile];
+
+  return NULL;
+}
+
+vtkMedFamilyOnEntityOnProfile* vtkMedFamilyOnEntity::
+    GetFamilyOnEntityOnProfile(int index)
+{
+  if(index < 0 || index >= this->FamilyOnEntityOnProfile.size())
+    return NULL;
+
+  std::map<vtkMedProfile*,
+  vtkSmartPointer<vtkMedFamilyOnEntityOnProfile> >::iterator it =
+  this->FamilyOnEntityOnProfile.begin();
+
+  for(int ii=0; ii<index; ii++)
+    it++;
+
+  return it->second;
 }
 
 void vtkMedFamilyOnEntity::PrintSelf(ostream& os, vtkIndent indent)
@@ -61,5 +102,4 @@ void vtkMedFamilyOnEntity::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os, indent);
   PRINT_OBJECT(os, indent, Family);
   PRINT_OBJECT(os, indent, EntityArray);
-  os << indent << "Mesh : " << this->Mesh << endl;
 }

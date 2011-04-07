@@ -5,12 +5,8 @@ import re
 classeslistsm = []
 classeslistvtk = []
 
-if os.name == "posix":
-    from libvtkPVServerCommonPython import *
-    from libvtkPVServerManagerPython import *
-else:
-    from vtkPVServerCommonPython import *
-    from vtkPVServerManagerPython import *
+from vtkPVServerCommonPython import *
+from vtkPVServerManagerPython import *
 
 l1 = dir()
 for a in l1:

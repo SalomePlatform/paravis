@@ -4,56 +4,81 @@
 #include "vtkObject.h"
 #include "vtkMedSetGet.h"
 #include "vtkMed.h"
+#include "vtkMedUtilities.h"
 
-class vtkMedFieldStepOnMesh;
 class vtkMedString;
 class vtkMedMesh;
 class vtkDataArray;
+class vtkMedFieldOverEntity;
+class vtkMedField;
 
 class VTK_EXPORT vtkMedFieldStep: public vtkObject
 {
 public:
 	static vtkMedFieldStep* New();
-vtkTypeRevisionMacro(vtkMedFieldStep, vtkObject)
+	vtkTypeRevisionMacro(vtkMedFieldStep, vtkObject);
 	void PrintSelf(ostream& os, vtkIndent indent);
 
 	// Description:
-	// The physical time of this step
-	vtkSetMacro(Time, med_float);
-	vtkGetMacro(Time, med_float);
+	// This iterator is used when reading information from the med file
+	vtkSetMacro(MedIterator, med_int);
+	vtkGetMacro(MedIterator, med_int);
 
 	// Description:
-	// The id of the physical time of this step
-	vtkSetMacro(TimeId, med_int);
-	vtkGetMacro(TimeId, med_int);
+	// The compute step of this field
+	void	SetComputeStep(const vtkMedComputeStep& cs)
+		{
+		this->ComputeStep = cs;
+		}
+	const vtkMedComputeStep& GetComputeStep() const
+		{
+		return this->ComputeStep;
+		}
 
 	// Description:
-	// The iteration of this step
-	vtkSetMacro(Iteration, med_int);
-	vtkGetMacro(Iteration, med_int);
+	// The compute step of the mesh supporting this field at this step
+	void	SetMeshComputeStep(const vtkMedComputeStep& cs)
+		{
+		this->MeshComputeStep = cs;
+		}
+	const vtkMedComputeStep& GetMeshComputeStep() const
+		{
+		return this->MeshComputeStep;
+		}
+
+  // Description:
+  // Set the number of steps of this field over these cells.
+  vtkGetObjectVectorMacro(FieldOverEntity, vtkMedFieldOverEntity);
+  vtkSetObjectVectorMacro(FieldOverEntity, vtkMedFieldOverEntity);
 
 	// Description:
-	// The physical time of this step
-	vtkGetObjectMacro(TimeUnit, vtkMedString);
+	// returns the vtkMedFieldOverEntity for the given Type and Geometry;
+	virtual vtkMedFieldOverEntity*
+					GetFieldOverEntity(const vtkMedEntity&);
 
 	// Description:
-	// the number of mesh this field is associated with.
-	vtkGetObjectVectorMacro(StepOnMesh, vtkMedFieldStepOnMesh);
-	vtkSetObjectVectorMacro(StepOnMesh, vtkMedFieldStepOnMesh);
-	virtual vtkMedFieldStepOnMesh* GetStepOnMesh(vtkMedMesh*);
+	// The parent field is the one that owns this step
+	virtual void	SetParentField(vtkMedField*);
+	vtkGetObjectMacro(ParentField, vtkMedField);
+
+	// Description:
+	// The parent field is the one that owns this step
+	virtual void	SetPreviousStep(vtkMedFieldStep*);
+	vtkGetObjectMacro(PreviousStep, vtkMedFieldStep);
 
 protected:
 	vtkMedFieldStep();
 	virtual ~vtkMedFieldStep();
 
-	med_float Time;
-	med_int TimeId;
-	med_int Iteration;
-	vtkMedString* TimeUnit;
-	//BTX
-	vtkObjectVector<vtkMedFieldStepOnMesh>* StepOnMesh;
-	//ETX
+	med_int MedIterator;
+	vtkMedComputeStep ComputeStep;
+	vtkMedComputeStep MeshComputeStep;
+	vtkMedField* ParentField;
+	vtkMedFieldStep* PreviousStep;
 
+  //BTX
+  vtkObjectVector<vtkMedFieldOverEntity>* FieldOverEntity;
+  //ETX
 
 private:
 	vtkMedFieldStep(const vtkMedFieldStep&); // Not implemented.

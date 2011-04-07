@@ -1,7 +1,6 @@
 #include "vtkMedReader.h"
 
 #include "vtkMedFile.h"
-#include "vtkMedFactory.h"
 #include "vtkMedDriver.h"
 #include "vtkMedUtilities.h"
 #include "vtkMedFamily.h"
@@ -9,19 +8,21 @@
 #include "vtkMedMesh.h"
 #include "vtkMedUnstructuredGrid.h"
 #include "vtkMedEntityArray.h"
-#include "vtkMedAttribute.h"
 #include "vtkMedField.h"
 #include "vtkMedString.h"
 #include "vtkMedFieldStep.h"
-#include "vtkMedFieldStepOnMesh.h"
 #include "vtkMedFieldOverEntity.h"
 #include "vtkMedProfile.h"
 #include "vtkMedIntArray.h"
-#include "vtkMedQuadratureDefinition.h"
+#include "vtkMedLocalization.h"
 #include "vtkMedFamilyOnEntity.h"
+#include "vtkMedFieldOnProfile.h"
+#include "vtkMedSelection.h"
+#include "vtkMedFamilyOnEntityOnProfile.h"
+#include "vtkMedLink.h"
+#include "vtkMedInterpolation.h"
 
 #include "vtkObjectFactory.h"
-#include "vtkDataArraySelection.h"
 #include "vtkMutableDirectedGraph.h"
 #include "vtkStringArray.h"
 #include "vtkDataSetAttributes.h"
@@ -44,12 +45,10 @@
 #include "vtkCellArray.h"
 #include "vtkDoubleArray.h"
 #include "vtkConfigure.h"
+#include "vtkMultiProcessController.h"
 
 #include "vtkSMDoubleVectorProperty.h"
 #include "vtkInformationDataObjectKey.h"
-
-vtkInformationKeyMacro(vtkMedReader, SELECTED_SIL, DataObject)
-;
 
 #include <deque>
 #include <map>
@@ -64,37 +63,14 @@ using namespace std;
 struct VTKField
 {
   vtkSmartPointer<vtkDataArray> DataArray;
+  vtkSmartPointer<vtkDataArray> Vectors;
   vtkSmartPointer<vtkIdTypeArray> QuadratureIndexArray;
 };
 
-struct TimedFieldOverEntity
-{
-  vtkMedFieldOverEntity* Entity;
-  vtkMedFieldStep* Step;
-  vtkMedFieldStepOnMesh* StepOnMesh;
-};
+class vtkMedListOfFieldSteps : public std::list<vtkMedFieldStep*>
+{};
 
-class ComputeStep: public pair<int, int>
-{
-};
-
-struct TimedField: public pair<vtkMedField*, ComputeStep>
-{
-};
-
-// list of quadrature offset index in the file
-typedef med_int QuadratureKey;
-
-bool operator<(const TimedFieldOverEntity& x, const TimedFieldOverEntity& y)
-{
-  if(x.Entity!=y.Entity)
-    return x.Entity<y.Entity;
-
-  if(x.Step!=y.Step)
-    return x.Step<y.Step;
-
-  return x.StepOnMesh<y.StepOnMesh;
-}
+typedef int LocalizationKey;
 
 class vtkMedReader::vtkMedReaderInternal
 {
@@ -109,76 +85,64 @@ public:
   vtkTimeStamp FamilySelectionMTime;
   int SILUpdateStamp;
   int RealAnimationMode;
-  vtkDataArraySelection* Families;
+  vtkMedSelection* Families;
 
-  // for each vtkMedField, store all the ordered time steps, and for each time store the ordered iterations
-  map<vtkMedField*, vector<pair<double, vector<med_int> > > > StepCache;
-  map<vtkMedField*, map<double, med_int> > TimeIds;
+  // this stores the aggregation of all compute steps from
+  // both meshes and fields.
+  std::map<med_float, std::set<med_int> > GlobalComputeStep;
 
-  // Store the vtkMutableDirectedGraph that represents links between family, groups and attributes, and cell types
+  // Store the vtkMutableDirectedGraph that represents links between family, groups and cell types
   vtkMutableDirectedGraph* SIL;
-  vtkMutableDirectedGraph* SelectedSIL;
 
   // this map is used to keep clean data sets in the cache, without any field.
   // for each support, store the vtkDataSet
-  map<vtkMedFamilyOnEntity*, vtkSmartPointer<vtkDataSet> > DataSetCache;
+  map<vtkMedFamilyOnEntityOnProfile*, vtkSmartPointer<vtkDataSet> > DataSetCache;
 
   // this is the current dataset for the given support.
-  map<vtkMedFamilyOnEntity*, vtkDataSet*> CurrentDataSet;
+  map<vtkMedFamilyOnEntityOnProfile*, vtkDataSet*> CurrentDataSet;
 
   // for each support, cache the VTK arrays that correspond to a given field at the given step.
-  map<vtkMedFamilyOnEntity*, map<TimedField, VTKField> > FieldCache;
-  map<vtkMedFamilyOnEntity*, map<TimedField, bool> > FieldMatchCache;
+  map<vtkMedFamilyOnEntityOnProfile*, map<vtkMedFieldOnProfile*, VTKField> > FieldCache;
+  //map<vtkMedFamilyOnEntity*, map<vtkMedFieldOnProfile*, bool> > FieldMatchCache;
 
-  // for each FamilyOnEntity, cache the TimedFieldOverEntity.
-  map<TimedField, map<vtkMedFamilyOnEntity*, TimedFieldOverEntity> >
-      FieldOnFamilyOnEntityCache;
+  // This list keep tracks of all the currently selected supports
+  set<vtkMedFamilyOnEntityOnProfile*> UsedSupports;
 
-  // This list keep tracks of all the selected supports
-  set<vtkMedFamilyOnEntity*> UsedSupports;
-
-  // this map keeps for each support, the quadrature offset array so that different fields on the same support can use
-  // the same offset array, provided they use the same gauss points definitions (given by the index in the med file)
-  map<vtkMedFamilyOnEntity*,
-      map<QuadratureKey, vtkSmartPointer<vtkIdTypeArray> > >
+  // this map keeps for each support, the quadrature offset array so that
+  // different fields on the same support can use
+  // the same offset array, provided they use the same gauss points definitions
+  map<vtkMedFamilyOnEntityOnProfile*,
+      map<LocalizationKey, vtkSmartPointer<vtkIdTypeArray> > >
       QuadratureOffsetCache;
 
-  map<vtkMedFamilyOnEntity*, map<TimedField, QuadratureKey> > QuadOffsetKey;
+  map<vtkMedFamilyOnEntityOnProfile*,
+      map<vtkMedFieldOnProfile*, LocalizationKey> > QuadOffsetKey;
 
-  map<pair<vtkMedFamilyOnEntity*, vtkMedProfile*> , pair<bool, bool> >
-      ProfileMatch;
-
-  map<vtkMedField*, ComputeStep> CurrentStep;
-
-  map<vtkMedFamilyOnEntity*, vtkstd::map<vtkIdType, vtkIdType> >
-      Med2VTKPointIndex;
-
-  map<vtkMedFamilyOnEntity*, vtkSmartPointer<vtkUnsignedCharArray> >
-      UsedPointsOnCellSupportCache;
+  std::map<std::string, vtkSmartPointer<vtkMedFile> > MedFiles;
 
   vtkMedReaderInternal()
   {
     this->SIL=vtkMutableDirectedGraph::New();
-    this->SelectedSIL=vtkMutableDirectedGraph::New();
     this->SILUpdateStamp=-1;
     this->RealAnimationMode=vtkMedReader::PhysicalTime;
-    this->Families=vtkDataArraySelection::New();
+    this->Families=vtkMedSelection::New();
+    this->FamilySelectionMTime.Modified();
+    this->GroupSelectionMTime.Modified();
   }
   ~vtkMedReaderInternal()
   {
     this->SIL->Delete();
-    this->SelectedSIL->Delete();
     this->Families->Delete();
   }
 
-  void ClearSupportCache(vtkMedFamilyOnEntity* foe)
+  void ClearSupportCache(vtkMedFamilyOnEntityOnProfile* foep)
   {
-    this->Med2VTKPointIndex.erase(foe);
-    this->QuadratureOffsetCache.erase(foe);
-    this->FieldMatchCache.erase(foe);
-    this->FieldCache.erase(foe);
-    this->CurrentDataSet.erase(foe);
-    this->DataSetCache.erase(foe);
+    //this->Med2VTKPointIndex.erase(foep);
+    this->QuadratureOffsetCache.erase(foep);
+    //this->FieldMatchCache.erase(foe);
+    this->FieldCache.erase(foep);
+    this->CurrentDataSet.erase(foep);
+    this->DataSetCache.erase(foep);
   }
 
   vtkIdType GetChild(vtkIdType parent, const vtkStdString childName)
@@ -216,41 +180,39 @@ public:
 
 };
 
-vtkSetObjectImplementationMacro(vtkMedReader,MedDriver,vtkMedDriver)
-vtkSetObjectImplementationMacro(vtkMedReader,MedFile,vtkMedFile)
-
-vtkCxxRevisionMacro(vtkMedReader, "$Revision$")
-vtkStandardNewMacro(vtkMedReader)
+vtkCxxRevisionMacro(vtkMedReader, "$Revision$");
+vtkStandardNewMacro(vtkMedReader);
 
 vtkMedReader::vtkMedReader()
 {
   this->FileName=NULL;
   this->SetNumberOfInputPorts(0);
-  this->PointFields=vtkDataArraySelection::New();
-  this->CellFields=vtkDataArraySelection::New();
-  this->QuadratureFields=vtkDataArraySelection::New();
-  this->Entities=vtkDataArraySelection::New();
-  this->Groups=vtkDataArraySelection::New();
+  this->PointFields=vtkMedSelection::New();
+  this->CellFields=vtkMedSelection::New();
+  this->QuadratureFields=vtkMedSelection::New();
+  this->ElnoFields=vtkMedSelection::New();
+  this->Entities=vtkMedSelection::New();
+  this->Groups=vtkMedSelection::New();
+  this->Frequencies=vtkMedSelection::New();
   this->AnimationMode=Default;
-  this->Time=0.0;
-  this->MedFile=NULL;
-  this->MedDriver=NULL;
+  this->TimeIndexForIterations=0;
   this->CacheStrategy=CacheGeometry;
   this->Internal=new vtkMedReaderInternal;
   this->TimePrecision=0.00001;
   this->AvailableTimes=vtkDoubleArray::New();
+  this->GenerateVectors = 0;
 }
 
 vtkMedReader::~vtkMedReader()
 {
-  this->SetMedDriver(NULL);
   this->SetFileName(NULL);
   this->PointFields->Delete();
   this->CellFields->Delete();
   this->QuadratureFields->Delete();
+  this->ElnoFields->Delete();
   this->Entities->Delete();
   this->Groups->Delete();
-  this->SetMedFile(NULL);
+  this->Frequencies->Delete();
   delete this->Internal;
   this->AvailableTimes->Delete();
 }
@@ -270,7 +232,7 @@ void vtkMedReader::SetFileName(const char* fname)
   modified=1;
   if(this->FileName)
     delete[] this->FileName;
-  if(fname)
+  if (fname)
     {
     size_t fnl=strlen(fname)+1;
     char* dst=new char[fnl];
@@ -280,17 +242,16 @@ void vtkMedReader::SetFileName(const char* fname)
       {
       *dst++=*src++;
       }
-    while(--fnl);
+    while (--fnl);
     }
   else
     {
     this->FileName=0;
     }
-  if(modified)
+  if (modified)
     {
     this->Modified();
-    this->SetMedFile(NULL);
-    this->SetMedDriver(NULL);
+    this->Internal->MedFiles.clear();
     this->Internal->FileNameMTime.Modified();
     }
 }
@@ -299,101 +260,130 @@ int vtkMedReader::CanReadFile(const char* fname)
 {
   // the factory give a driver only when it can read the file version,
   // or it returns a NULL pointer.
-  vtkMedDriver* driver=NewMedDriver(fname);
+  vtkSmartPointer<vtkMedFile> file=vtkSmartPointer<vtkMedFile>::New();
+  file->SetFileName(fname);
 
-  if(driver==NULL)
+  if(!file->CreateDriver())
     return 0;
 
-  driver->Delete();
   return 1;
 }
 
 int vtkMedReader::RequestInformation(vtkInformation *request,
     vtkInformationVector **inputVector, vtkInformationVector *outputVector)
 {
-  vtkInformation* outInfo=outputVector->GetInformationObject(0);
-  if(this->Internal->MetaDataMTime<=this->Internal->FileNameMTime)
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  if(this->Internal->MetaDataMTime <= this->Internal->FileNameMTime)
     {
     this->ClearCaches(Initialize);
 
     vtkInformation* outInfo=outputVector->GetInformationObject(0);
 
-    vtkMedDriver* driver=NewMedDriver(this->FileName);
-    this->SetMedDriver(driver);
-    // if the returned driver is NULL, this means that the file cannot be opened.
-    if(driver)
+    vtkMedFile* file=vtkMedFile::New();
+    file->SetFileName(this->FileName);
+    this->Internal->MedFiles[this->FileName] = file;
+    file->Delete();
+
+    std::list<vtkMedFile*> file_stack;
+    file_stack.push_back(file);
+
+    // if the file cannot create a driver, this means that the filename is not
+    // valid, or that I do not know how to read this file.
+    while (file_stack.size() > 0)
       {
-      driver->Delete();
+      vtkMedFile* file = file_stack.front();
+      file_stack.pop_front();
+      // This reads information from disk
+      file->ReadInformation();
 
-      vtkMedFile* file=vtkMedFile::New();
-      this->SetMedFile(file);
-      file->Delete();
-
-      driver->ReadMeta(file);
-      this->InitializeCellGlobalIds();
-
-      this->ClearSelections();
-
-      this->BuildSIL(this->Internal->SIL);
-      this->Internal->SILUpdateStamp++;
-
-      this->GatherComputeSteps();
-
-      this->Internal->MetaDataMTime.Modified();
+      // add all files linked to in the current file to the files to read.
+      for (int linkid=0; linkid<file->GetNumberOfLink(); linkid++)
+        {
+        vtkMedLink* link = file->GetLink(linkid);
+        const char* filename = link->GetFullLink(file->GetFileName());
+        if(this->Internal->MedFiles.find(filename) == this->Internal->MedFiles.end())
+          {
+          vtkMedFile* newfile = vtkMedFile::New();
+          newfile->SetFileName(filename);
+          this->Internal->MedFiles[filename] = newfile;
+          file_stack.push_back(newfile);
+          newfile->Delete();
+          }
+        }
       }
-    else
-      {
-      vtkDebugMacro("the FileName not set or this med file is not readable by the linked med library");
-      return 1;
-      }
-    }
 
-  if(this->Internal->SelectedSIL->GetMTime()<=this->GetMTime())
-    {
-    this->BuildSIL(this->Internal->SelectedSIL, 1);
+    // This computes some meta information, like which field use which
+    // support, but do not read large data from disk.
+    this->LinkMedInfo();
+
+    // This computes the initial global id of each cell type.
+    this->InitializeCellGlobalIds();
+
+    this->ClearSelections();
+
+    this->BuildSIL(this->Internal->SIL);
+    this->Internal->SILUpdateStamp++;
+
+    this->GatherComputeSteps();
+
+    this->Internal->MetaDataMTime.Modified();
+
     }
-  outInfo->Set(vtkMedReader::SELECTED_SIL(), this->Internal->SelectedSIL);
-  vtkInformationKey* key=vtkMedReader::SELECTED_SIL();
-  request->AppendUnique(vtkExecutive::KEYS_TO_COPY(), key);
 
   outInfo->Set(vtkDataObject::SIL(), this->Internal->SIL);
+  request->AppendUnique(vtkExecutive::KEYS_TO_COPY(),
+                        vtkDataObject::SIL());
+  request->AppendUnique(vtkExecutive::KEYS_TO_COPY(),
+                        vtkMedUtilities::BLOCK_NAME());
   this->AdvertiseTime(outInfo);
+
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
+      -1);
   return 1;
 }
 
 int vtkMedReader::RequestData(vtkInformation *request,
     vtkInformationVector **inputVector, vtkInformationVector *outputVector)
 {
-  if(this->GetMedFile()==NULL)
+  if(this->FileName==NULL)
     {
     vtkWarningMacro( << "FileName must be set and meta data loaded");
     return 0;
     }
 
   vtkInformation *info=outputVector->GetInformationObject(0);
+
   vtkMultiBlockDataSet *output=vtkMultiBlockDataSet::SafeDownCast(info->Get(
       vtkDataObject::DATA_OBJECT()));
 
-  if(info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()))
+  if (info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES()))
     {
     this->Internal->NumberOfPieces=info->Get(
         vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_PIECES());
     }
   else
     {
-    this->Internal->NumberOfPieces=-1;
+    vtkMultiProcessController* controller = vtkMultiProcessController::GetGlobalController();
+    if(controller)
+      {
+      this->Internal->NumberOfPieces=controller->GetNumberOfProcesses();
+      }
+    else
+      {
+      this->Internal->NumberOfPieces = 1;
+      }
     }
-  if(info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()))
+  if (info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER()))
     {
     this->Internal->CurrentPieceNumber=info->Get(
         vtkStreamingDemandDrivenPipeline::UPDATE_PIECE_NUMBER());
     }
   else
     {
-    this->Internal->CurrentPieceNumber=-1;
+    this->Internal->CurrentPieceNumber=0;
     }
 
-  if(info->Has(
+  if (info->Has(
       vtkStreamingDemandDrivenPipeline::UPDATE_NUMBER_OF_GHOST_LEVELS()))
     {
     this->Internal->GhostLevel=info->Get(
@@ -404,7 +394,7 @@ int vtkMedReader::RequestData(vtkInformation *request,
     this->Internal->GhostLevel=0;
     }
 
-  if(info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS()))
+  if (info->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS()))
     {
     this->Internal->UpdateTimeStep=info->Get(
         vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEPS())[0];
@@ -418,244 +408,415 @@ int vtkMedReader::RequestData(vtkInformation *request,
 
   this->ChooseRealAnimationMode();
 
-  vtkMedDriver::FileOpen open(this->MedDriver);
+  std::list<vtkMedDriver::FileOpen> openlist;
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* file = fileit->second;
+    openlist.push_back(vtkMedDriver::FileOpen(file->GetMedDriver()));
+    fileit++;
+    }
 
-  // clear the dataset cache if the selected entities have been modified,
-  // because the families to create may contain entities which should (or not) be there.
-  //TODO : clear the caches that need clearing
+  // clear the dataset cache of unneeded geometry
   this->ClearCaches(StartRequest);
 
   // This call create the vtkMedSupports, but do not create the corresponding vtkDataSet;
   this->CreateMedSupports();
   this->ClearCaches(AfterCreateMedSupports);
   // This call creates the actual vtkDataSet that corresponds to each support
+  int supportId = 0;
   int progress=0;
   int maxprogress=2*this->Internal->UsedSupports.size();
-  for(set<vtkMedFamilyOnEntity*>::iterator it=
+  for(set<vtkMedFamilyOnEntityOnProfile*>::iterator it=
       this->Internal->UsedSupports.begin(); it
       !=this->Internal->UsedSupports.end(); it++)
     {
     ostringstream sstr;
+    vtkMedFamilyOnEntityOnProfile* foep = *it;
     sstr<<"Support : "<<vtkMedUtilities::SimplifyName(
-        (*it)->GetFamily()->GetName());
+        foep->GetFamilyOnEntity()->GetFamily()->GetName());
     this->SetProgressText(sstr.str().c_str());
-    this->BuildVTKSupport(*it);
+    int doBuildSupportField = 0;
+    if(((supportId - this->Internal->CurrentPieceNumber) % this->Internal->NumberOfPieces) == 0)
+      {
+      doBuildSupportField = 1;
+      }
+    this->BuildVTKSupport(foep, doBuildSupportField);
     this->UpdateProgress((float) progress/((float) maxprogress-1));
     progress++;
+    supportId++;
     }
 
   this->ClearCaches(EndBuildVTKSupports);
-
+  supportId = 0;
   // This call maps the fields to the supports
-  for(set<vtkMedFamilyOnEntity*>::iterator it=
+  for(set<vtkMedFamilyOnEntityOnProfile*>::iterator it=
       this->Internal->UsedSupports.begin(); it
       !=this->Internal->UsedSupports.end(); it++)
     {
+    vtkMedFamilyOnEntityOnProfile* foep = *it;
+    if(foep->GetFamilyOnEntity()->GetEntityArray()->GetValid() == 0)
+      continue;
     ostringstream sstr;
     sstr<<"Loading fields on "<<vtkMedUtilities::SimplifyName(
-        (*it)->GetFamily()->GetName());
+        foep->GetFamilyOnEntity()->GetFamily()->GetName());
     this->SetProgressText(sstr.str().c_str());
-    this->MapFieldsOnSupport(*it);
+    int doMapField = 0;
+    if(((supportId - this->Internal->CurrentPieceNumber) % this->Internal->NumberOfPieces) == 0)
+      {
+      doMapField = 1;
+      }
+    this->MapFieldsOnSupport(*it, doMapField);
     this->UpdateProgress((float) progress/((float) maxprogress-1));
     progress++;
+    supportId++;
     }
 
-  if(this->Internal->RealAnimationMode==ModeShape)
-    {
-    for(map<vtkMedFamilyOnEntity*, vtkDataSet*>::iterator it=
-        this->Internal->CurrentDataSet.begin(); it
-        !=this->Internal->CurrentDataSet.end(); it++)
-      {
-      ComputeModalFields(it->second->GetPointData());
-      ComputeModalFields(it->second->GetCellData());
-      ComputeModalFields(it->second->GetFieldData());
-      } // end for, iteration over all supports
-    }
   // This call clean up caches (what is actually done depends of the CacheStrategy)
   this->ClearCaches(EndRequest);
+
   return 1;
 }
 
 void vtkMedReader::InitializeCellGlobalIds()
 {
-  vtkIdType totalCells=0;
-  for(int m=0; m<this->MedFile->GetNumberOfMesh(); m++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
     {
-    vtkMedGrid* grid=this->MedFile->GetMesh(m)->GetGrid();
-    grid->InitializeCellGlobalIds();
+    vtkMedFile* file = fileit->second;
+    fileit++;
+    for(int m=0; m<file->GetNumberOfMesh(); m++)
+      {
+      vtkMedMesh* mesh = file->GetMesh(m);
+      med_int nstep = mesh->GetNumberOfGridStep();
+      for(med_int stepid=0; stepid<nstep; stepid++)
+        {
+        vtkMedGrid* grid = mesh->GetGridStep(stepid);
+        grid->InitializeCellGlobalIds();
+        }
+      }
     }
 }
 
-void vtkMedReader::ComputeModalFields(vtkFieldData* attributes)
+void  vtkMedReader::LinkMedInfo()
 {
-  vtkstd::vector<vtkSmartPointer<vtkDataArray> > olddata;
-  vtkstd::vector<int> attributeType;
-  vtkDataSetAttributes* dsatt=vtkDataSetAttributes::SafeDownCast(attributes);
-  int unmodifiedFieldIndex=0;
-  while(attributes->GetNumberOfArrays()>unmodifiedFieldIndex)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit;
+  // link the FieldOnProfile with the profiles
+  fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
     {
-    vtkDataArray* array=attributes->GetArray(unmodifiedFieldIndex);
-    // if the array is not float or double, it is not modified
-    if(array->GetDataType()!=VTK_DOUBLE&&array->GetDataType()!=VTK_FLOAT)
+    vtkMedFile* fieldfile = fieldfileit->second;
+    fieldfileit++;
+
+    for(int fid=0; fid<fieldfile->GetNumberOfField(); fid++)
       {
-      unmodifiedFieldIndex++;
-      }
-    else
-      {
-      olddata.push_back(array);
-      if(dsatt!=NULL)
-        attributeType.push_back(dsatt->IsArrayAnAttribute(unmodifiedFieldIndex));
-      else
-        attributeType.push_back(-1);
-      attributes->RemoveArray(array->GetName());
+      vtkMedField* field = fieldfile->GetField(fid);
+
+      for(int sid = 0; sid< field->GetNumberOfFieldStep(); sid++)
+        {
+        vtkMedFieldStep* step = field->GetFieldStep(sid);
+
+        for(int foeid = 0; foeid < step->GetNumberOfFieldOverEntity(); foeid++)
+          {
+          vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(foeid);
+
+          for(int fopid = 0; fopid < fieldOverEntity->GetNumberOfFieldOnProfile(); fopid++)
+            {
+            vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(fopid);
+
+            std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+                profilefileit = this->Internal->MedFiles.begin();
+            while(profilefileit != this->Internal->MedFiles.end() && fop->GetProfile() == NULL)
+              {
+              vtkMedFile* profilefile = profilefileit->second;
+              profilefileit++;
+
+              for(int pid = 0; pid < profilefile->GetNumberOfProfile(); pid++)
+                {
+                vtkMedProfile *profile = profilefile->GetProfile(pid);
+                if(strcmp(profile->GetName()->GetString(), fop->GetProfileName()->GetString()) == 0)
+                  {
+                  fop->SetProfile(profile);
+                  break;
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
 
-  for(int j=0; j<olddata.size(); j++)
+  // first, add a familyOnEntityOnProfile to all FamilyOnEntity with a NULL
+  // profile. This is used if no field is mapped to this support.
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      meshfit = this->Internal->MedFiles.begin();
+  while(meshfit != this->Internal->MedFiles.end())
     {
-    vtkDataArray* attribute=olddata[j];
+    vtkMedFile* meshfile = meshfit->second;
+    meshfit++;
 
-    vtkDataArray* newAttribute=attribute->NewInstance();
+    for(int mid=0; mid<meshfile->GetNumberOfMesh(); mid++)
+      {
+      vtkMedMesh* mesh = meshfile->GetMesh(mid);
 
-    this->ComputeModalField(attribute, newAttribute);
+      for(int gid=0; gid<mesh->GetNumberOfGridStep(); gid++)
+        {
+        vtkMedGrid* grid = mesh->GetGridStep(gid);
+        // read point family data and create EntityArrays
 
-    attributes->AddArray(newAttribute);
-    newAttribute->Delete();
+        for(int eid=0; eid < grid->GetNumberOfEntityArray(); eid++)
+          {
+          vtkMedEntityArray* array = grid->GetEntityArray(eid);
 
-    if(attributeType[j]>=0)
-      dsatt->SetActiveAttribute(newAttribute->GetName(), attributeType[j]);
+          for(int fid=0; fid < array->GetNumberOfFamilyOnEntity(); fid++)
+            {
+            vtkMedFamilyOnEntity* foe = array->GetFamilyOnEntity(fid);
+            if(foe->GetFamilyOnEntityOnProfile((vtkMedProfile*)NULL) == NULL)
+              {
+              vtkMedFamilyOnEntityOnProfile* foep =
+                  vtkMedFamilyOnEntityOnProfile::New();
+              foep->SetFamilyOnEntity(foe);
+              foep->SetProfile(NULL);
+              foe->AddFamilyOnEntityOnProfile(foep);
+              foep->Delete();
+              }
+            }//family on entity
+          }//entity array
+        }// grid step
+      }//mesh
+    }//mesh file
 
-    } // for loop
+  fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* fieldfile = fieldfileit->second;
+    fieldfileit++;
+
+    for(int fieldid=0; fieldid < fieldfile->GetNumberOfField(); fieldid++)
+      {
+      vtkMedField* field = fieldfile->GetField(fieldid);
+      // on the first pass, do not add point fields
+//      if(field->GetFieldType() == vtkMedField::PointField)
+//        continue;
+
+      for(int fstepid=0; fstepid < field->GetNumberOfFieldStep(); fstepid++)
+        {
+        vtkMedFieldStep* step = field->GetFieldStep(fstepid);
+
+        vtkMedComputeStep meshcs = step->GetMeshComputeStep();
+
+        for(int foeid=0; foeid<step->GetNumberOfFieldOverEntity() ;foeid++)
+          {
+          vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(foeid);
+          const vtkMedEntity& fieldentity = fieldOverEntity->GetEntity();
+
+          for (int fopid = 0;
+               fopid < fieldOverEntity->GetNumberOfFieldOnProfile(); fopid++)
+            {
+            vtkMedFieldOnProfile* fop =
+                fieldOverEntity->GetFieldOnProfile(fopid);
+
+            std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+                meshfileit = this->Internal->MedFiles.begin();
+            while(meshfileit != this->Internal->MedFiles.end())
+              {
+              vtkMedFile* meshfile = meshfileit->second;
+              meshfileit++;
+
+              if(field->GetLocal() == 1 && (meshfile != fieldfile))
+                continue;
+
+              for(int mid=0; mid<meshfile->GetNumberOfMesh(); mid++)
+                {
+                vtkMedMesh* mesh = meshfile->GetMesh(mid);
+
+                // the field must be on this mesh.
+                if(strcmp(mesh->GetName()->GetString(),
+                          field->GetMeshName()->GetString()) != 0)
+                  continue;
+
+                vtkMedGrid* grid = mesh->GetGridStep(meshcs);
+                if(grid == NULL)
+                  {
+                  vtkErrorMacro("the field " << field->GetName()->GetString()
+                                << " at step iteration:"
+                                << step->GetComputeStep().IterationIt
+                                << " and time "
+                                << step->GetComputeStep().TimeIt
+                                << " uses mesh at step "
+                                << meshcs.TimeIt << " " << meshcs.IterationIt
+                                << "which does not exists!");
+                  continue;
+                  }
+
+                for(int eid=0; eid < grid->GetNumberOfEntityArray(); eid++)
+                  {
+                  vtkMedEntityArray* array = grid->GetEntityArray(eid);
+
+                  // if the support is on points,
+                  // the field must also be on points
+                  if(array->GetEntity().EntityType == MED_NODE &&
+                     fieldentity.EntityType != MED_NODE)
+                    continue;
+
+                  if(array->GetEntity().EntityType != MED_NODE &&
+                     fieldentity.EntityType == MED_NODE)
+                    continue;
+
+                  // for fields not on points, the geometry type
+                  // of the support must match
+                  if(array->GetEntity().EntityType != MED_NODE &&
+                     array->GetEntity().GeometryType != fieldentity.GeometryType)
+                    continue;
+
+                  for(int fid = 0; fid < array->GetNumberOfFamilyOnEntity(); fid++)
+                    {
+                    vtkMedFamilyOnEntity* foe = array->GetFamilyOnEntity(fid);
+                    if(foe->GetFamilyOnEntityOnProfile(fop->GetProfile()) == NULL)
+                      {
+                      vtkMedFamilyOnEntityOnProfile* foep =
+                          vtkMedFamilyOnEntityOnProfile::New();
+                      foep->SetProfile(fop->GetProfile());
+                      foep->SetFamilyOnEntity(foe);
+                      foe->AddFamilyOnEntityOnProfile(foep);
+                      foep->Delete();
+                      }
+                    // also add the family on entity with no profile.
+                    if(foe->GetFamilyOnEntityOnProfile((vtkMedProfile*)NULL) == NULL)
+                      {
+                      vtkMedFamilyOnEntityOnProfile* foep =
+                          vtkMedFamilyOnEntityOnProfile::New();
+                      foep->SetProfile(NULL);
+                      foep->SetFamilyOnEntity(foe);
+                      foe->AddFamilyOnEntityOnProfile(foep);
+                      foep->Delete();
+                      }
+                    }//familyOnEntity
+                  }//entityArray
+                }//mesh
+              }//mesh file
+            }//field on profile
+          }//fieldOverEntity
+        }//fiedstep
+      }// fieldid
+    }//fieldfileit
+
+  // Now, link localizations and interpolations
+  fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* fieldfile = fieldfileit->second;
+    fieldfileit++;
+
+    for(int locid = 0; locid < fieldfile->GetNumberOfLocalization(); locid++)
+      {
+      vtkMedLocalization* loc = fieldfile->GetLocalization(locid);
+
+      for(int fid = 0; fid < fieldfile->GetNumberOfField() &&
+                    loc->GetInterpolation() == NULL; fid++)
+        {
+        vtkMedField* field = fieldfile->GetField(fid);
+        for(int interpid = 0; interpid < field->GetNumberOfInterpolation();
+        interpid++)
+          {
+          vtkMedInterpolation* interp = field->GetInterpolation(interpid);
+          if(strcmp(loc->GetInterpolationName()->GetString(),
+                    interp->GetName()->GetString()) == 0)
+            {
+            loc->SetInterpolation(interp);
+            break;
+            }
+          }
+        }
+      }
+    }
+
+  // now that the interpolation is set, build the  shape functions.
+  fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* fieldfile = fieldfileit->second;
+    fieldfileit++;
+
+    for(int locid = 0; locid < fieldfile->GetNumberOfLocalization(); locid++)
+      {
+      vtkMedLocalization* loc = fieldfile->GetLocalization(locid);
+      loc->BuildShapeFunction();
+      }
+    }
 }
 
-void vtkMedReader::ComputeModalField(vtkDataArray* attribute,
-    vtkDataArray* newAttribute)
+int vtkMedReader::GetFrequencyArrayStatus(const char* name)
 {
-  // Next code gives support to animation of frequency modes
-  // Fields are animated using a sinus function which values, in the usual case,
-  // vary between -PI an +PI
+  return this->Frequencies->GetKeyStatus(name);
+}
 
-  vtkIdType num_tuples=attribute->GetNumberOfTuples();
-
-  newAttribute->SetNumberOfComponents(attribute->GetNumberOfComponents());
-#if (VTK_MAJOR_VERSION >= 5) and (VTK_MINOR_VERSION >= 7)
-  for(int comp=0; comp<attribute->GetNumberOfComponents(); comp++)
+void vtkMedReader::SetFrequencyArrayStatus(const char* name, int status)
+{
+  if(this->Frequencies->GetKeyStatus(name) == status)
     {
-    newAttribute->SetComponentName(comp, attribute->GetComponentName(comp));
-    }
-#endif
-  newAttribute->SetNumberOfTuples(num_tuples);
-  newAttribute->SetName(attribute->GetName());
-  if(attribute->HasInformation())
-    {
-    vtkInformation* oldinfo=attribute->GetInformation();
-    vtkInformation* newinfo=newAttribute->GetInformation();
-    newinfo->Copy(oldinfo);
+    return;
     }
 
-  double *newtuple=new double[attribute->GetNumberOfComponents()];
-  vtkIdType i;
-  for(i=0; i<num_tuples; i++)
-    {
-    double* x=attribute->GetTuple(i);
+  this->Frequencies->SetKeyStatus(name, status);
 
-    double sinShift=sin(this->Internal->UpdateTimeStep);
-    for(int comp=0; comp<attribute->GetNumberOfComponents(); comp++)
-      {
-      newtuple[comp]=x[comp]*sinShift;
-      }
-    newAttribute->SetTuple(i, newtuple);
-    }
-  delete[] newtuple;
+  this->Modified();
+}
 
-  // override the array range to the -max / +max range.
-  for(int comp=-1; comp<attribute->GetNumberOfComponents(); comp++)
-    {
-    double * range=attribute->GetRange(comp);
-    double max, abs;
-    max=(range[0]>0? range[0]: -range[0]);
-    abs=(range[1]>0? range[1]: -range[1]);
-    if(abs>max)
-      max=abs;
+int vtkMedReader::GetNumberOfFrequencyArrays()
+{
+  return this->Frequencies->GetNumberOfKey();
+}
 
-    vtkInformation* info=newAttribute->GetInformation();
-    if(comp==-1)
-      {
-      double r[2]={0, max};
-      info->Set(vtkDataArray::L2_NORM_RANGE(), r, 2);
-      }
-    else
-      {
-      vtkInformationVector* infoVec;
-      if(!info->Has(vtkDataArray::PER_COMPONENT()))
-        {
-        infoVec=vtkInformationVector::New();
-        info->Set(vtkDataArray::PER_COMPONENT(), infoVec);
-        infoVec->FastDelete();
-        }
-      else
-        {
-        infoVec=info->Get(vtkDataArray::PER_COMPONENT());
-        }
-      int vlen=infoVec->GetNumberOfInformationObjects();
-      if(vlen<newAttribute->GetNumberOfComponents())
-        {
-        infoVec->SetNumberOfInformationObjects(
-            newAttribute->GetNumberOfComponents());
-        }
-      double r[2]={-max, max};
-      infoVec->GetInformationObject(comp)->Set(vtkDataArray::COMPONENT_RANGE(),
-          r, 2);
-      }
-    }
-
+const char* vtkMedReader::GetFrequencyArrayName(int index)
+{
+  return this->Frequencies->GetKey(index);
 }
 
 struct compTimes
 {
   bool operator()(pair<double, int> i, pair<double, int> j)
   {
-    return (i.first<j.first);
+    if(i.first!=j.first)
+      return (i.first<j.first);
+    return i.second<j.second;
   }
 };
 
 vtkDoubleArray* vtkMedReader::GetAvailableTimes()
 {
   this->AvailableTimes->Initialize();
-  this->AvailableTimes->SetNumberOfComponents(2);
+  this->AvailableTimes->SetNumberOfComponents(1);
 
-  if(this->MedFile==NULL)
-    return this->AvailableTimes;
+  std::set<std::string> newFrequencies;
 
-  set<pair<double, int> > times;
-  double auxd;
-  int auxi;
-
-  for(int fid=0; fid<this->MedFile->GetNumberOfField(); fid++)
+  int tid = 0;
+  std::map<med_float, std::set<med_int> >::iterator it =
+      this->Internal->GlobalComputeStep.begin();
+  while(it != this->Internal->GlobalComputeStep.end())
     {
-    vtkMedField* field=this->MedFile->GetField(fid);
-    for(int tid=0; tid<this->Internal->StepCache[field].size(); tid++)
-      {
-      auxd=this->Internal->StepCache[field][tid].first;
-      auxi
-          =this->Internal->StepCache[field][tid].second[this->Internal->StepCache[field][tid].second.size()
-              -1];
-      times.insert(pair<double, int> (auxd, auxi));
-      }
+    double time = it->first;
+    this->AvailableTimes->InsertNextValue(time);
+    string name = vtkMedUtilities::GetModeKey(tid, time);
+    this->Frequencies->AddKey(name.c_str());
+    newFrequencies.insert(name);
+    tid++;
+    it++;
     }
 
-  compTimes cT;
-  vector<pair<double, int> > sortedtimes;
-  for(set<pair<double, int> >::iterator it=times.begin(); it!=times.end(); it++)
-    sortedtimes.push_back(*it);
-  sort(sortedtimes.begin(), sortedtimes.end(), cT);
-
-  double *st=new double[2];
-  for(int tid=0; tid<sortedtimes.size(); tid++)
+  // now check if old frequencies have been removed
+  for(int f = 0; f < this->Frequencies->GetNumberOfKey(); f++)
     {
-    st[0]=sortedtimes[tid].first;
-    st[1]=(double) sortedtimes[tid].second;
-    this->AvailableTimes->InsertNextTupleValue(st);
+    const char* name = this->Frequencies->GetKey(f);
+    if(newFrequencies.find(name) == newFrequencies.end())
+      {
+      this->Frequencies->RemoveKeyByIndex(f);
+      f--;
+      }
     }
 
   return this->AvailableTimes;
@@ -668,82 +829,29 @@ void vtkMedReader::ChooseRealAnimationMode()
     this->Internal->RealAnimationMode=this->AnimationMode;
     return;
     }
-  bool hasTime=false;
-  bool hasIteration=false;
-  for(int fid=0; fid<this->MedFile->GetNumberOfField(); fid++)
-    {
-    vtkMedField* field=this->MedFile->GetField(fid);
-    vector<pair<double, vector<med_int> > >& steps=
-        this->Internal->StepCache[field];
-    if(steps.size()>1)
-      {
-      hasTime=true;
-      break;
-      }
-    else if(steps[0].second.size()>1)
-      {
-      hasIteration=true;
-      }
-    }
-  if(hasTime)
-    {
-    this->Internal->RealAnimationMode=PhysicalTime;
-    return;
-    }
-  if(hasIteration)
+
+  // if there is exactly one physical time and more than one iteration
+  // set the animation mode to iteration, else default to physical time.
+  if (this->Internal->GlobalComputeStep.size() == 1 &&
+      this->Internal->GlobalComputeStep[0].size() > 1)
     {
     this->Internal->RealAnimationMode=Iteration;
     return;
     }
+
   this->Internal->RealAnimationMode=PhysicalTime;
 }
 
-void vtkMedReader::SelectStep(vtkMedField* field)
+int vtkMedReader::GetEntityStatus(int type, int geometry)
 {
-  int timeid;
-  int iterid;
-  if(this->Internal->RealAnimationMode==PhysicalTime)
-    {
-    timeid=this->GetTimeIndex(field, this->Internal->UpdateTimeStep);
-    iterid=this->GetLastIterationIndex(field, timeid);
-    }
-  else if(this->Internal->RealAnimationMode==Iteration)
-    {
-    timeid=this->GetTimeIndex(field, this->Time);
-    iterid=this->GetIterationIndex(field, timeid,
-        this->Internal->UpdateTimeStep);
-    }
-  else //mode shape
-    {
-    timeid=this->GetTimeIndex(field, this->Time);
-    iterid=this->GetLastIterationIndex(field, timeid);
-    }
-  ComputeStep cs;
-  pair<double, vector<med_int> >& cache=
-      this->Internal->StepCache[field][timeid];
-  cs.first=this->Internal->TimeIds[field][cache.first];
-  cs.second=cache.second[iterid];
-  this->Internal->CurrentStep[field]=cs;
-}
-
-vtkMedFieldStep* vtkMedReader::GetSelectedStep(vtkMedField* field,
-    vtkMedFieldOverEntity* soe, int medtimeno, int mediterno)
-{
-  for(int stepid=0; stepid<soe->GetNumberOfStep(); stepid++)
-    {
-    vtkMedFieldStep* step=soe->GetStep(stepid);
-    if(step->GetTimeId()==medtimeno&&step->GetIteration()==mediterno)
-      return step;
-    }
-  return NULL;
-}
-
-int vtkMedReader::GetCellTypeStatus(int type, int geometry)
-{
-  if(type==MED_NOEUD)
+  if (type==MED_NODE)
     return 1;
-  return this->Entities->GetArraySetting(vtkMedUtilities::CellTypeKey(
-      (med_entite_maillage) type, (med_geometrie_element) geometry).c_str());
+  if(type == MED_DESCENDING_FACE || type == MED_DESCENDING_EDGE)
+    return 0;
+  vtkMedEntity entity;
+  entity.EntityType = (med_entity_type)type;
+  entity.GeometryType = (med_geometry_type)geometry;
+  return this->Entities->GetKeyStatus(vtkMedUtilities::EntityKey(entity).c_str());
 }
 
 int vtkMedReader::GetFamilyStatus(vtkMedMesh* mesh, vtkMedFamily* family)
@@ -751,25 +859,29 @@ int vtkMedReader::GetFamilyStatus(vtkMedMesh* mesh, vtkMedFamily* family)
   if(!mesh||!family)
     return 0;
 
-  if(this->Internal->GroupSelectionMTime>this->Internal->FamilySelectionMTime)
+  if(this->Internal->GroupSelectionMTime > this->Internal->FamilySelectionMTime)
     {
     this->SelectFamiliesFromGroups();
     }
 
-  return this->Internal->Families->GetArraySetting(vtkMedUtilities::FamilyKey(
-      mesh->GetName()->GetString(), family->GetPointOrCell(),
-      family->GetName()->GetString()).c_str());
+  int status =  this->Internal->Families->GetKeyStatus(vtkMedUtilities::FamilyKey(
+      mesh->GetName(), family->GetPointOrCell(),
+      family->GetName()).c_str());
+
+  return status;
 }
 
-int vtkMedReader::IsMeshSelected(int index)
+int vtkMedReader::IsMeshSelected(vtkMedMesh* mesh)
 {
-  vtkMedMesh* mesh=this->MedFile->GetMesh(index);
-  if(!mesh)
-    return 0;
-
-  for(int fam=0; fam<mesh->GetNumberOfFamily(); fam++)
+  for(int fam=0; fam<mesh->GetNumberOfPointFamily(); fam++)
     {
-    if(this->GetFamilyStatus(mesh, mesh->GetFamily(fam))!=0)
+    if(this->GetFamilyStatus(mesh, mesh->GetPointFamily(fam))!=0)
+      return 1;
+    }
+
+  for(int fam=0; fam<mesh->GetNumberOfCellFamily(); fam++)
+    {
+    if(this->GetFamilyStatus(mesh, mesh->GetCellFamily(fam))!=0)
       return 1;
     }
   return 0;
@@ -777,116 +889,144 @@ int vtkMedReader::IsMeshSelected(int index)
 
 void vtkMedReader::GatherComputeSteps()
 {
-  this->Internal->StepCache.clear();
-  this->Internal->TimeIds.clear();
-  for(int fieldId=0; fieldId<this->GetMedFile()->GetNumberOfField(); fieldId++)
+  this->Internal->GlobalComputeStep.clear();
+
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
     {
-    vtkMedField* field=this->GetMedFile()->GetField(fieldId);
-    this->Internal->TimeIds[field]=map<double, med_int> ();
-    set<pair<med_float, med_int> > stepset;
-    // first loop to get all available compute steps
-    for(int entityId=0; entityId<field->GetNumberOfFieldOverEntity(); entityId++)
+    vtkMedFile* file = fieldfileit->second;
+    fieldfileit++;
+
+    // first loop over all fields to gather their compute steps
+    for(int fieldId=0; fieldId<file->GetNumberOfField(); fieldId++)
       {
-      vtkMedFieldOverEntity* foe=field->GetFieldOverEntity(entityId);
-      for(int stepId=0; stepId<foe->GetNumberOfStep(); stepId++)
+      vtkMedField* field=file->GetField(fieldId);
+
+      for(int stepId=0; stepId<field->GetNumberOfFieldStep(); stepId++)
         {
-        vtkMedFieldStep* step=foe->GetStep(stepId);
-        stepset.insert(make_pair(step->GetTime(), step->GetIteration()));
-        this->Internal->TimeIds[field][step->GetTime()]=step->GetTimeId();
+        vtkMedFieldStep* step=field->GetFieldStep(stepId);
+        const vtkMedComputeStep& cs = step->GetComputeStep();
+        this->Internal->GlobalComputeStep[cs.TimeOrFrequency].insert(cs.IterationIt);
         }
-      }
-    if(stepset.size()==0)
-      continue;
-    // second loop to verify that all steps are coherent for all entities and the stepId is coherent for all times
-    for(int entityId=0; entityId<field->GetNumberOfFieldOverEntity(); entityId++)
+      }//fields
+
+    // then loop over all meshes to gather their grid steps too.
+    // for meshes, do not add the MED_UNDEF_DT time
+    for(int meshId=0; meshId<file->GetNumberOfMesh(); meshId++)
       {
-      vtkMedFieldOverEntity* foe=field->GetFieldOverEntity(entityId);
-      if(stepset.size()!=foe->GetNumberOfStep())
+      vtkMedMesh* mesh=file->GetMesh(meshId);
+
+      for(int stepId=0; stepId<mesh->GetNumberOfGridStep(); stepId++)
         {
-        vtkWarningMacro(
-            "all entities do not share the same number of time steps or iterations for the field "
-            << field->GetName()->GetString()
-            << ", incoherent results may happen.");
-        }
-      else
-        {
-        for(int stepId=0; stepId<foe->GetNumberOfStep(); stepId++)
+        vtkMedGrid* grid=mesh->GetGridStep(stepId);
+        const vtkMedComputeStep& cs = grid->GetComputeStep();
+        if(cs.TimeOrFrequency != MED_UNDEF_DT || cs.TimeIt != MED_NO_DT)
           {
-          vtkMedFieldStep* step=foe->GetStep(stepId);
-          pair<med_float, med_int> compute_step=make_pair(step->GetTime(),
-              step->GetIteration());
-          if(stepset.find(compute_step)==stepset.end())
-            {
-            vtkWarningMacro(
-                "all entities do not share the same time steps or iterations for the field "
-                << field->GetName()->GetString()
-                << ", incoherent results may happen.");
-            }
-          if(this->Internal->TimeIds[field][step->GetTime()]!=step->GetTimeId())
-            {
-            vtkWarningMacro("the TimeStepNumber is not coherent for field "
-                << field->GetName()->GetString()
-                << "incoherent results may happen.");
-            }
+          this->Internal->GlobalComputeStep[cs.TimeOrFrequency].insert(cs.IterationIt);
           }
         }
-      }
-    set<pair<med_float, med_int> >::iterator it=stepset.begin();
-    deque<pair<med_float, med_int> > steps;
-    while(it!=stepset.end())
-      {
-      steps.push_back(*it);
-      it++;
-      }
-    sort(steps.begin(), steps.end());
-    deque<pair<med_float, med_int> >::iterator dit=steps.begin();
-    if(this->Internal->StepCache.find(field)==this->Internal->StepCache.end())
-      this->Internal->StepCache[field]
-          =vector<pair<double, vector<med_int> > > ();
-    vector<pair<double, vector<med_int> > >& cache=
-        this->Internal->StepCache[field];
-    // third loop to fill the cache
-    cache.push_back(make_pair(dit->first, vector<med_int> ()));
-    int currentTimeIndex=0;
-    while(dit!=steps.end())
-      {
-      med_float time=dit->first;
-      med_int iter=dit->second;
-      if(time!=cache[currentTimeIndex].first)
-        {
-        cache.push_back(make_pair(time, vector<med_int> ()));
-        currentTimeIndex++;
-        }
-      cache[currentTimeIndex].second.push_back(iter);
-      dit++;
-      }
-    }//fieldID
+      }//mesh
+    }
+  if(this->Internal->GlobalComputeStep.size() == 0)
+    {
+    this->Internal->GlobalComputeStep[MED_UNDEF_DT].insert(MED_NO_IT);
+    }
 }
 
 int vtkMedReader::IsFieldSelected(vtkMedField* field)
 {
   return this->IsPointFieldSelected(field)||this->IsCellFieldSelected(field)
-      ||this->IsQuadratureFieldSelected(field);
+      ||this->IsQuadratureFieldSelected(field) || this->IsElnoFieldSelected(field);
 }
 
 int vtkMedReader::IsPointFieldSelected(vtkMedField* field)
 {
-  return field->GetType()==vtkMedField::PointField
+  return field->GetFieldType()==vtkMedField::PointField
       &&this->GetPointFieldArrayStatus(vtkMedUtilities::SimplifyName(
           field->GetName()).c_str());
 }
 
 int vtkMedReader::IsCellFieldSelected(vtkMedField* field)
 {
-  return field->GetType()==vtkMedField::CellField
+  return field->GetFieldType()==vtkMedField::CellField
       &&this->GetCellFieldArrayStatus(vtkMedUtilities::SimplifyName(
           field->GetName()).c_str());
 }
 
+vtkMedProfile* vtkMedReader::GetProfile(vtkMedString* pname)
+{
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* file = fileit->second;
+    fileit++;
+    vtkMedProfile* profile = file->GetProfile(pname);
+    if(profile != NULL)
+      return profile;
+    }
+  return NULL;
+}
+
+vtkMedLocalization* vtkMedReader::GetLocalization(vtkMedString* lname)
+{
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* file = fileit->second;
+    fileit++;
+    vtkMedLocalization* loc = file->GetLocalization(lname);
+    if(loc != NULL)
+      return loc;
+    }
+  return NULL;
+
+}
+
+int vtkMedReader::GetLocalizationKey(vtkMedFieldOnProfile* fop)
+{
+  vtkMedLocalization* def=this->GetLocalization(fop->GetLocalizationName());
+
+  // This is not a quadrature field with explicit definition.
+  // There are two possible cases : either the intergration point is
+  // at the center of the cell
+  //1 quadrature point at the cell center
+  int nloc = 0;
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* file = fileit->second;
+    fileit++;
+
+    if(def && def->GetParentFile() == file)
+      return nloc + def->GetMedIterator() - 1;
+
+    nloc += file->GetNumberOfLocalization();
+    }
+
+  // center of a cell
+  if(fop->GetNumberOfIntegrationPoint()==1)
+    return nloc + 1 + fop->GetParentFieldOverEntity()->GetEntity().GeometryType;
+
+  // or it is an elno field (field stored on nodes of the cells,
+  // but with discontinuities at the vertices)
+  return -fop->GetParentFieldOverEntity()->GetEntity().GeometryType;//ELNO
+}
+
 int vtkMedReader::IsQuadratureFieldSelected(vtkMedField* field)
 {
-  return field->GetType()==vtkMedField::QuadratureField
+  return field->GetFieldType()==vtkMedField::QuadratureField
       &&this->GetQuadratureFieldArrayStatus(vtkMedUtilities::SimplifyName(
+          field->GetName()).c_str());
+}
+
+int vtkMedReader::IsElnoFieldSelected(vtkMedField* field)
+{
+  return field->GetFieldType()==vtkMedField::ElnoField
+      &&this->GetElnoFieldArrayStatus(vtkMedUtilities::SimplifyName(
           field->GetName()).c_str());
 }
 
@@ -895,32 +1035,58 @@ int vtkMedReader::IsQuadratureFieldSelected(vtkMedField* field)
 void vtkMedReader::AdvertiseTime(vtkInformation* info)
 {
   this->ChooseRealAnimationMode();
+
   if(this->Internal->RealAnimationMode==PhysicalTime)
     {
-    // I advertise the union of all times available in all selected fields
-    set<double> timesets;
-    for(int fieldId=0; fieldId<this->GetMedFile()->GetNumberOfField(); fieldId++)
+    // I advertise the union of all times available
+    // in all selected fields and meshes
+    set<double> timeset;
+
+    std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+        fieldfileit = this->Internal->MedFiles.begin();
+    while(fieldfileit != this->Internal->MedFiles.end())
       {
-      vtkMedField* field=this->GetMedFile()->GetField(fieldId);
-      if(!this->IsFieldSelected(field))
-        continue;
-      vector<pair<double, vector<med_int> > >& cache=
-          this->Internal->StepCache[field];
-      for(int timeId=0; timeId<cache.size(); timeId++)
+      vtkMedFile* file = fieldfileit->second;
+      fieldfileit++;
+
+      // first loop over all fields to gather their compute steps
+      for(int fieldId=0; fieldId<file->GetNumberOfField(); fieldId++)
         {
-        timesets.insert(cache[timeId].first);
-        }
+        vtkMedField* field=file->GetField(fieldId);
+
+        if(!this->IsFieldSelected(field))
+          continue;
+
+        field->GatherFieldTimes(timeset);
+        }//fields
+
+      // then loop over all meshes to gather their grid steps too.
+      for(int meshId=0; meshId<file->GetNumberOfMesh(); meshId++)
+        {
+        vtkMedMesh* mesh=file->GetMesh(meshId);
+
+        if(!this->IsMeshSelected(mesh))
+          continue;
+
+        mesh->GatherGridTimes(timeset);
+        }//meshes
       }
-    if(timesets.size()>0)
+
+    if(timeset.size() > 0)
       {
+      // remove MED_UNDEF_DT if there are other time step
+      if(timeset.size() > 1)
+        timeset.erase(MED_UNDEF_DT);
+
       vector<double> times;
-      set<double>::iterator it=timesets.begin();
-      while(it!=timesets.end())
+      set<double>::iterator it = timeset.begin();
+      while(it != timeset.end())
         {
         times.push_back(*it);
         it++;
         }
       sort(times.begin(), times.end());
+
       info->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(), &times[0],
           times.size());
       double timeRange[2];
@@ -937,29 +1103,56 @@ void vtkMedReader::AdvertiseTime(vtkInformation* info)
     }
   else if(this->Internal->RealAnimationMode==Iteration)
     {
-    // I advertise the union of all iterations available at the given Time for all selected fields.
-    set<double> iterationsets;
-    for(int fieldId=0; fieldId<this->GetMedFile()->GetNumberOfField(); fieldId++)
+    // I advertise the union of all iterations available at the given
+    // Time for all selected fields.
+    set<med_int> iterationsets;
+    med_float time = MED_UNDEF_DT;
+    if(this->TimeIndexForIterations >= 0 &&
+       this->TimeIndexForIterations <
+       this->AvailableTimes->GetNumberOfTuples())
       {
-      vtkMedField* field=this->GetMedFile()->GetField(fieldId);
-      if(!this->IsFieldSelected(field))
-        continue;
-      vector<pair<double, vector<med_int> > >& cache=
-          this->Internal->StepCache[field];
-      int index=this->GetTimeIndex(field, this->GetTime());
-      if(index<0||index>=cache.size())
-        continue;
-      vector<med_int>& iterations=cache[index].second;
-      for(int itid=0; itid<iterations.size(); itid++)
-        iterationsets.insert(iterations[itid]);
+      time = this->AvailableTimes->
+                     GetValue(this->TimeIndexForIterations);
       }
+
+    std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+        fieldfileit = this->Internal->MedFiles.begin();
+    while(fieldfileit != this->Internal->MedFiles.end())
+      {
+      vtkMedFile* file = fieldfileit->second;
+      fieldfileit++;
+
+      for(int fieldId=0; fieldId<file->GetNumberOfField(); fieldId++)
+        {
+        vtkMedField* field=file->GetField(fieldId);
+        if(!this->IsFieldSelected(field))
+          continue;
+
+        field->GatherFieldIterations(time, iterationsets);
+        }
+      // then loop over all meshes to gather their grid steps too.
+      for(int meshId=0; meshId<file->GetNumberOfMesh(); meshId++)
+        {
+        vtkMedMesh* mesh=file->GetMesh(meshId);
+
+        if(!this->IsMeshSelected(mesh))
+          continue;
+
+        mesh->GatherGridIterations(time, iterationsets);
+        }//meshes
+      }
+
     if(iterationsets.size()>0)
       {
+      // remove MED_NO_IT if there are other availble iterations.
+      if(iterationsets.size()>1)
+        iterationsets.erase(MED_NO_IT);
+
       vector<double> iterations;
-      set<double>::iterator it=iterationsets.begin();
+      set<med_int>::iterator it=iterationsets.begin();
       while(it!=iterationsets.end())
         {
-        iterations.push_back(*it);
+        iterations.push_back((double)*it);
         it++;
         }
       sort(iterations.begin(), iterations.end());
@@ -979,98 +1172,22 @@ void vtkMedReader::AdvertiseTime(vtkInformation* info)
     }
   else
     {
-    double range[2]={-vtkMath::RadiansFromDegrees(180.0),
-        vtkMath::RadiansFromDegrees(180.0)};
-    info->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(), range, 2);
     info->Remove(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+    info->Remove(vtkStreamingDemandDrivenPipeline::TIME_RANGE());
     }
 }
 
-int vtkMedReader::GetTimeIndex(vtkMedField* field, double time)
+vtkIdType vtkMedReader::GetFrequencyIndex(double freq)
 {
-  if(this->Internal->StepCache.find(field)==this->Internal->StepCache.end())
-    return 0;
-
-  vector<pair<double, vector<med_int> > >& cache=
-      this->Internal->StepCache[field];
-  int timeid;
-  for(timeid=0; timeid<cache.size(); timeid++)
-    {
-    if(cache[timeid].first>=time)
-      break;
-    }
-
-  if(timeid==cache.size())
-    {
-    return timeid-1;
-    }
-
-  if(timeid==0)
-    {
-    return 0;
-    }
-
-  double foundtime=cache[timeid].first;
-  if(foundtime==time)
-    {
-    return timeid;
-    }
-
-  // test if the asked time if very near an existing time, else return the inferior step
-  double deltatime=foundtime-cache[timeid-1].first;
-  if(deltatime<=0)
-    {
-    return timeid;
-    }
-
-  if((foundtime-time)/deltatime<this->TimePrecision)
-    {
-    return timeid;
-    }
-  else
-    {
-    return timeid-1;
-    }
-}
-
-med_int vtkMedReader::GetLastIterationIndex(vtkMedField* field, int timeid)
-{
-  if(this->Internal->StepCache.find(field)==this->Internal->StepCache.end())
-    return 0;
-
-  return this->Internal->StepCache[field][timeid].second.size()-1;
-}
-
-int vtkMedReader::GetIterationIndex(vtkMedField* field, int timeid,
-    double iteration)
-{
-  if(this->Internal->StepCache.find(field)==this->Internal->StepCache.end())
-    return 0;
-
-  vector<med_int>& iterations=this->Internal->StepCache[field][timeid].second;
-  int itid;
-  for(itid=0; itid<iterations.size(); itid++)
-    {
-    if(iterations[itid]>=iteration)
-      break;
-    }
-  if(itid==0)
-    return 0;
-
-  if(itid==iterations.size())
-    return itid-1;
-
-  if(iterations[itid]-iteration<this->TimePrecision)
-    return itid;
-
-  return itid-1;
+  return this->AvailableTimes->LookupValue(freq);
 }
 
 int vtkMedReader::RequestDataObject(vtkInformation* request,
     vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  vtkInformation *info=outputVector->GetInformationObject(0);
-  if(vtkMultiBlockDataSet::SafeDownCast(info->Get(vtkDataObject::DATA_OBJECT())))
+  vtkInformation *info = outputVector->GetInformationObject(0);
+  if (vtkMultiBlockDataSet::SafeDownCast(
+      info->Get(vtkDataObject::DATA_OBJECT())))
     {
     // The output is already created
     return 1;
@@ -1088,81 +1205,93 @@ int vtkMedReader::RequestDataObject(vtkInformation* request,
 
 void vtkMedReader::ClearSelections()
 {
-  for(int index=0; index<this->MedFile->GetNumberOfField(); index++)
-    {
-    vtkMedField* field=this->MedFile->GetField(index);
-    if(field->GetType()==vtkMedField::PointField)
-      {
-      this->PointFields->AddArray(vtkMedUtilities::SimplifyName(
-          field->GetName()->GetString()).c_str());
-      }
-    }
+  this->PointFields->Initialize();
+  this->CellFields->Initialize();
+  this->QuadratureFields->Initialize();
+  this->ElnoFields->Initialize();
 
-  for(int index=0; index<this->MedFile->GetNumberOfField(); index++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
     {
-    vtkMedField* field=this->MedFile->GetField(index);
-    if(field->GetType()==vtkMedField::CellField)
-      {
-      this->CellFields->AddArray(vtkMedUtilities::SimplifyName(
-          field->GetName()->GetString()).c_str());
-      }
-    }
+    vtkMedFile* file = fieldfileit->second;
+    fieldfileit++;
 
-  for(int index=0; index<this->MedFile->GetNumberOfField(); index++)
-    {
-    vtkMedField* field=this->MedFile->GetField(index);
-    if(field->GetType()==vtkMedField::QuadratureField)
+    for(int index=0; index < file->GetNumberOfField(); index++)
       {
-      this->QuadratureFields->AddArray(vtkMedUtilities::SimplifyName(
-          field->GetName()->GetString()).c_str());
-      }
-    }
-
-  for(int meshIndex=0; meshIndex<this->MedFile->GetNumberOfMesh(); meshIndex++)
-    {
-    vtkMedMesh* mesh=this->MedFile->GetMesh(meshIndex);
-    for(int famIndex=0; famIndex<mesh->GetNumberOfFamily(); famIndex++)
-      {
-      vtkMedFamily* fam=mesh->GetFamily(famIndex);
-      string name=vtkMedUtilities::FamilyKey(mesh->GetName()->GetString(),
-          fam->GetPointOrCell(), fam->GetName()->GetString());
-      int state=-1;
-      if(!this->Internal->Families->ArrayExists(name.c_str()))
+      vtkMedField* field = file->GetField(index);
+      switch(field->GetFieldType())
         {
-        state=(mesh->GetFamily(famIndex)->GetPointOrCell()
-            ==vtkMedUtilities::OnPoint? 0: 1);
+        case vtkMedField::PointField :
+        this->PointFields->AddKey(vtkMedUtilities::SimplifyName(
+              field->GetName()->GetString()).c_str());
+        break;
+        case vtkMedField::CellField :
+        this->CellFields->AddKey(vtkMedUtilities::SimplifyName(
+              field->GetName()->GetString()).c_str());
+        break;
+        case vtkMedField::QuadratureField :
+        this->QuadratureFields->AddKey(vtkMedUtilities::SimplifyName(
+              field->GetName()->GetString()).c_str());
+        break;
+        case vtkMedField::ElnoField :
+        this->ElnoFields->AddKey(vtkMedUtilities::SimplifyName(
+              field->GetName()->GetString()).c_str());
+        break;
         }
-      this->Internal->Families->AddArray(name.c_str());
-      if(state==0)
-        this->Internal->Families->DisableArray(name.c_str());
-      int ng=fam->GetNumberOfGroup();
-      for(int gindex=0; gindex<ng; gindex++)
+      }
+
+    this->Internal->Families->Initialize();
+    this->Groups->Initialize();
+    for(int meshIndex=0; meshIndex < file->GetNumberOfMesh(); meshIndex++)
+      {
+      vtkMedMesh* mesh = file->GetMesh(meshIndex);
+      for(int famIndex=0; famIndex<mesh->GetNumberOfPointFamily(); famIndex++)
         {
-        vtkMedGroup* group=fam->GetGroup(gindex);
-        string gname=vtkMedUtilities::GroupKey(mesh->GetName()->GetString(),
-            fam->GetPointOrCell(), group->GetName()->GetString());
-        this->Groups->AddArray(gname.c_str());
-        if(state==0)
+        vtkMedFamily* fam=mesh->GetPointFamily(famIndex);
+
+        int ng=fam->GetNumberOfGroup();
+        for(int gindex=0; gindex<ng; gindex++)
           {
-          this->Groups->DisableArray(gname.c_str());
+          vtkMedGroup* group=fam->GetGroup(gindex);
+          string gname=vtkMedUtilities::GroupKey(mesh->GetName(),
+              fam->GetPointOrCell(), group->GetName());
+
+          this->Groups->AddKey(gname.c_str());
+          this->Groups->SetKeyStatus(gname.c_str(), 0);
+          }
+        }
+      for(int famIndex=0; famIndex<mesh->GetNumberOfCellFamily(); famIndex++)
+        {
+        vtkMedFamily* fam=mesh->GetCellFamily(famIndex);
+
+        int ng=fam->GetNumberOfGroup();
+        for(int gindex=0; gindex<ng; gindex++)
+          {
+          vtkMedGroup* group=fam->GetGroup(gindex);
+          string gname=vtkMedUtilities::GroupKey(mesh->GetName(),
+              fam->GetPointOrCell(), group->GetName());
+
+          this->Groups->AddKey(gname.c_str());
+          this->Groups->SetKeyStatus(gname.c_str(), 1);
           }
         }
       }
-    }
-  this->Internal->GroupSelectionMTime.Modified();
+    this->Internal->GroupSelectionMTime.Modified();
 
-  for(int meshIndex=0; meshIndex<this->MedFile->GetNumberOfMesh(); meshIndex++)
-    {
-    vtkMedUnstructuredGrid* grid=vtkMedUnstructuredGrid::SafeDownCast(
-        this->MedFile->GetMesh(meshIndex)->GetGrid());
-    if(grid)
+    for(int meshIndex=0; meshIndex< file->GetNumberOfMesh(); meshIndex++)
       {
-      for(int entityIndex=0; entityIndex<grid->GetNumberOfEntityArray(); entityIndex++)
+      if(file->GetMesh(meshIndex)->GetNumberOfGridStep() == 0)
+        continue;
+
+      vtkMedGrid* grid=file->GetMesh(meshIndex)->GetGridStep(0);
+
+      for(int entityIndex=0; entityIndex<grid->GetNumberOfEntityArray();
+        entityIndex++)
         {
         vtkMedEntityArray* array=grid->GetEntityArray(entityIndex);
-        string name=vtkMedUtilities::CellTypeKey(array->GetType(),
-            array->GetGeometry());
-        this->Entities->AddArray(name.c_str());
+        string name=vtkMedUtilities::EntityKey(array->GetEntity());
+        this->Entities->AddKey(name.c_str());
         }
       }
     }
@@ -1171,365 +1300,294 @@ void vtkMedReader::ClearSelections()
 
 void vtkMedReader::SelectFamiliesFromGroups()
 {
-  this->Internal->Families->DisableAllArrays();
+  this->Internal->Families->Initialize();
 
-  for(int meshIndex=0; meshIndex<this->MedFile->GetNumberOfMesh(); meshIndex++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      meshfileit = this->Internal->MedFiles.begin();
+  while(meshfileit != this->Internal->MedFiles.end())
     {
-    vtkMedMesh* mesh=this->MedFile->GetMesh(meshIndex);
-    for(int famIndex=0; famIndex<mesh->GetNumberOfFamily(); famIndex++)
-      {
-      vtkMedFamily* fam=mesh->GetFamily(famIndex);
-      string name=vtkMedUtilities::FamilyKey(mesh->GetName()->GetString(),
-          fam->GetPointOrCell(), fam->GetName()->GetString());
+    vtkMedFile* file = meshfileit->second;
+    meshfileit++;
 
-      int ng=fam->GetNumberOfGroup();
-      if(ng==0)
+    for(int meshIndex=0; meshIndex < file->GetNumberOfMesh(); meshIndex++)
+      {
+      vtkMedMesh* mesh = file->GetMesh(meshIndex);
+      for(int famIndex=0; famIndex<mesh->GetNumberOfFamily(); famIndex++)
         {
-        string gname=vtkMedUtilities::GroupKey(mesh->GetName()->GetString(),
-            fam->GetPointOrCell(), vtkMedUtilities::NoGroupName);
-        int state=this->Groups->GetArraySetting(gname.c_str());
-        if(state)
+        vtkMedFamily* fam=mesh->GetFamily(famIndex);
+        string name=vtkMedUtilities::FamilyKey(mesh->GetName(),
+            fam->GetPointOrCell(), fam->GetName());
+
+        this->Internal->Families->SetKeyStatus(name.c_str(), 0);
+
+        for(int gindex=0; gindex<fam->GetNumberOfGroup(); gindex++)
           {
-          this->SetFamilyStatus(name.c_str(), 1);
-          }
-        }
-      for(int gindex=0; gindex<ng; gindex++)
-        {
-        vtkMedGroup* group=fam->GetGroup(gindex);
-        string gname=vtkMedUtilities::GroupKey(mesh->GetName()->GetString(),
-            fam->GetPointOrCell(), group->GetName()->GetString());
-        int state=this->Groups->GetArraySetting(gname.c_str());
-        if(state)
-          {
-          this->SetFamilyStatus(name.c_str(), 1);
+          vtkMedGroup* group=fam->GetGroup(gindex);
+          string gname=vtkMedUtilities::GroupKey(mesh->GetName(),
+              fam->GetPointOrCell(), group->GetName());
+          int state=this->Groups->GetKeyStatus(gname.c_str());
+
+          if(state)
+            {
+            this->SetFamilyStatus(name.c_str(), 1);
+            }
           }
         }
       }
-    }
-  this->Internal->FamilySelectionMTime.Modified();
-}
+  }
 
-vtkMedDriver*
-vtkMedReader::NewMedDriver(const char* fname)
-{
-  int major, minor, release;
-  vtkMedDriver* driver=vtkMedDriver::New();
-  driver->SetFileName(fname);
-  bool canRead=driver->CanReadFile();
-  if(!canRead)
-    {
-    driver->Delete();
-    return NULL;
-    }
-  driver->ReadFileVersion(&major, &minor, &release);
-  driver->Delete();
-  vtkMedFactory* factory=vtkMedFactory::New();
-  driver=factory->NewMedDriver(major, minor, release);
-  factory->Delete();
-  if(driver)
-    driver->SetFileName(fname);
-  return driver;
+  this->Internal->FamilySelectionMTime.Modified();
 }
 
 int vtkMedReader::GetNumberOfPointFieldArrays()
 {
-  return this->PointFields->GetNumberOfArrays();
+  return this->PointFields->GetNumberOfKey();
 }
 
 const char*
 vtkMedReader::GetPointFieldArrayName(int index)
 {
-  return this->PointFields->GetArrayName(index);
+  return this->PointFields->GetKey(index);
 }
 
 int vtkMedReader::GetPointFieldArrayStatus(const char* name)
 {
-  return this->PointFields->GetArraySetting(name);
+  return this->PointFields->GetKeyStatus(name);
 }
 
 void vtkMedReader::SetPointFieldArrayStatus(const char* name, int status)
 {
-  if(this->PointFields->ArrayExists(name)&&this->PointFields->GetArraySetting(
+  if(this->PointFields->KeyExists(name)&&this->PointFields->GetKeyStatus(
       name)==status)
     return;
 
-  if(status)
-    {
-    this->PointFields->EnableArray(name);
-    }
-  else
-    {
-    this->PointFields->DisableArray(name);
-    }
+  this->PointFields->SetKeyStatus(name, status);
+
   this->Modified();
 }
 
 int vtkMedReader::GetNumberOfCellFieldArrays()
 {
-  return this->CellFields->GetNumberOfArrays();
+  return this->CellFields->GetNumberOfKey();
 }
 
 const char*
 vtkMedReader::GetCellFieldArrayName(int index)
 {
-  return this->CellFields->GetArrayName(index);
+  return this->CellFields->GetKey(index);
 }
 
 int vtkMedReader::GetCellFieldArrayStatus(const char* name)
 {
-  return this->CellFields->GetArraySetting(name);
+  return this->CellFields->GetKeyStatus(name);
 }
 
 void vtkMedReader::SetCellFieldArrayStatus(const char* name, int status)
 {
-  if(this->CellFields->ArrayExists(name)&&this->CellFields->GetArraySetting(
+  if(this->CellFields->KeyExists(name)&&this->CellFields->GetKeyStatus(
       name)==status)
     return;
 
-  if(status)
-    {
-    this->CellFields->EnableArray(name);
-    }
-  else
-    {
-    this->CellFields->DisableArray(name);
-    }
+  this->CellFields->SetKeyStatus(name, status);
+
   this->Modified();
 }
 
 int vtkMedReader::GetNumberOfQuadratureFieldArrays()
 {
-  return this->QuadratureFields->GetNumberOfArrays();
+  return this->QuadratureFields->GetNumberOfKey();
 }
 
-const char*
-vtkMedReader::GetQuadratureFieldArrayName(int index)
+const char* vtkMedReader::GetQuadratureFieldArrayName(int index)
 {
-  return this->QuadratureFields->GetArrayName(index);
+  return this->QuadratureFields->GetKey(index);
 }
 
 int vtkMedReader::GetQuadratureFieldArrayStatus(const char* name)
 {
-  return this->QuadratureFields->GetArraySetting(name);
+  return this->QuadratureFields->GetKeyStatus(name);
 }
 
 void vtkMedReader::SetQuadratureFieldArrayStatus(const char* name, int status)
 {
-  if(this->QuadratureFields->ArrayExists(name)
-      &&this->QuadratureFields->GetArraySetting(name)==status)
+  if(this->QuadratureFields->KeyExists(name)
+      &&this->QuadratureFields->GetKeyStatus(name)==status)
     return;
-  if(status)
-    {
-    this->QuadratureFields->EnableArray(name);
-    }
-  else
-    {
-    this->QuadratureFields->DisableArray(name);
-    }
+
+  this->QuadratureFields->SetKeyStatus(name, status);
+
   this->Modified();
 }
 
-void vtkMedReader::SetCellTypeStatus(const char* name, int status)
+int vtkMedReader::GetNumberOfElnoFieldArrays()
 {
-  if(this->Entities->ArrayExists(name)&&this->Entities->GetArraySetting(name)
+  return this->ElnoFields->GetNumberOfKey();
+}
+
+const char* vtkMedReader::GetElnoFieldArrayName(int index)
+{
+  return this->ElnoFields->GetKey(index);
+}
+
+int vtkMedReader::GetElnoFieldArrayStatus(const char* name)
+{
+  return this->ElnoFields->GetKeyStatus(name);
+}
+
+void vtkMedReader::SetElnoFieldArrayStatus(const char* name, int status)
+{
+  if(this->ElnoFields->KeyExists(name)
+      &&this->ElnoFields->GetKeyStatus(name)==status)
+    return;
+
+  this->ElnoFields->SetKeyStatus(name, status);
+
+  this->Modified();
+}
+
+void vtkMedReader::SetEntityStatus(const char* name, int status)
+{
+  if(this->Entities->KeyExists(name)&&this->Entities->GetKeyStatus(name)
       ==status)
     return;
-  if(status)
-    {
-    this->Entities->EnableArray(name);
-    }
-  else
-    {
-    this->Entities->DisableArray(name);
-    }
+
+  this->Entities->SetKeyStatus(name, status);
+
   this->Modified();
 }
 
 void vtkMedReader::SetFamilyStatus(const char* name, int status)
 {
-  if(this->Internal->Families->ArrayExists(name)
-      &&this->Internal->Families->GetArraySetting(name)==status)
+  if(this->Internal->Families->KeyExists(name)
+      &&this->Internal->Families->GetKeyStatus(name)==status)
     return;
-  if(status)
-    {
-    this->Internal->Families->EnableArray(name);
-    }
-  else
-    {
-    this->Internal->Families->DisableArray(name);
-    }
+
+  this->Internal->Families->SetKeyStatus(name, status);
 }
 
 void vtkMedReader::SetGroupStatus(const char* name, int status)
 {
-  if(this->Groups->ArrayExists(name)&&this->Groups->GetArraySetting(name)
+
+  if(this->Groups->KeyExists(name)&&this->Groups->GetKeyStatus(name)
       ==status)
     return;
-  if(status)
-    {
-    this->Groups->EnableArray(name);
-    }
-  else
-    {
-    this->Groups->DisableArray(name);
-    }
+
+  this->Groups->SetKeyStatus(name, status);
+
   this->Modified();
+
   this->Internal->GroupSelectionMTime.Modified();
 }
 
 int vtkMedReader::GetGroupStatus(const char* key)
 {
-  return this->Groups->GetArraySetting(key);
+  return this->Groups->GetKeyStatus(key);
 }
 
 void vtkMedReader::AddQuadratureSchemeDefinition(vtkInformation* info,
-    vtkMedQuadratureDefinition* meddef)
+    vtkMedLocalization* loc)
 {
-  if(info==NULL||meddef==NULL)
+  if(info==NULL||loc==NULL)
     return;
 
   vtkInformationQuadratureSchemeDefinitionVectorKey *key=
       vtkQuadratureSchemeDefinition::DICTIONARY();
 
   vtkQuadratureSchemeDefinition* def=vtkQuadratureSchemeDefinition::New();
-  int cellType=vtkMedUtilities::GetVTKCellType(meddef->GetGeometry());
+  int cellType=vtkMedUtilities::GetVTKCellType(loc->GetGeometryType());
   def->Initialize(cellType, vtkMedUtilities::GetNumberOfPoint(
-      meddef->GetGeometry()), meddef->GetNumberOfQuadraturePoint(),
-      meddef->GetShapeFunction(), meddef->GetWeights());
+      loc->GetGeometryType()), loc->GetNumberOfQuadraturePoint(),
+      (double*)loc->GetShapeFunction()->GetVoidPointer(0),
+      (double*)loc->GetWeights()->GetVoidPointer(0));
   key->Set(info, def, cellType);
   def->Delete();
 
 }
 
-void vtkMedReader::FlagUsedPointsOnCellSupport(vtkMedFamilyOnEntity* foe,
-    vtkUnsignedCharArray* flag)
+void vtkMedReader::LoadConnectivity(vtkMedEntityArray* array)
 {
-  vtkMedMesh* mesh=foe->GetMesh();
-  flag->SetNumberOfComponents(1);
-  flag->SetNumberOfTuples(mesh->GetGrid()->GetNumberOfPoints());
-
-  for(vtkIdType index=0; index<mesh->GetGrid()->GetNumberOfPoints(); index++)
-    {
-    flag->SetValue(index, 0);
-    }
-
-  vtkMedFamily* family=foe->GetFamily();
-  vtkMedEntityArray* array=foe->GetEntityArray();
-
-  this->MedDriver->LoadFamilyIds(mesh, array);
-
-  this->LoadConnectivity(mesh, array);
-
-  vtkMedIntArray* conn=array->GetConnectivityArray();
-
-  vtkIdList* pts=vtkIdList::New();
-  for(vtkIdType index=0; index<array->GetNumberOfEntity(); index++)
-    {
-    if(!this->KeepCell(family, array, index))
-      continue;
-
-    this->GetCellPoints(mesh, array, index, pts);
-    for(int pt=0; pt<pts->GetNumberOfIds(); pt++)
-      {
-      vtkIdType dest=pts->GetId(pt);
-      flag->SetValue(dest, 1);
-      }
-    }
-  pts->Delete();
-}
-
-void vtkMedReader::LoadConnectivity(vtkMedMesh* mesh, vtkMedEntityArray* array)
-{
-  this->MedDriver->LoadConnectivity(mesh, array);
-  if(array->GetConnectivity()==MED_NOD||vtkMedUtilities::GetDimension(
-      array->GetGeometry())<2)
+  vtkMedGrid* grid = array->GetParentGrid();
+  array->LoadConnectivity();
+  if (array->GetConnectivity()==MED_NODAL||vtkMedUtilities::GetDimension(
+      array->GetEntity().GeometryType)<2
+      || grid->GetParentMesh()->GetMeshType() == MED_STRUCTURED_MESH)
     return;
 
-  med_entite_maillage subtype=vtkMedUtilities::GetSubType(array->GetType());
-  vtkMedUnstructuredGrid* grid=vtkMedUnstructuredGrid::SafeDownCast(
-      mesh->GetGrid());
-  if(grid==NULL)
-    {
-    vtkErrorMacro("DESC connectivity is only supported for unstructured grids.");
+  vtkMedEntity subentity;
+  subentity.EntityType = vtkMedUtilities::GetSubType(array->GetEntity().EntityType);
+
+  vtkMedUnstructuredGrid* ugrid = vtkMedUnstructuredGrid::SafeDownCast(grid);
+  if(ugrid == NULL)
     return;
-    }
+
   for(int index=0; index<vtkMedUtilities::GetNumberOfSubEntity(
-      array->GetGeometry()); index++)
+      array->GetEntity().GeometryType); index++)
     {
-    med_geometrie_element geom=vtkMedUtilities::GetSubGeometry(
-        array->GetGeometry(), index);
-    vtkMedEntityArray* subarray=grid->GetEntityArray(subtype, geom);
+    subentity.GeometryType = vtkMedUtilities::GetSubGeometry(
+        array->GetEntity().GeometryType, index);
+    vtkMedEntityArray* subarray=ugrid->GetEntityArray(subentity);
+
     if(subarray==NULL)
       {
       vtkErrorMacro("DESC connectivity used, but sub types do not exist in file.");
       return;
       }
-    this->LoadConnectivity(mesh, subarray);
+    subarray->LoadConnectivity();
     }
 }
 
 void vtkMedReader::BuildUnstructuredGridForCellSupport(
-    vtkMedFamilyOnEntity* foe, vtkUnstructuredGrid* grid)
+    vtkMedFamilyOnEntityOnProfile* foep, vtkUnstructuredGrid* vtkugrid)
 {
-  vtkMedMesh* mesh=foe->GetMesh();
-  vtkMedUnstructuredGrid* medgrid=vtkMedUnstructuredGrid::SafeDownCast(
-      mesh->GetGrid());
-
-  if(!medgrid)
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
+  vtkMedEntityArray* array = foe->GetEntityArray();
+  if(array->GetValid() == 0)
     {
-    //TODO : structured grid support
-    vtkWarningMacro ("Structured grids not supported")
+    vtkugrid->Initialize();
     return;
     }
 
-  // first, mark all the nodes that must be copied in the new vtkUnstructuredGrid
-  vtkUnsignedCharArray* nodeFlag=vtkUnsignedCharArray::New();
-  this->FlagUsedPointsOnCellSupport(foe, nodeFlag);
-
   // now we copy all the flagged nodes in the grid, shallow copy if possible
   bool shallowCopyPoints=true;
-  bool restrictIndices=false;
 
-  if(medgrid->GetDimension()!=3)
+  vtkMedUnstructuredGrid* medugrid =
+      vtkMedUnstructuredGrid::SafeDownCast(foe->GetParentGrid());
+
+  if(medugrid == NULL)
+    return;
+
+  if(foe->GetParentGrid()->GetParentMesh()->GetSpaceDimension()!=3)
     {
     shallowCopyPoints=false;
     }
 
-  for(vtkIdType index=0; index<nodeFlag->GetNumberOfTuples(); index++)
-    {
-    if(nodeFlag->GetValue(index)==0)
-      {
-      restrictIndices=true;
-      shallowCopyPoints=false;
-      break;
-      }
-    }
+  shallowCopyPoints = shallowCopyPoints && foep->CanShallowCopyPointField(NULL);
 
-  this->MedDriver->LoadCoordinates(mesh);
+  foe->GetParentGrid()->LoadCoordinates();
 
   vtkIdType numberOfPoints;
-  vtkPoints* points=vtkPoints::New(medgrid->GetCoordinates()->GetDataType());
-  grid->SetPoints(points);
+  vtkPoints* points=vtkPoints::New(medugrid->GetCoordinates()->GetDataType());
+  vtkugrid->SetPoints(points);
   points->Delete();
 
   vtkIdTypeArray* pointGlobalIds=vtkIdTypeArray::New();
   pointGlobalIds->SetName("MED_POINT_ID");
   pointGlobalIds->SetNumberOfComponents(1);
-  grid->GetPointData()->SetGlobalIds(pointGlobalIds);
+  vtkugrid->GetPointData()->SetGlobalIds(pointGlobalIds);
   pointGlobalIds->Delete();
 
   vtkIdTypeArray* cellGlobalIds=vtkIdTypeArray::New();
   cellGlobalIds->SetName("MED_CELL_ID");
   cellGlobalIds->SetNumberOfComponents(1);
-  grid->GetCellData()->SetGlobalIds(cellGlobalIds);
+  vtkugrid->GetCellData()->SetGlobalIds(cellGlobalIds);
   cellGlobalIds->Delete();
 
-  if(shallowCopyPoints)
+  if (shallowCopyPoints)
     {
-    grid->GetPoints()->SetDataType(medgrid->GetCoordinates()->GetDataType());
-    grid->GetPoints()->SetData(medgrid->GetCoordinates());
+    vtkugrid->GetPoints()->SetDataType(medugrid->GetCoordinates()->GetDataType());
+    vtkugrid->GetPoints()->SetData(medugrid->GetCoordinates());
     // add global ids
-    numberOfPoints=grid->GetNumberOfPoints();
+    numberOfPoints=medugrid->GetNumberOfPoints();
     pointGlobalIds->SetNumberOfTuples(numberOfPoints);
     vtkIdType* ptr=pointGlobalIds->GetPointer(0);
     for(int pid=0; pid<numberOfPoints; pid++)
@@ -1537,133 +1595,168 @@ void vtkMedReader::BuildUnstructuredGridForCellSupport(
     }
   else
     {
-    if(restrictIndices)
-      {
-      this->Internal->Med2VTKPointIndex[foe]
-          =vtkstd::map<vtkIdType, vtkIdType>();
-      }
-    vtkstd::map<vtkIdType, vtkIdType> tmp;
-    vtkstd::map<vtkIdType, vtkIdType>& med2VTKIndex=
-        (restrictIndices? this->Internal->Med2VTKPointIndex[foe]: tmp);
+
     vtkIdType currentIndex=0;
-    for(vtkIdType index=0; index<medgrid->GetNumberOfPoints(); index++)
+    for(vtkIdType index=0; index<medugrid->GetNumberOfPoints(); index++)
       {
-      if(nodeFlag->GetValue(index)==0)
-        {
+      if(!foep->KeepPoint(index))
         continue;
-        }
-      if(restrictIndices)
-        med2VTKIndex[index]=currentIndex;
 
       double coord[3]={0.0, 0.0, 0.0};
-      double * tuple=medgrid->GetCoordinates()->GetTuple(index);
-      for(int dim=0; dim<medgrid->GetDimension()&&dim<3; dim++)
+      double * tuple=medugrid->GetCoordinates()->GetTuple(index);
+      for(int dim=0; dim<medugrid->GetParentMesh()->GetSpaceDimension()&&dim<3; dim++)
         {
         coord[dim]=tuple[dim];
         }
-      grid->GetPoints()->InsertPoint(currentIndex, coord);
+      vtkugrid->GetPoints()->InsertPoint(currentIndex, coord);
       pointGlobalIds->InsertNextValue(index+1);
       currentIndex++;
       }
-    grid->GetPoints()->Squeeze();
+    vtkugrid->GetPoints()->Squeeze();
     pointGlobalIds->Squeeze();
     numberOfPoints=currentIndex;
     }
-  nodeFlag->Delete();
 
-  vtkUnsignedCharArray *cellTypes=vtkUnsignedCharArray::New();
-  vtkIdTypeArray *cellLocations=vtkIdTypeArray::New();
-  vtkCellArray *cells=vtkCellArray::New();
-  grid->SetCells(cellTypes, cellLocations, cells);
-  cellTypes->Delete();
-  cellLocations->Delete();
-  cells->Delete();
-  vtkIdType location=0;
+  int vtkType = vtkMedUtilities::GetVTKCellType(
+      array->GetEntity().GeometryType);
 
-  vtkMedFamily* family=foe->GetFamily();
-  vtkMedEntityArray* array=foe->GetEntityArray();
-  vtkMedIntArray* conn=array->GetConnectivityArray();
+  vtkSmartPointer<vtkIdList> pts = vtkSmartPointer<vtkIdList>::New();
+  vtkIdType intialGlobalId = array->GetInitialGlobalId();
+  vtkMedIntArray* pids = (foep->GetProfile()!=NULL?
+                           foep->GetProfile()->GetIds() : NULL);
+  vtkIdType maxId = (pids!=NULL?
+                     pids->GetNumberOfTuples():
+                     array->GetNumberOfEntity());
 
-  unsigned char vtkType = vtkMedUtilities::GetVTKCellType(array->GetGeometry());
-  vtkIdType ncell=0;
-  vtkIdList* pts=vtkIdList::New();
-  vtkIdType intialGlobalId=array->GetInitialGlobalId();
-  for(vtkIdType index=0; index<array->GetNumberOfEntity(); index++)
+  for (vtkIdType pindex = 0; pindex<maxId && array->GetValid(); pindex++)
     {
-    if(!this->KeepCell(family, array, index))
+    vtkIdType realIndex = (pids!=NULL?
+                           pids->GetValue(pindex)-1:
+                           pindex);
+    if (!foep->KeepCell(realIndex))
       continue;
 
-    this->GetCellPoints(mesh, array, index, pts);
+    array->GetCellVertices(pindex, pts);
 
-    cellGlobalIds->InsertNextValue(intialGlobalId+index);
-    cellTypes->InsertNextValue(vtkType);
-    cellLocations->InsertNextValue(location);
-    cells->InsertNextCell(pts->GetNumberOfIds());
-    vtkstd::map<vtkIdType, vtkIdType> tmp;
-    vtkstd::map<vtkIdType, vtkIdType>& med2VTKIndex=
-        (restrictIndices? this->Internal->Med2VTKPointIndex[foe]: tmp);
-    for(vtkIdType node=0; node<pts->GetNumberOfIds(); node++)
+    cellGlobalIds->InsertNextValue(intialGlobalId+pindex);
+
+    if (array->GetEntity().GeometryType==MED_POLYHEDRON)
       {
-      vtkIdType ptid=pts->GetId(node);
-      if(restrictIndices)
-        {
-        ptid=med2VTKIndex[ptid];
-        }
-      cells->InsertCellPoint(ptid);
+        this->FormatPolyhedronForVTK(foep, pindex, pts);
+        vtkugrid->InsertNextCell(VTK_POLYHEDRON, pts);
       }
-    location+=pts->GetNumberOfIds()+1;
-    ncell++;
+    else
+      {
+      for(vtkIdType node=0; node<pts->GetNumberOfIds(); node++)
+        {
+        vtkIdType pid = pts->GetId(node);
+        vtkIdType ptid=foep->GetVTKPointIndex(pid);
+        if(ptid < 0 || ptid >= vtkugrid->GetNumberOfPoints())
+          {
+          vtkDebugMacro("Index error");
+          array->SetValid(0);
+          vtkugrid->Initialize();
+          return;
+          }
+        pts->SetId(vtkMedUtilities::MedToVTKIndex(vtkType, node), ptid);
+        }
+      vtkugrid->InsertNextCell(vtkType, pts);
+      }
     }
-  pts->Delete();
+}
 
-  cellTypes->Squeeze();
-  cellLocations->Squeeze();
-  cells->Squeeze();
+void vtkMedReader::FormatPolyhedronForVTK(
+    vtkMedFamilyOnEntityOnProfile* foep, vtkIdType index,
+    vtkIdList* ids )
+{
+  vtkMedEntityArray* array = foep->GetFamilyOnEntity()->GetEntityArray();
+  vtkMedIntArray* conn = array->GetConnectivityArray();
+  vtkMedIntArray* faceIndex = array->GetFaceIndex();
+  vtkMedIntArray* nodeIndex = array->GetNodeIndex();
+  med_int start = faceIndex->GetValue(index)-1;
+  med_int end = faceIndex->GetValue(index+1)-1;
+
+  // The format for the Polyhedrons is:
+  //(numCellFaces, numFace0Pts, id1, id2, id3, numFace1Pts,id1, id2, id3, ...)
+  ids->Reset();
+
+  if (array->GetConnectivity()==MED_NODAL)
+    {
+    ids->InsertNextId(end-start-1);
+    for (int ff = start; ff<end; ff++)
+      {
+      med_int fstart = nodeIndex->GetValue(ff)-1;
+      med_int fend = nodeIndex->GetValue(ff+1)-1;
+      ids->InsertNextId(fend-fstart);
+      for (med_int pt = fstart; pt<fend; pt++)
+        {
+        vtkIdType realIndex = foep->GetVTKPointIndex(conn->GetValue(pt)-1);
+        ids->InsertNextId(realIndex);
+        }
+      }
+    }
+
+  if (array->GetConnectivity()==MED_DESCENDING)
+    {
+    ids->InsertNextId(end-start);
+    vtkMedUnstructuredGrid* medugrid =
+        vtkMedUnstructuredGrid::SafeDownCast(array->GetParentGrid());
+    vtkSmartPointer<vtkIdList> subIds = vtkSmartPointer<vtkIdList>::New();
+
+    for (int i = 0 ; i<nodeIndex->GetSize(); i++)
+      {
+      int numPoints =
+          vtkMedUtilities::GetNumberOfSubEntity(nodeIndex->GetValue(i));
+      ids->InsertNextId(numPoints);
+
+      vtkMedEntity entity;
+      entity.EntityType = MED_DESCENDING_FACE;
+      entity.GeometryType = nodeIndex->GetValue(i);
+
+      vtkMedEntityArray* theFaces =
+          medugrid->GetEntityArray(entity);
+
+      theFaces->GetCellVertices(conn->GetValue(i)-1, subIds);
+
+      for (int j = 0 ; j< numPoints; j++)
+        {
+        vtkIdType realIndex = foep->GetVTKPointIndex(subIds->GetId(j));
+        ids->InsertNextId(realIndex);
+        }
+      }
+    }
 }
 
 void vtkMedReader::BuildUnstructuredGridForPointSupport(
-    vtkMedFamilyOnEntity* foe, vtkUnstructuredGrid* grid)
+    vtkMedFamilyOnEntityOnProfile* foep, vtkUnstructuredGrid* grid)
 {
-  vtkMedMesh* mesh=foe->GetMesh();
-  vtkMedUnstructuredGrid* medgrid=vtkMedUnstructuredGrid::SafeDownCast(
-      mesh->GetGrid());
-  if(!medgrid)
+  foep->ComputeIntersection(NULL);
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
+  vtkMedGrid* medgrid=foe->GetParentGrid();
+  vtkMedUnstructuredGrid* medugrid=vtkMedUnstructuredGrid::SafeDownCast(
+      medgrid);
+  if (!medugrid)
     {
     vtkWarningMacro("Structured data sets are not supported by this reader");
     return;
     }
 
-  this->MedDriver->LoadCoordinates(mesh);
+  medugrid->LoadCoordinates();
 
-  vtkIdType npts=mesh->GetGrid()->GetNumberOfPoints();
+  vtkIdType npts=medgrid->GetNumberOfPoints();
 
   bool shallowCopy=true;
-  if(foe->GetAllPoints()==-1)
+  if(medgrid->GetParentMesh()->GetSpaceDimension()!=3)
     {
-    if(medgrid->GetDimension()!=3)
-      {
-      shallowCopy=false;
-      }
-    else
-      {
-      for(int index=0; index<npts; index++)
-        {
-        if(this->KeepPoint(foe, index)==0)
-          {
-          shallowCopy=false;
-          break;
-          }
-        }
-      }
-    foe->SetAllPoints(shallowCopy);
+    shallowCopy=false;
     }
   else
     {
-    shallowCopy=foe->GetAllPoints();
+    shallowCopy = foep->CanShallowCopyPointField(NULL);
     }
 
   vtkIdType numberOfPoints;
-  vtkPoints* points=vtkPoints::New(medgrid->GetCoordinates()->GetDataType());
+  vtkPoints* points=vtkPoints::New(medugrid->GetCoordinates()->GetDataType());
   grid->SetPoints(points);
   points->Delete();
 
@@ -1673,10 +1766,10 @@ void vtkMedReader::BuildUnstructuredGridForPointSupport(
   grid->GetPointData()->SetGlobalIds(pointGlobalIds);
   pointGlobalIds->Delete();
 
-  if(shallowCopy)
+  if (shallowCopy)
     {
-    grid->GetPoints()->SetDataType(medgrid->GetCoordinates()->GetDataType());
-    grid->GetPoints()->SetData(medgrid->GetCoordinates());
+    grid->GetPoints()->SetDataType(medugrid->GetCoordinates()->GetDataType());
+    grid->GetPoints()->SetData(medugrid->GetCoordinates());
     numberOfPoints=npts;
 
     pointGlobalIds->SetNumberOfTuples(numberOfPoints);
@@ -1687,21 +1780,17 @@ void vtkMedReader::BuildUnstructuredGridForPointSupport(
   else
     {
     vtkIdType currentIndex=0;
-    this->Internal->Med2VTKPointIndex[foe]=vtkstd::map<vtkIdType, vtkIdType>();
-    vtkstd::map<vtkIdType, vtkIdType>& med2VTKIndex=
-        this->Internal->Med2VTKPointIndex[foe];
-    vtkMedFamily* family=foe->GetFamily();
+
     for(vtkIdType index=0; index<medgrid->GetNumberOfPoints(); index++)
       {
-      if(!this->KeepPoint(family, mesh, index))
+      if (!foep->KeepPoint(index))
         {
         continue;
         }
-      med2VTKIndex[index]=currentIndex;
 
       double coord[3]={0.0, 0.0, 0.0};
-      double * tuple=medgrid->GetCoordinates()->GetTuple(index);
-      for(int dim=0; dim<medgrid->GetDimension()&&dim<3; dim++)
+      double * tuple=medugrid->GetCoordinates()->GetTuple(index);
+      for(int dim=0; dim<medgrid->GetParentMesh()->GetSpaceDimension()&&dim<3; dim++)
         {
         coord[dim]=tuple[dim];
         }
@@ -1725,200 +1814,224 @@ void vtkMedReader::BuildUnstructuredGridForPointSupport(
   grid->GetCellData()->SetGlobalIds(grid->GetPointData()->GetGlobalIds());
 }
 
-bool vtkMedReader::KeepCell(vtkMedFamily* family, vtkMedEntityArray* array,
-    vtkIdType index)
+vtkMedGrid* vtkMedReader::FindGridStep(vtkMedMesh* mesh)
 {
-  med_int famid=(array->GetFamilyIds()!=NULL? array->GetFamilyIds()->GetValue(
-      index): 0);
-  return famid==family->GetId();
-}
-
-bool vtkMedReader::KeepPoint(vtkMedFamily* family, vtkMedMesh* mesh,
-    vtkIdType index)
-{
-  med_int famid=
-      (mesh->GetPointFamilyIds()!=NULL? mesh->GetPointFamilyIds()->GetValue(
-          index): 0);
-  return famid==family->GetId();
-}
-
-bool vtkMedReader::KeepPoint(vtkMedFamilyOnEntity* foe, vtkIdType index)
-{
-  if(foe->GetPointOrCell()!=vtkMedUtilities::OnPoint)
+  if(this->Internal->RealAnimationMode == vtkMedReader::PhysicalTime)
     {
-    vtkWarningMacro("use this method only for node support");
-    return false;
+    vtkMedComputeStep cs;
+    cs.TimeOrFrequency = this->Internal->UpdateTimeStep;
+    return mesh->FindGridStep(cs, vtkMedReader::PhysicalTime);
     }
-
-  vtkMedMesh* mesh=foe->GetMesh();
-
-  med_int famid=
-      (mesh->GetPointFamilyIds()!=NULL? mesh->GetPointFamilyIds()->GetValue(
-          index): 0);
-  if(famid==foe->GetFamily()->GetId())
-    return true;
-
-  return false;
-}
-
-vtkMultiBlockDataSet*
-vtkMedReader::GetParent(const vtkList<vtkstd::string>& path)
-{
-  vtkMultiBlockDataSet* output=this->GetOutput();
-  vtkMultiBlockDataSet* parent=output;
-  vtkList<vtkstd::string>::const_iterator it=path.begin();
-  while(it!=path.end())
+  else if(this->Internal->RealAnimationMode == vtkMedReader::Modes)
     {
-    vtkstd::string parentName=*it;
-    it++;
-    bool found=false;
-    for(int blockId=0; blockId<parent->GetNumberOfBlocks(); blockId++)
-      {
-      vtkInformation* metaData=parent->GetMetaData(blockId);
-      const char* blockName=NULL;
-      if(metaData->Has(vtkCompositeDataSet::NAME()))
-        {
-        const char* blockName=metaData->Get(vtkCompositeDataSet::NAME());
-        if(parentName==blockName&&vtkMultiBlockDataSet::SafeDownCast(
-            parent->GetBlock(blockId))!=NULL)
-          {
-          parent=vtkMultiBlockDataSet::SafeDownCast(parent->GetBlock(blockId));
-          found=true;
-          break;
-          }
-        }
-      }
-    if(!found)
-      {
-      // If I am here, it means that I did not find any block with the good name, create one
-      int nb=parent->GetNumberOfBlocks();
-      vtkMultiBlockDataSet* block=vtkMultiBlockDataSet::New();
-      parent->SetBlock(nb, block);
-      block->Delete();
-      parent->GetMetaData(nb)->Set(vtkCompositeDataSet::NAME(),
-          parentName.c_str());
-      parent=block;
-      }
+    vtkMedComputeStep cs;
+    cs.IterationIt = MED_NO_IT;
+    cs.TimeIt = MED_NO_DT;
+    cs.TimeOrFrequency = MED_NO_DT;
+    return mesh->FindGridStep(cs, vtkMedReader::Modes);
     }
-  return parent;
+  else // Iterations
+    {
+    vtkMedComputeStep cs;
+    // the time is set by choosing its index in the global
+    // array giving the available times : this->TimeIndexForIterations
+    cs.TimeOrFrequency = this->AvailableTimes->GetValue(this->TimeIndexForIterations);
+    // the iteration is asked by the pipeline
+    cs.IterationIt = this->Internal->UpdateTimeStep;
+    return mesh->FindGridStep(cs, vtkMedReader::Iteration);
+    }
+  return NULL;
 }
 
 void vtkMedReader::CreateMedSupports()
 {
   this->Internal->UsedSupports.clear();
-  for(int meshIndex=0; meshIndex<this->MedFile->GetNumberOfMesh(); meshIndex++)
+
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      meshfileit = this->Internal->MedFiles.begin();
+  while(meshfileit != this->Internal->MedFiles.end())
     {
-    vtkMedMesh* mesh=this->MedFile->GetMesh(meshIndex);
+    vtkMedFile* file = meshfileit->second;
+    meshfileit++;
 
-    // create the node centered supports
-    this->MedDriver->LoadPointFamilyIds(mesh);
-
-    for(int famIndex=0; famIndex<mesh->GetNumberOfPointFamilyOnEntity(); famIndex++)
+    for(int meshIndex=0; meshIndex<file->GetNumberOfMesh(); meshIndex++)
       {
-      vtkMedFamilyOnEntity* foe=mesh->GetPointFamilyOnEntity(famIndex);
-      vtkMedFamily* family=foe->GetFamily();
-      if(this->GetFamilyStatus(mesh, family)==0)
+      vtkMedMesh* mesh = file->GetMesh(meshIndex);
+      vtkMedGrid* grid = this->FindGridStep(mesh);
+      if(grid == NULL)
         continue;
-      this->Internal->UsedSupports.insert(foe);
-      }
 
-    // create the cell-centered supports
-    vtkMedUnstructuredGrid* ugrid=vtkMedUnstructuredGrid::SafeDownCast(
-        mesh->GetGrid());
-
-    if(ugrid)
-      {
-      for(int entityIndex=0; entityIndex<ugrid->GetNumberOfEntityArray(); entityIndex++)
+      for(int entityIndex=0; entityIndex<grid->GetNumberOfEntityArray();
+        entityIndex++)
         {
-        vtkMedEntityArray* array=ugrid->GetEntityArray(entityIndex);
-        if(this->GetCellTypeStatus(array->GetType(), array->GetGeometry())==0)
+        vtkMedEntityArray* array=grid->GetEntityArray(entityIndex);
+        if(this->GetEntityStatus(array->GetEntity().EntityType,
+                                 array->GetEntity().GeometryType)==0 ||
+           array->GetValid() == 0)
           {
           continue;
           }
-        this->MedDriver->LoadFamilyIds(mesh, array);
 
-        for(int foeIndex=0; foeIndex<array->GetNumberOfFamilyOnEntity(); foeIndex++)
+        file->GetMedDriver()->LoadFamilyIds(array);
+        for(int foeIndex=0; foeIndex<array->GetNumberOfFamilyOnEntity();
+          foeIndex++)
           {
           vtkMedFamilyOnEntity* foe=array->GetFamilyOnEntity(foeIndex);
           vtkMedFamily* family=foe->GetFamily();
           if(this->GetFamilyStatus(mesh, family)==0)
             continue;
 
-          this->Internal->UsedSupports.insert(foe);
+          // now, I look over all non-point fields to see which profiles
+          // have to be used on points.
+          bool selectedSupport = false;
+
+          std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+              fieldfileit = this->Internal->MedFiles.begin();
+          while(fieldfileit != this->Internal->MedFiles.end())
+            {
+            vtkMedFile* fieldfile = fieldfileit->second;
+            fieldfileit++;
+
+            for(int fieldId=0; fieldId<fieldfile->GetNumberOfField(); fieldId++)
+              {
+              vtkMedField* field=fieldfile->GetField(fieldId);
+
+              if (!this->IsFieldSelected(field))
+                continue;
+
+              vtkMedListOfFieldSteps steps;
+
+              this->GatherFieldSteps(field, steps);
+
+              vtkMedListOfFieldSteps::iterator it=steps.begin();
+              while(it!=steps.end())
+                {
+                vtkMedFieldStep *step = *it;
+                it++;
+
+                for(int eid=0; eid<step->GetNumberOfFieldOverEntity(); eid++)
+                  {
+                  vtkMedFieldOverEntity* fieldOverEntity =
+                      step->GetFieldOverEntity(eid);
+
+                  for(int pid = 0; pid < fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
+                    {
+                    vtkMedFieldOnProfile* fop =
+                        fieldOverEntity->GetFieldOnProfile(pid);
+                    vtkMedProfile* prof = fop->GetProfile();
+                    vtkMedFamilyOnEntityOnProfile* foep =
+                        foe->GetFamilyOnEntityOnProfile(prof);
+                    if(foep != NULL)
+                      {
+                      this->Internal->UsedSupports.insert(foep);
+                      selectedSupport = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          // If no field use this family on entity, I nevertheless create the
+          // support, with an empty profile.
+          if(!selectedSupport)
+            {
+            vtkMedFamilyOnEntityOnProfile* foep =
+                foe->GetFamilyOnEntityOnProfile((vtkMedProfile*)NULL);
+            if(foep == NULL)
+              {
+              foep = vtkMedFamilyOnEntityOnProfile::New();
+              foep->SetFamilyOnEntity(foe);
+              foep->SetProfile(NULL);
+              foe->AddFamilyOnEntityOnProfile(foep);
+              foep->Delete();
+              }
+            this->Internal->UsedSupports.insert(foep);
+            }
           }
         }
       }
-    else
-      {
-      vtkWarningMacro("Structured grids are not supported by this reader.");
-      //TODO : deal with structured grids
-      }
-    }
+  }
 }
 
-void vtkMedReader::BuildVTKSupport(vtkMedFamilyOnEntity* foe)
+bool vtkMedReader::BuildVTKSupport(vtkMedFamilyOnEntityOnProfile* foep, int doBuildSupport)
 {
-  vtkMedMesh* mesh=foe->GetMesh();
-  vtkMedGrid* grid=mesh->GetGrid();
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
+  vtkMedEntityArray* array=foe->GetEntityArray();
+  if(array->GetValid() == 0)
+    return false;
+  vtkMedGrid* grid=foe->GetParentGrid();
+  vtkMedMesh* mesh=grid->GetParentMesh();
   vtkMedUnstructuredGrid* ugrid=vtkMedUnstructuredGrid::SafeDownCast(grid);
   if(ugrid==NULL)
     {
     //TODO
     vtkWarningMacro("Structured grids are not supported by this reader.");
-    return;
+    return false;
     }
-  vtkList<std::string> path;
+
+  vtkSmartPointer<vtkStringArray> path = vtkSmartPointer<vtkStringArray>::New();
   string meshName=vtkMedUtilities::SimplifyName(mesh->GetName());
-  path.push_back(meshName);
+  path->InsertNextValue(meshName);
   std::string finalName;
 
   if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint)
     {
-    path.push_back(vtkMedUtilities::OnPointName);
+    path->InsertNextValue(vtkMedUtilities::OnPointName);
     finalName=vtkMedUtilities::SimplifyName(foe->GetFamily()->GetName());
     }
   else
     {
-    path.push_back(vtkMedUtilities::OnCellName);
-    path.push_back(vtkMedUtilities::SimplifyName(foe->GetFamily()->GetName()));
-    vtkMedEntityArray* array=foe->GetEntityArray();
-    finalName=vtkMedUtilities::CellTypeKey(array->GetType(),
-        array->GetGeometry());
+    path->InsertNextValue(vtkMedUtilities::OnCellName);
+    path->InsertNextValue(vtkMedUtilities::SimplifyName(foe->GetFamily()->GetName()));
+    finalName=vtkMedUtilities::EntityKey(array->GetEntity());
     }
 
-  vtkMultiBlockDataSet* root=this->GetParent(path);
-  vtkDataSet* cachedDataSet;
-  if(this->Internal->DataSetCache.find(foe)!=this->Internal->DataSetCache.end())
+  if(foep->GetProfile() != NULL)
     {
-    cachedDataSet=this->Internal->DataSetCache[foe];
+    path->InsertNextValue(finalName);
+    finalName = foep->GetProfile()->GetName()->GetString();
+    }
+
+  ostringstream progressBarTxt;
+  for(int depth=0; depth<path->GetNumberOfValues(); depth++)
+    {
+    progressBarTxt<<path->GetValue(depth)<<" ";
+    }
+  progressBarTxt<<finalName;
+  SetProgressText(progressBarTxt.str().c_str());
+
+  vtkDataSet* cachedDataSet = NULL;
+  if(this->Internal->DataSetCache.find(foep)!=this->Internal->DataSetCache.end())
+    {
+    cachedDataSet = this->Internal->DataSetCache[foep];
     }
   else
     {
-    ostringstream progressBarTxt;
-    vtkList<std::string>::iterator pathit=path.begin();
-    while(pathit!=path.end())
-      {
-      progressBarTxt<<*pathit<<" ";
-      pathit++;
-      }
-    progressBarTxt<<finalName;
-    SetProgressText(progressBarTxt.str().c_str());
-    // load the node coordinates
-    vtkUnstructuredGrid* grid=vtkUnstructuredGrid::New();
-    this->Internal->DataSetCache[foe]=grid;
-    grid->Delete();
-    cachedDataSet=grid;
+    vtkSmartPointer<vtkUnstructuredGrid> vtkgrid =
+        vtkSmartPointer<vtkUnstructuredGrid>::New();
 
-    if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint)
+    if(doBuildSupport)
       {
-      this->BuildUnstructuredGridForPointSupport(foe, grid);
-      }
-    else
-      {
-      this->BuildUnstructuredGridForCellSupport(foe, grid);
-      }
-    }// else on cache
 
+      if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint)
+        {
+        this->BuildUnstructuredGridForPointSupport(foep, vtkgrid);
+        }
+      else
+        {
+        this->BuildUnstructuredGridForCellSupport(foep, vtkgrid);
+        }
+      }
+    if(foep->GetFamilyOnEntity()->GetEntityArray()->GetValid() == 0)
+      {
+      return false;
+      }
+
+    this->Internal->DataSetCache[foep]=vtkgrid;
+    cachedDataSet = vtkgrid;
+  }
+
+  vtkMultiBlockDataSet* root=vtkMedUtilities::GetParent(this->GetOutput(), path);
   int nb=root->GetNumberOfBlocks();
 
   vtkDataSet* realDataSet=cachedDataSet->NewInstance();
@@ -1928,135 +2041,265 @@ void vtkMedReader::BuildVTKSupport(vtkMedFamilyOnEntity* foe)
   root->GetMetaData(nb)->Set(vtkCompositeDataSet::NAME(), finalName.c_str());
   realDataSet->ShallowCopy(cachedDataSet);
 
-  this->Internal->DataSetCache[foe]=cachedDataSet;
-  this->Internal->CurrentDataSet[foe]=realDataSet;
+  this->Internal->DataSetCache[foep]=cachedDataSet;
+  this->Internal->CurrentDataSet[foep]=realDataSet;
+
+  path->InsertNextValue(finalName);
+  path->SetName("BLOCK_NAME");
+  realDataSet->GetFieldData()->AddArray(path);
+  realDataSet->GetInformation()->Remove(vtkMedUtilities::BLOCK_NAME());
+  for(int depth=0; depth<path->GetNumberOfValues(); depth++)
+    {
+    realDataSet->GetInformation()->Set(vtkMedUtilities::BLOCK_NAME(),
+                                       path->GetValue(depth), depth);
+    }
 }
 
-void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntity* foe)
+void vtkMedReader::MapFieldOnSupport(vtkMedFieldOnProfile* fop,
+                                     vtkMedFamilyOnEntityOnProfile* foep,
+                                     int doCreateField)
+{
+  bool cached = false;
+
+  if(this->Internal->FieldCache.find(foep)
+      !=this->Internal->FieldCache.end())
+    {
+    map<vtkMedFieldOnProfile*, VTKField>& fieldCache =
+        this->Internal->FieldCache[foep];
+    if(fieldCache.find(fop)!=fieldCache.end())
+      {
+      cached=true;
+      }
+    }
+
+  if(!cached)
+    {
+    this->CreateVTKFieldOnSupport(fop, foep, doCreateField);
+    }
+  this->SetVTKFieldOnSupport(fop, foep);
+}
+
+void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
+                                      int doCreateField)
 {
   // now loop over all fields to map it to the created grids
-  for(int fieldId=0; fieldId<this->GetMedFile()->GetNumberOfField(); fieldId++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
     {
-    vtkMedField* field=this->GetMedFile()->GetField(fieldId);
+    vtkMedFile* file = fieldfileit->second;
+    fieldfileit++;
 
-    if(this->IsFieldSelected(field))
+    for(int fieldId=0; fieldId<file->GetNumberOfField(); fieldId++)
       {
-      this->SelectStep(field);
-      bool cached=false;
-      ComputeStep cs=this->Internal->CurrentStep[field];
-      TimedField timedField;
-      timedField.first=field;
-      timedField.second=cs;
-      if(this->Internal->FieldCache.find(foe)!=this->Internal->FieldCache.end())
-        {
-        map<TimedField, VTKField>& fieldCache=this->Internal->FieldCache[foe];
-        if(fieldCache.find(timedField)!=fieldCache.end())
-          {
-          cached=true;
-          }
-        }
+      vtkMedField* field=file->GetField(fieldId);
 
-      if(!cached&&!this->IsFieldOnSupport(field, foe))
+      if (!this->IsFieldSelected(field))
         continue;
 
-      if(!cached)
+      vtkMedListOfFieldSteps steps;
+
+      this->GatherFieldSteps(field, steps);
+
+      vtkMedListOfFieldSteps::iterator it=steps.begin();
+      while(it!=steps.end())
         {
-        this->CreateVTKFieldOnSupport(field, foe);
+        vtkMedFieldStep *step = *it;
+        it++;
+
+        for(int eid=0; eid<step->GetNumberOfFieldOverEntity(); eid++)
+          {
+          vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(eid);
+          for(int pid = 0; pid < fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
+            {
+            vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
+            if(foep->CanMapField(fop))
+              {
+              this->MapFieldOnSupport(fop, foep, doCreateField);
+              }
+            }
+          }
         }
-      this->SetVTKFieldOnSupport(field, foe);
       }
     }
 }
 
-void vtkMedReader::SetVTKFieldOnSupport(vtkMedField* field,
-    vtkMedFamilyOnEntity* foe)
+void vtkMedReader::GatherFieldSteps(vtkMedField* field,
+                                    vtkMedListOfFieldSteps& steps)
 {
-  ComputeStep cs=this->Internal->CurrentStep[field];
-  TimedField timedField;
-  timedField.first=field;
-  timedField.second=cs;
-  vtkDataSet* ds=this->Internal->CurrentDataSet[foe];
-  map<TimedField, VTKField>& timedFieldCache=this->Internal->FieldCache[foe];
-  VTKField& vtkfield=timedFieldCache[timedField];
-  vtkfield.DataArray->SetName(
-      vtkMedUtilities::SimplifyName(field->GetName()).c_str());
+  if(this->Internal->RealAnimationMode == vtkMedReader::PhysicalTime)
+    {
+    vtkMedComputeStep cs;
+    cs.TimeOrFrequency = this->Internal->UpdateTimeStep;
+    vtkMedFieldStep* fs =
+        field->FindFieldStep(cs, vtkMedReader::PhysicalTime);
+    if(fs != NULL)
+      steps.push_back(fs);
+    }
+  else if(this->Internal->RealAnimationMode == vtkMedReader::Iteration)
+    {
+    vtkMedComputeStep cs;
+    cs.IterationIt = this->Internal->UpdateTimeStep;
+    cs.TimeOrFrequency = this->AvailableTimes->GetValue(this->TimeIndexForIterations);
+    vtkMedFieldStep* fs =
+        field->FindFieldStep(cs, vtkMedReader::Iteration);
+    if(fs != NULL)
+      steps.push_back(fs);
+    }
+  else // modes
+    {
+    for(int modeid = 0; modeid < this->Frequencies->GetNumberOfKey(); modeid++)
+      {
+      if(this->Frequencies->GetKeyStatus(
+          this->Frequencies->GetKey(modeid)) == 0)
+        {
+        continue;
+        }
+
+      vtkMedComputeStep cs;
+      cs.TimeOrFrequency = this->AvailableTimes->GetValue(modeid);
+      vtkMedFieldStep* fs =
+          field->FindFieldStep(cs, vtkMedReader::PhysicalTime);
+      if(fs != NULL)
+        steps.push_back(fs);
+      }
+    }
+}
+
+void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
+    vtkMedFamilyOnEntityOnProfile* foep)
+{
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
+  vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
+  vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
+  vtkMedField* field = step->GetParentField();
+
+  const vtkMedComputeStep& cs = step->GetComputeStep();
+
+  vtkDataSet* ds=this->Internal->CurrentDataSet[foep];
+
+  VTKField& vtkfield=this->Internal->FieldCache[foep][fop];
+
+  std::string name=vtkMedUtilities::SimplifyName(field->GetName());
+  std::string vectorname = name+"_Vector";
+  if(this->AnimationMode==Modes)
+    {
+    double freq = cs.TimeOrFrequency;
+    int index = this->GetFrequencyIndex(freq);
+    name += string(" ") + vtkMedUtilities::GetModeKey(index, freq);
+    vectorname += string(" ") + vtkMedUtilities::GetModeKey(index, freq);
+    }
+
+  vtkfield.DataArray->SetName(name.c_str());
   vtkfield.DataArray->Squeeze();
+  if(vtkfield.Vectors != NULL)
+    {
+    vtkfield.Vectors->SetName(vectorname.c_str());
+    vtkfield.Vectors->Squeeze();
+    }
   if(vtkfield.QuadratureIndexArray!=NULL)
+    {
     vtkfield.QuadratureIndexArray->Squeeze();
+    }
 
   if(foe->GetPointOrCell()==vtkMedUtilities::OnCell)
     {
-    if(field->GetType()==vtkMedField::PointField)
+    if(field->GetFieldType()==vtkMedField::PointField)
       {
       if(vtkfield.DataArray->GetNumberOfTuples()!=ds->GetNumberOfPoints())
         {
-        vtkDebugMacro("the data array " << vtkfield.DataArray->GetName() << " do not have the good number of tuples");
+        vtkErrorMacro("the data array " << vtkfield.DataArray->GetName()
+                      << " do not have the good number of tuples");
         return;
         }
       ds->GetPointData()->AddArray(vtkfield.DataArray);
-      switch(vtkfield.DataArray->GetNumberOfComponents())
-      {
+      if(vtkfield.Vectors != NULL && this->GenerateVectors)
+        {
+        ds->GetPointData()->AddArray(vtkfield.Vectors);
+        ds->GetPointData()->SetActiveVectors(vtkfield.Vectors->GetName());
+        }
+      switch (vtkfield.DataArray->GetNumberOfComponents())
+        {
         case 1:
-          ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
-          break;
+        ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
+        break;
         case 3:
-          ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
-          break;
-      }
+        ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
+        break;
+        }
       // if the data set is only composed of VTK_VERTEX cells,
       // and no field called with the same name exist on cells,
       // map this field to cells too
       if(foe->GetVertexOnly()==1&&ds->GetCellData()->GetArray(
-          vtkfield.DataArray->GetName())==NULL)
+              vtkfield.DataArray->GetName())==NULL)
         {
         ds->GetCellData()->AddArray(vtkfield.DataArray);
-        switch(vtkfield.DataArray->GetNumberOfComponents())
-        {
+        if(vtkfield.Vectors != NULL && this->GenerateVectors)
+          {
+          ds->GetCellData()->AddArray(vtkfield.Vectors);
+          ds->GetCellData()->SetActiveVectors(vtkfield.Vectors->GetName());
+          }
+        switch (vtkfield.DataArray->GetNumberOfComponents())
+          {
           case 1:
-            ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
-            break;
+          ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
+          break;
           case 3:
-            ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
-            break;
-        }
+          ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
+          break;
+          }
         }
       }
-    if(field->GetType()==vtkMedField::CellField)
+    if(field->GetFieldType()==vtkMedField::CellField)
       {
       if(vtkfield.DataArray->GetNumberOfTuples()!=ds->GetNumberOfCells())
         {
-        vtkDebugMacro("the data array " << vtkfield.DataArray->GetName() << " do not have the good number of tuples");
+        vtkErrorMacro("the data array " << vtkfield.DataArray->GetName()
+                      << " do not have the good number of tuples"
+                      << " ncell=" << ds->GetNumberOfCells()
+                      << " ntuple=" << vtkfield.DataArray->GetNumberOfTuples());
         return;
         }
       ds->GetCellData()->AddArray(vtkfield.DataArray);
-      switch(vtkfield.DataArray->GetNumberOfComponents())
-      {
+      if(vtkfield.Vectors != NULL && this->GenerateVectors)
+        {
+        ds->GetCellData()->AddArray(vtkfield.Vectors);
+        ds->GetCellData()->SetActiveVectors(vtkfield.Vectors->GetName());
+        }
+      switch (vtkfield.DataArray->GetNumberOfComponents())
+        {
         case 1:
-          ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
-          break;
+        ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
+        break;
         case 3:
-          ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
-          break;
-      }
+        ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
+        break;
+        }
       // if the data set is only composed of VTK_VERTEX cells,
       // and no field called with the same name exist on points,
       // map this field to points too
       if(foe->GetVertexOnly()==1&&ds->GetPointData()->GetArray(
-          vtkfield.DataArray->GetName())==NULL)
+              vtkfield.DataArray->GetName())==NULL)
         {
         ds->GetPointData()->AddArray(vtkfield.DataArray);
-        switch(vtkfield.DataArray->GetNumberOfComponents())
-        {
+        if(vtkfield.Vectors != NULL && this->GenerateVectors)
+          {
+          ds->GetPointData()->AddArray(vtkfield.Vectors);
+          ds->GetPointData()->SetActiveVectors(vtkfield.Vectors->GetName());
+          }
+        switch (vtkfield.DataArray->GetNumberOfComponents())
+          {
           case 1:
-            ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
-            break;
+          ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
+          break;
           case 3:
-            ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
-            break;
-        }
+          ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
+          break;
+          }
         }
       }
-    if(field->GetType()==vtkMedField::QuadratureField)
+    if(field->GetFieldType()==vtkMedField::QuadratureField ||
+       field->GetFieldType()==vtkMedField::ElnoField )
       {
       vtkIdType ncells=ds->GetNumberOfCells();
       vtkIdType nid=vtkfield.QuadratureIndexArray->GetNumberOfTuples();
@@ -2070,12 +2313,11 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedField* field,
         {
         ds->GetFieldData()->AddArray(vtkfield.DataArray);
         ds->GetCellData()->AddArray(vtkfield.QuadratureIndexArray);
-        vtkfield.DataArray->GetInformation()->Set(
-            vtkQuadratureSchemeDefinition::QUADRATURE_OFFSET_ARRAY_NAME(),
-            vtkfield.QuadratureIndexArray->GetName());
-        vtkfield.QuadratureIndexArray->GetInformation()->Set(
-            vtkAbstractArray::GUI_HIDE(), 1);
 
+        if(vtkfield.Vectors != NULL && this->GenerateVectors)
+          {
+          ds->GetFieldData()->AddArray(vtkfield.Vectors);
+          }
         }
       }
     }//support OnCell
@@ -2087,479 +2329,60 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedField* field,
       return;
       }
     ds->GetPointData()->AddArray(vtkfield.DataArray);
-    switch(vtkfield.DataArray->GetNumberOfComponents())
-    {
+    if(vtkfield.Vectors != NULL && this->GenerateVectors)
+      {
+      ds->GetPointData()->AddArray(vtkfield.Vectors);
+      ds->GetPointData()->SetActiveVectors(vtkfield.Vectors->GetName());
+      }
+    switch (vtkfield.DataArray->GetNumberOfComponents())
+      {
       case 1:
-        ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
-        break;
+      ds->GetPointData()->SetActiveScalars(vtkfield.DataArray->GetName());
+      break;
       case 3:
-        ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
-        break;
-    }
+      ds->GetPointData()->SetActiveVectors(vtkfield.DataArray->GetName());
+      break;
+      }
     // all the VTK_VERTEX created cells have the same order than the points,
     // I can safely map the point array to the cells in this particular case.
     ds->GetCellData()->AddArray(vtkfield.DataArray);
-    switch(vtkfield.DataArray->GetNumberOfComponents())
-    {
+    if(vtkfield.Vectors != NULL && this->GenerateVectors)
+      {
+      ds->GetCellData()->AddArray(vtkfield.Vectors);
+      ds->GetCellData()->SetActiveVectors(vtkfield.Vectors->GetName());
+      }
+    switch (vtkfield.DataArray->GetNumberOfComponents())
+      {
       case 1:
-        ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
-        break;
+      ds->GetCellData()->SetActiveScalars(vtkfield.DataArray->GetName());
+      break;
       case 3:
-        ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
-        break;
-    }
+      ds->GetCellData()->SetActiveVectors(vtkfield.DataArray->GetName());
+      break;
+      }
     }
 }
 
-int vtkMedReader::IsFieldOnSupport(vtkMedField* field,
-    vtkMedFamilyOnEntity* foe)
+void vtkMedReader::InitializeQuadratureOffsets(vtkMedFieldOnProfile* fop,
+    vtkMedFamilyOnEntityOnProfile* foep)
 {
-  // cell fields cannot match point supports
-  if((foe->GetPointOrCell()==vtkMedUtilities::OnPoint&&field->GetType()
-      !=vtkMedField::PointField))
-    return 0;
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
 
-  vtkMedMesh* mesh=foe->GetMesh();
-
-  ComputeStep cs=this->Internal->CurrentStep[field];
-  TimedField timedField;
-  timedField.first=field;
-  timedField.second=cs;
-
-  if(this->Internal->FieldMatchCache.find(foe)
-      ==this->Internal->FieldMatchCache.end())
-    this->Internal->FieldMatchCache[foe]=map<TimedField, bool> ();
-  map<TimedField, bool>& fieldMatchCache=this->Internal->FieldMatchCache[foe];
-  if(fieldMatchCache.find(timedField)!=fieldMatchCache.end())
-    return fieldMatchCache[timedField];
-
-  bool found=false;
-  vtkMedFieldOverEntity* fieldOverEntity=NULL;
-  vtkMedFieldStep* step=NULL;
-  vtkMedFieldStepOnMesh* stepOnMesh=NULL;
-
-  for(int entityId=0; entityId<field->GetNumberOfFieldOverEntity(); entityId++)
-    {
-    fieldOverEntity=field->GetFieldOverEntity(entityId);
-
-    if(field->GetType()!=vtkMedField::PointField
-        &&(foe->GetEntityArray()->GetGeometry()!=fieldOverEntity->GetGeometry()))
-      continue;
-
-    if(!this->GetCellTypeStatus(fieldOverEntity->GetType(),
-        fieldOverEntity->GetGeometry()))
-      continue;
-
-    step=this->GetSelectedStep(field, fieldOverEntity, timedField.second.first,
-        timedField.second.second);
-    if(step==NULL)
-      continue;
-
-    stepOnMesh=step->GetStepOnMesh(mesh);
-    if(stepOnMesh==NULL)
-      continue;
-
-    found=true;
-    break;
-    }// entityId
-
-  if(found==false)
-    {
-    fieldMatchCache[timedField]=false;
-    return 0;
-    }
-
-  TimedFieldOverEntity tfoe;
-  tfoe.Entity=fieldOverEntity;
-  tfoe.Step=step;
-  tfoe.StepOnMesh=stepOnMesh;
-
-  if(this->Internal->FieldOnFamilyOnEntityCache.find(timedField)
-      ==this->Internal->FieldOnFamilyOnEntityCache.end())
-    this->Internal->FieldOnFamilyOnEntityCache[timedField]=map<
-        vtkMedFamilyOnEntity*, TimedFieldOverEntity> ();
-  this->Internal->FieldOnFamilyOnEntityCache[timedField][foe]=tfoe;
-
-  if(stepOnMesh->GetHasProfile()==1)
-    {
-
-    vtkMedProfile* profile=this->GetProfile(mesh, field, tfoe.Entity,
-        tfoe.Step, tfoe.StepOnMesh);
-
-    if(!this->IsFamilyOnEntityOnProfile(foe, profile, field->GetType(), false))
-      {
-      fieldMatchCache[timedField]=false;
-      return 0;
-      }
-    }
-  fieldMatchCache[timedField]=true;
-  return 1;
-}
-
-int vtkMedReader::IsFamilyOnEntityOnProfile(vtkMedFamilyOnEntity* foe,
-    vtkMedProfile* profile, int fieldSupportType, bool exact)
-{
-  int nodeOrCellSupport=foe->GetPointOrCell();
-  if(fieldSupportType!=vtkMedField::PointField&&nodeOrCellSupport
-      ==vtkMedUtilities::OnPoint)
-    return false;
-
-  if(fieldSupportType!=vtkMedField::PointField&&nodeOrCellSupport
-      ==vtkMedUtilities::OnCell)
-    return this->IsCellFamilyOnEntityOnCellProfile(foe, profile, exact);
-
-  if(fieldSupportType==vtkMedField::PointField&&nodeOrCellSupport
-      ==vtkMedUtilities::OnPoint)
-    return this->IsPointFamilyOnEntityOnPointProfile(foe, profile, exact);
-
-  if(fieldSupportType==vtkMedField::PointField&&nodeOrCellSupport
-      ==vtkMedUtilities::OnCell)
-    return this->IsCellFamilyOnEntityOnPointProfile(foe, profile, exact);
-}
-
-int vtkMedReader::IsPointFamilyOnEntityOnPointProfile(
-    vtkMedFamilyOnEntity* foe, vtkMedProfile* profile, bool exact)
-{
-  pair<vtkMedFamilyOnEntity*, vtkMedProfile*> key=make_pair(foe, profile);
-
-  if(this->Internal->ProfileMatch.find(key)!=this->Internal->ProfileMatch.end())
-    {
-    if(exact)
-      return this->Internal->ProfileMatch[key].first;
-    else
-      return this->Internal->ProfileMatch[key].second;
-    }
-
-  this->MedDriver->Load(profile);
-  set<med_int> fids;
-  vtkMedIntArray* famIds=foe->GetMesh()->GetPointFamilyIds();
-  vtkMedIntArray* pIds=profile->GetIds();
-  med_int famId=(foe->GetFamily()? foe->GetFamily()->GetId(): 0);
-  bool match=true;
-  bool exactmatch=true;
-  vtkIdType pindex=0;
-
-  for(vtkIdType index=0; index<famIds->GetNumberOfTuples()&&match&&pindex
-      <pIds->GetNumberOfTuples(); index++)
-    {
-    bool test=false;
-    med_int fid=famIds->GetValue(index);
-    med_int pid=pIds->GetValue(pindex)-1;
-    if(fid==famId)
-      {
-      if(pid!=index)
-        {
-        match=false;
-        exactmatch=false;
-        }
-      else
-        // on the profile and found the family --> forward on the profile
-        pindex++;
-      }
-    else
-      {
-      if(pid==index)
-        {// we are on the profile and did not find the family --> no exact match, but the the profile might be larger than the family.
-        exactmatch=false;
-        pindex++;
-        }
-      else if(index>pid)
-        {
-        match=false;
-        exactmatch=false;
-        }
-      }
-    }
-
-  this->Internal->ProfileMatch[key]=make_pair(exactmatch, match);
-  if(exact)
-    return exactmatch;
-  return match;
-}
-
-int vtkMedReader::IsCellFamilyOnEntityOnPointProfile(vtkMedFamilyOnEntity* foe,
-    vtkMedProfile* profile, bool exact)
-{
-  pair<vtkMedFamilyOnEntity*, vtkMedProfile*> key=make_pair(foe, profile);
-
-  if(this->Internal->ProfileMatch.find(key)!=this->Internal->ProfileMatch.end())
-    {
-    if(exact)
-      return this->Internal->ProfileMatch[key].first;
-    else
-      return this->Internal->ProfileMatch[key].second;
-    }
-
-  this->MedDriver->Load(profile);
-  vtkUnsignedCharArray* flag;
-  if(this->Internal->UsedPointsOnCellSupportCache.find(foe)
-      ==this->Internal->UsedPointsOnCellSupportCache.end())
-    {
-    flag=vtkUnsignedCharArray::New();
-    this->Internal->UsedPointsOnCellSupportCache[foe]=flag;
-    this->FlagUsedPointsOnCellSupport(foe, flag);
-    }
-
-  flag=this->Internal->UsedPointsOnCellSupportCache[foe];
-
-  bool match=true;
-  bool exactmatch=true;
-  if(profile==NULL)
-    {
-    for(vtkIdType index=0; index<flag->GetNumberOfTuples(); index++)
-      {
-      if(flag->GetValue(index)==0)
-        {
-        match=false;
-        exactmatch=false;
-        break;
-        }
-      }
-    this->Internal->ProfileMatch[key]=make_pair(exactmatch, match);
-    return match;
-    }
-
-  vtkMedIntArray* pids=profile->GetIds();
-  vtkIdType pIndex=0;
-  for(vtkIdType index=0; index<flag->GetNumberOfTuples()&&match&&pIndex
-      <pids->GetNumberOfTuples(); index++)
-    {
-    med_int pid=pids->GetValue(pIndex)-1;
-    if(index<pid) // not on the profile
-      {
-      if(flag->GetValue(index)==1)
-        {
-        match=false;
-        exactmatch=false;
-        }
-      }
-    else if(index==pid)
-      {
-      pIndex++;
-      if(flag->GetValue(index)==0)
-        {
-        exactmatch=false;
-        }
-      }
-    else
-      {
-      exactmatch=false;
-      match=false;
-      }
-    }
-  this->Internal->ProfileMatch[key]=make_pair(exactmatch, match);
-  if(exact)
-    return exactmatch;
-  return match;
-}
-
-int vtkMedReader::IsCellFamilyOnEntityOnCellProfile(vtkMedFamilyOnEntity* foe,
-    vtkMedProfile* profile, bool exact)
-{
-  pair<vtkMedFamilyOnEntity*, vtkMedProfile*> key=make_pair(foe, profile);
-
-  if(this->Internal->ProfileMatch.find(key)!=this->Internal->ProfileMatch.end())
-    {
-    if(exact)
-      return this->Internal->ProfileMatch[key].first;
-    else
-      return this->Internal->ProfileMatch[key].second;
-    }
-
-  this->MedDriver->Load(profile);
-  vtkMedIntArray* pids=profile->GetIds();
-
-  med_int famId=(foe->GetFamily()? foe->GetFamily()->GetId(): 0);
-
-  bool match=true;
-  bool exactmatch=true;
-  if(pids!=NULL)
-    {
-    vtkIdType pindex=0;
-    vtkMedEntityArray* array=foe->GetEntityArray();
-    vtkMedIntArray* famIds=array->GetFamilyIds();
-    for(int index=0; index<famIds->GetNumberOfTuples()&&match&&pindex
-        <pids->GetNumberOfTuples(); index++)
-      {
-      med_int pid=pids->GetValue(pindex)-1;
-      med_int fid=famIds->GetValue(index);
-      if(famId==fid)
-        {
-        if(index==pid)
-          pindex++;
-        else
-          {
-          match=false;
-          exactmatch=false;
-          }
-        }
-      else
-        {
-        if(index==pid)
-          {
-          exactmatch=false;
-          pindex++;
-          }
-        else if(index>pid) // this should not happen : we passed by the pid.
-          {
-          exactmatch=false;
-          match=false;
-          }
-        }
-      }
-    }
-
-  this->Internal->ProfileMatch[key]=make_pair(exactmatch, match);
-  if(exact)
-    return exactmatch;
-  return match;
-}
-
-int vtkMedReader::CanShallowCopyMed2VTK(vtkMedField* field,
-    vtkMedFamilyOnEntity* foe)
-{
-  if(field->GetNumberOfFieldOverEntity()!=1)
-    return 0;
-
-  vtkMedMesh* mesh=foe->GetMesh();
-
-  ComputeStep cs=this->Internal->CurrentStep[field];
-  TimedField timedField;
-  timedField.first=field;
-  timedField.second=cs;
-
-  TimedFieldOverEntity & ref=
-      this->Internal->FieldOnFamilyOnEntityCache[timedField][foe];
-  if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint)
-    {
-    // first case when I can shallow copy is if all the families are here
-    this->MedDriver->LoadPointFamilyIds(mesh);
-    if(mesh->GetNumberOfPointFamilyOnEntity()<=1
-        &&ref.StepOnMesh->GetHasProfile()==0)
-      return true;
-
-    // second case is if all the families match exactly the profile
-    if(ref.StepOnMesh->GetHasProfile()==0)
-      return false;
-
-    vtkMedProfile* profile=this->GetProfile(mesh, field, ref.Entity, ref.Step,
-        ref.StepOnMesh);
-
-    return this->IsPointFamilyOnEntityOnPointProfile(foe, profile, true);
-    }// support OnPoint
-  else
-    {
-    if(field->GetType()!=vtkMedField::PointField)
-      {//cell field on cell support
-      vtkMedEntityArray* array=foe->GetEntityArray();
-      this->MedDriver->LoadFamilyIds(mesh, array);
-
-      if(array->GetNumberOfFamilyOnEntity()<=1&&ref.StepOnMesh->GetHasProfile()
-          ==0)
-        {
-        return true;
-        }
-      // then I have to test if the profile exactly matches the families
-      if(ref.StepOnMesh->GetHasProfile()!=1)
-        return false;
-
-      vtkMedProfile* profile=this->GetProfile(mesh, field, ref.Entity,
-          ref.Step, ref.StepOnMesh);
-
-      return this->IsCellFamilyOnEntityOnCellProfile(foe, profile, true);
-      }
-    else
-      {//point field on cell support
-      this->MedDriver->LoadPointFamilyIds(mesh);
-
-      // first case : all the points of the mesh have to be loaded,
-      // and there is no profile
-      if(mesh->GetNumberOfCellFamily()<=1&&ref.StepOnMesh->GetHasProfile()==0)
-        {
-        return true;
-        }
-      // then I have to test if the profile exactly matches the families
-      vtkMedProfile* profile=this->GetProfile(mesh, field, ref.Entity,
-          ref.Step, ref.StepOnMesh);
-
-      return this->IsCellFamilyOnEntityOnPointProfile(foe, profile, true);
-      }
-    }// support OnCell
-}
-
-vtkMedProfile*
-vtkMedReader::GetProfile(vtkMedMesh* mesh, vtkMedField* field,
-    vtkMedFieldOverEntity* foe, vtkMedFieldStep* step,
-    vtkMedFieldStepOnMesh* som)
-{
-  if(som->GetHasProfile()==0)
-    return NULL;
-
-  if(som->GetMetaInfo()==0)
-    this->MedDriver->Load(mesh, field, foe, step, som);
-
-  return this->MedFile->GetProfile(som->GetProfileName());
-}
-
-vtkMedQuadratureDefinition*
-vtkMedReader::GetQuadratureDefinition(vtkMedMesh* mesh, vtkMedField* field,
-    vtkMedFieldOverEntity* foe, vtkMedFieldStep* step,
-    vtkMedFieldStepOnMesh* som)
-{
-  if(field->GetType()!=vtkMedField::QuadratureField)
-    return NULL;
-
-  if(som->GetMetaInfo()==0)
-    this->MedDriver->Load(mesh, field, foe, step, som);
-
-  return this->MedFile->GetQuadratureDefinition(
-      som->GetQuadratureDefinitionName());
-}
-
-int vtkMedReader::GetQuadratureDefinitionKey(vtkMedMesh* mesh,
-    vtkMedField* field, vtkMedFieldOverEntity* foe, vtkMedFieldStep* step,
-    vtkMedFieldStepOnMesh* som)
-{
-  vtkMedQuadratureDefinition* def=this->GetQuadratureDefinition(mesh, field,
-      foe, step, som);
-  if(def)
-    return def->GetMedIndex();
-  if(som->GetNumberOfQuadraturePoint()==1)//1 quadrature point at the cell center
-    return this->MedFile->GetNumberOfQuadratureDefinition()+1
-        +foe->GetGeometry();
-  return -foe->GetGeometry();//ELNO
-}
-
-void vtkMedReader::InitializeQuadratureOffsets(vtkMedField* field,
-    vtkMedFamilyOnEntity* foe)
-{
-  ComputeStep cs=this->Internal->CurrentStep[field];
-  TimedField timedField;
-  timedField.first=field;
-  timedField.second=cs;
-  vtkMedMesh *mesh=foe->GetMesh();
+  vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
+  vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
+  vtkMedField *field= step->GetParentField();
 
   // then I compute the quadrature key if needed, and try to find the quadrature offsets.
-  if(this->Internal->QuadratureOffsetCache.find(foe)
+  if(this->Internal->QuadratureOffsetCache.find(foep)
       ==this->Internal->QuadratureOffsetCache.end())
-    this->Internal->QuadratureOffsetCache[foe]=map<QuadratureKey,
+    this->Internal->QuadratureOffsetCache[foep]=map<LocalizationKey,
         vtkSmartPointer<vtkIdTypeArray> > ();
 
-  map<QuadratureKey, vtkSmartPointer<vtkIdTypeArray> >& quadOffsets=
-      this->Internal->QuadratureOffsetCache[foe];
-  ;
-  map<vtkMedFamilyOnEntity*, TimedFieldOverEntity>& refs=
-      this->Internal->FieldOnFamilyOnEntityCache[timedField];
+  map<LocalizationKey, vtkSmartPointer<vtkIdTypeArray> >& quadOffsets=
+      this->Internal->QuadratureOffsetCache[foep];
 
-  TimedFieldOverEntity& ref=refs[foe];
-  vtkMedFieldStepOnMesh* som=ref.Step->GetStepOnMesh(mesh);
-  QuadratureKey quadkey=this->GetQuadratureDefinitionKey(mesh, field,
-      ref.Entity, ref.Step, ref.StepOnMesh);
+  LocalizationKey quadkey=this->GetLocalizationKey(fop);
 
-  if(this->Internal->QuadOffsetKey.find(foe)
-      ==this->Internal->QuadOffsetKey.end())
-    this->Internal->QuadOffsetKey[foe]=map<TimedField, QuadratureKey> ();
-  this->Internal->QuadOffsetKey[foe][timedField]=quadkey;
   if(quadOffsets.find(quadkey)!=quadOffsets.end())
     {// the quadrature offset array has already been created
     return;
@@ -2569,121 +2392,114 @@ void vtkMedReader::InitializeQuadratureOffsets(vtkMedField* field,
   quadOffsets[quadkey]=qoffsets;
   qoffsets->Delete();
 
-  string name=field->GetName()->GetString();
   ostringstream sstr;
-  int type=0;
-  if(name.find("ELNO")!=string::npos)
+  if(field->GetFieldType() == vtkMedField::ElnoField)
     {
-    sstr<<"ELNO_Offset";
-    type=1;
+    qoffsets->GetInformation()->Set(vtkMedUtilities::ELNO(), 1);
+    sstr<<"ELNO";
     }
-  else if(name.find("ELGA")!=string::npos)
+  else if(field->GetFieldType() == vtkMedField::QuadratureField)
     {
-    sstr<<"ELGA_Offset";
-    type=2;
+    qoffsets->GetInformation()->Set(vtkMedUtilities::ELGA(), 1);
+    sstr<<"ELGA";
     }
   else
     {
     sstr<<"QuadraturePointOffset";
     }
-  int nelga=0;
-  int nelno=0;
-  for(map<QuadratureKey, vtkSmartPointer<vtkIdTypeArray> >::iterator it=
-      quadOffsets.begin(); it!=quadOffsets.end(); it++)
-    {
-    vtkIdTypeArray* qoff=it->second;
-    if(qoff!=NULL&&qoff->GetName()!=NULL)
-      {
-      string name=qoff->GetName();
-      if(name.find("ELNO")!=string::npos)
-        nelno++;
-      else if(name.find("ELGA")!=string::npos)
-        nelga++;
-      }
-    }
-  if(type==1&&nelno>1)
-    sstr<<nelno-1;
-  if(type==2&&nelga>1)
-    sstr<<nelga-1;
 
   qoffsets->SetName(sstr.str().c_str());
 
-  vtkSmartPointer<vtkMedQuadratureDefinition> def=
-      this->GetQuadratureDefinition(mesh, field, ref.Entity, ref.Step,
-          ref.StepOnMesh);
-  if(def!=NULL)
+  vtkSmartPointer<vtkMedLocalization> loc=
+      this->GetLocalization(fop->GetLocalizationName());
+
+  if(loc == NULL)
     {
-    this->MedDriver->Load(def);
+    if(fop->GetNumberOfIntegrationPoint()==1)
+      {// cell-centered fields can be seen as quadrature fields with 1
+      // quadrature point at the center
+      vtkMedLocalization* center=vtkMedLocalization::New();
+      loc=center;
+      center->Delete();
+      center->BuildCenter(fieldOverEntity->GetEntity().GeometryType);
+      }
+    else if(loc == NULL && field->GetFieldType() == vtkMedField::ElnoField)
+      {// ELNO fields have no vtkMedLocalization,
+      // I need to create a dummy one
+      vtkMedLocalization* elnodef=vtkMedLocalization::New();
+      loc=elnodef;
+      elnodef->Delete();
+      elnodef->BuildELNO(fieldOverEntity->GetEntity().GeometryType);
+      }
+    else
+      {
+      vtkErrorMacro("Cannot find localization of quadrature field "
+                    << field->GetName()->GetString());
+      }
     }
-  else if(ref.StepOnMesh->GetNumberOfQuadraturePoint()==1)
-    {// cell-centered fields can be seen as quadrature fields with 1 quadrature point at the center
-    vtkMedQuadratureDefinition* center=vtkMedQuadratureDefinition::New();
-    def=center;
-    center->Delete();
-    center->BuildCenter(ref.Entity->GetGeometry());
-    }
-  else
-    {// ELNO fields have no vtkMedQuadratureDefinition, I need to create a dummy one
-    vtkMedQuadratureDefinition* elno=vtkMedQuadratureDefinition::New();
-    def=elno;
-    elno->Delete();
-    elno->BuildELNO(ref.Entity->GetGeometry());
-    }
-  this->AddQuadratureSchemeDefinition(qoffsets->GetInformation(), def);
+  this->AddQuadratureSchemeDefinition(qoffsets->GetInformation(), loc);
 }
 
-void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
-    vtkMedFamilyOnEntity* foe)
+void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
+    vtkMedFamilyOnEntityOnProfile* foep, int doCreateField)
 {
-  ComputeStep cs=this->Internal->CurrentStep[field];
-  TimedField timedField;
-  timedField.first=field;
-  timedField.second=cs;
+  vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
 
-  vtkMedMesh* mesh=foe->GetMesh();
-  vtkMedUnstructuredGrid* ugrid=vtkMedUnstructuredGrid::SafeDownCast(
-      mesh->GetGrid());
-  if(!ugrid)
+  vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
+  vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
+  vtkMedField* field = step->GetParentField();
+
+  fop->Load();
+
+  vtkMedIntArray* profids=NULL;
+
+  vtkMedProfile* profile=fop->GetProfile();
+
+  if(profile)
     {
-    // TODO deal with structured data sets
-    return;
+    profile->Load();
+    profids=profile->GetIds();
+    }//has profile
+
+  VTKField& vtkfield=this->Internal->FieldCache[foep][fop];
+
+  bool shallowok = foep->CanShallowCopy(fop);
+
+  if(shallowok)
+    {
+    vtkfield.DataArray = fop->GetData();
+    }
+  else
+    {
+    vtkDataArray* data=vtkMedUtilities::NewArray(field->GetDataType());
+    vtkfield.DataArray=data;
+    data->Delete();
     }
 
-  if(this->Internal->FieldCache.find(foe)==this->Internal->FieldCache.end())
-    this->Internal->FieldCache[foe]=map<TimedField, VTKField> ();
-
-  this->Internal->FieldCache[foe][timedField]=VTKField();
-  VTKField& vtkfield=this->Internal->FieldCache[foe][timedField];
-
-  vtkDataArray* data=vtkMedUtilities::NewArray(field->GetDataType());
-  vtkfield.DataArray=data;
-  data->Delete();
-  data->SetNumberOfComponents(field->GetNumberOfComponent());
-#if VTK_MAJOR_VERSION >= 5 and VTK_MINOR_VERSION >= 7
+  vtkfield.DataArray->SetNumberOfComponents(field->GetNumberOfComponent());
   for(int comp=0; comp<field->GetNumberOfComponent(); comp++)
     {
-    data->SetComponentName(comp, vtkMedUtilities::SimplifyName(
+    vtkfield.DataArray->SetComponentName(comp, vtkMedUtilities::SimplifyName(
         field->GetComponentName(comp)).c_str());
     }
-#endif
-
-  med_int fid=foe->GetFamily()->GetId();
-
-  map<vtkMedFamilyOnEntity*, TimedFieldOverEntity>& refs=
-      this->Internal->FieldOnFamilyOnEntityCache[timedField];
-
-  TimedFieldOverEntity& ref=refs[foe];
-  this->MedDriver->Load(foe->GetMesh(), field, ref.Entity, ref.Step,
-      ref.StepOnMesh);
 
   bool createOffsets=false;
-  if(field->GetType()==vtkMedField::QuadratureField)
+  if(field->GetFieldType()==vtkMedField::QuadratureField ||
+     field->GetFieldType()==vtkMedField::ElnoField )
     {
-    this->InitializeQuadratureOffsets(field, foe);
-    QuadratureKey& quadKey=this->Internal->QuadOffsetKey[foe][timedField];
+    this->InitializeQuadratureOffsets(fop, foep);
+
+    LocalizationKey quadKey = this->GetLocalizationKey(fop);
     vtkfield.QuadratureIndexArray
-        =this->Internal->QuadratureOffsetCache[foe][quadKey];
-    vtkDataSet* ds=this->Internal->CurrentDataSet[foe];
+        =this->Internal->QuadratureOffsetCache[foep][quadKey];
+    vtkDataSet* ds = this->Internal->CurrentDataSet[foep];
+
+    vtkfield.DataArray->GetInformation()->Set(
+        vtkQuadratureSchemeDefinition::QUADRATURE_OFFSET_ARRAY_NAME(),
+        vtkfield.QuadratureIndexArray->GetName());
+    vtkfield.QuadratureIndexArray->GetInformation()->Set(
+        vtkAbstractArray::GUI_HIDE(), 1);
+
     if(vtkfield.QuadratureIndexArray->GetNumberOfTuples()
         !=ds->GetNumberOfCells())
       {
@@ -2692,25 +2508,26 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
       }
     }
 
-  if(this->CanShallowCopyMed2VTK(field, foe))
+  if(!doCreateField)
+    return;
+
+  if(shallowok)
     {
-    TimedFieldOverEntity & ref=refs[foe];
-    vtkMedFieldOverEntity* entity=ref.Entity;
-    vtkMedFieldStep* step=ref.Step;
-    vtkMedFieldStepOnMesh* stepOnMesh=ref.StepOnMesh;
-    // first, build the quadrature offset array if needed
+
+    // build the quadrature offset array if needed
     if(createOffsets)
       {
       vtkIdType noffsets;
-      int nquad=stepOnMesh->GetNumberOfQuadraturePoint();
+      int nquad=fop->GetNumberOfIntegrationPoint();
 
-      noffsets=stepOnMesh->GetData()->GetNumberOfTuples()/nquad;
+      noffsets=fop->GetData()->GetNumberOfTuples()/nquad;
 
-      vtkDataSet* ds=this->Internal->CurrentDataSet[foe];
+      vtkDataSet* ds=this->Internal->CurrentDataSet[foep];
       if(noffsets!=ds->GetNumberOfCells())
         {
         vtkErrorMacro(
-            "number of quadrature offsets (" << noffsets << ") must match the number of cells (" << ds->GetNumberOfCells() << ")!");
+            "number of quadrature offsets (" << noffsets << ") must "
+            << "match the number of cells (" << ds->GetNumberOfCells() << ")!");
         }
 
       vtkfield.QuadratureIndexArray->SetNumberOfTuples(noffsets);
@@ -2719,56 +2536,43 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
         vtkfield.QuadratureIndexArray->SetValue(id, nquad*id);
         }
       }
-
-    vtkfield.DataArray=stepOnMesh->GetData();
-    return;
     }
-
-  if(foe->GetPointOrCell()==vtkMedUtilities::OnCell&&field->GetType()
-      !=vtkMedField::PointField)
+  else if(foe->GetPointOrCell() == vtkMedUtilities::OnCell
+     && field->GetFieldType() != vtkMedField::PointField)
     {
-    TimedFieldOverEntity & ref=refs[foe];
-    vtkMedFieldOverEntity* entity=ref.Entity;
-    vtkMedFieldStep* step=ref.Step;
-    vtkMedFieldStepOnMesh* stepOnMesh=ref.StepOnMesh;
+    // Cell-centered field on cell support
 
-    vtkMedIntArray* famIdArray=foe->GetEntityArray()->GetFamilyIds();
-    med_int* famIds=(famIdArray==NULL? NULL: famIdArray->GetPointer(0));
-    int nquad=1;
-    if(field->GetType()==vtkMedField::QuadratureField)
+    int nquad = 1;
+    if (field->GetFieldType()==vtkMedField::QuadratureField ||
+        field->GetFieldType()==vtkMedField::ElnoField)
       {
-      nquad=stepOnMesh->GetNumberOfQuadraturePoint();
+      nquad=fop->GetNumberOfIntegrationPoint();
       }
     vtkMedIntArray* profids=NULL;
-    if(stepOnMesh->GetHasProfile())
+    if (profile)
       {
-      vtkMedProfile* profile=this->GetProfile(mesh, field, entity, step,
-          stepOnMesh);
-      if(profile)
-        {
-        profids=profile->GetIds();
-        }
+      profids=profile->GetIds();
       }
-    vtkIdType maxIndex=stepOnMesh->GetData()->GetNumberOfTuples();
+    vtkIdType maxIndex=fop->GetData()->GetNumberOfTuples();
     maxIndex/=nquad;
+    vtkIdType quadIndex = 0;
 
-    vtkIdType destIndex=0;
-    vtkIdType quadIndex=0;
-    for(vtkIdType id=0; id<maxIndex; id++)
+    for (vtkIdType id = 0; id<maxIndex; id++)
       {
-      vtkIdType realIndex=(profids!=NULL? profids->GetValue(id)-1: id);
-      med_int famId=(famIds!=NULL? famIds[realIndex]: 0);
-      if(famId!=fid)
+      vtkIdType realIndex = (profids!=NULL ? profids->GetValue(id)-1 : id);
+
+      if (!foep->KeepCell(realIndex))
         continue;
 
-      if(field->GetType()==vtkMedField::QuadratureField)
+      if (field->GetFieldType()==vtkMedField::QuadratureField ||
+          field->GetFieldType()==vtkMedField::ElnoField)
         {
-        for(int q=0; q<nquad; q++)
+        for (int q = 0; q<nquad; q++)
           {
           vtkfield.DataArray->InsertNextTuple(nquad*realIndex+q,
-              stepOnMesh->GetData());
+              fop->GetData());
           }
-        if(createOffsets)
+        if (createOffsets)
           {
           vtkfield.QuadratureIndexArray->InsertNextValue(quadIndex);
           quadIndex+=nquad;
@@ -2776,40 +2580,32 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
         }
       else
         {
-        vtkfield.DataArray->InsertNextTuple(id, stepOnMesh->GetData());
+        vtkfield.DataArray->InsertNextTuple(id, fop->GetData());
         }
       }//copy all tuples
     vtkfield.DataArray->Squeeze();
-    return;
+    vtkDataSet* ds = this->Internal->CurrentDataSet[foep];
+    if(vtkfield.DataArray->GetNumberOfTuples()/nquad != ds->GetNumberOfCells())
+      {
+      vtkErrorMacro("number of tuple invalid!");
+      }
     }
-
-  if(foe->GetPointOrCell()==vtkMedUtilities::OnCell&&field->GetType()
-      ==vtkMedField::PointField)
+  else if(foe->GetPointOrCell() == vtkMedUtilities::OnCell
+     && field->GetFieldType() == vtkMedField::PointField)
     {// point field on cell support
 
-    bool useMed2VTKIndex=(this->Internal->Med2VTKPointIndex.find(foe)
-        !=this->Internal->Med2VTKPointIndex.end());
-    map<vtkIdType, vtkIdType> tmp;
-    const map<vtkIdType, vtkIdType>& med2VTKIndex=
-        (useMed2VTKIndex? this->Internal->Med2VTKPointIndex[foe]: tmp);
-
-    TimedFieldOverEntity & ref=refs[foe];
-    vtkMedFieldOverEntity* entity=ref.Entity;
-    vtkMedFieldStep* step=ref.Step;
-    vtkMedFieldStepOnMesh* stepOnMesh=ref.StepOnMesh;
-
     vtkMedIntArray* profids=NULL;
-    if(stepOnMesh->GetHasProfile())
-      {
-      vtkMedProfile* profile=this->GetProfile(mesh, field, ref.Entity,
-          ref.Step, ref.StepOnMesh);
 
-      this->MedDriver->Load(profile);
+    vtkMedProfile* profile=fop->GetProfile();
+
+    if(profile)
+      {
+      profile->Load();
 
       profids=profile->GetIds();
       }//has profile
 
-    vtkIdType maxId=stepOnMesh->GetData()->GetNumberOfTuples();
+    vtkIdType maxId=fop->GetData()->GetNumberOfTuples();
 
     for(vtkIdType id=0; id<maxId; id++)
       {
@@ -2824,223 +2620,84 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedField* field,
         destIndex=id;
         }
 
-      // if I use the med2VTKIndex, then the index to insert this value is given by the map.
-      if(useMed2VTKIndex)
-        {
-	map<vtkIdType, vtkIdType>::const_iterator itr = med2VTKIndex.find(destIndex);
-        if(itr==med2VTKIndex.end())
-          {
-          // this point is not used by this familyOnEntity, skip it.
-          continue;
-          }
-        else
-          {
-          destIndex=(*itr).second;
-          }
-        }
-      data->InsertTuple(destIndex, id, stepOnMesh->GetData());
-      }
-    data->Squeeze();
-    return;
-    }// point field on cell support
+      if(!foep->KeepPoint(destIndex))
+        continue;
+      // if I use the med2VTKIndex, then the index to insert
+      // this value is given by the map.
+      destIndex = foep->GetVTKPointIndex(destIndex);
 
-  if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint&&field->GetType()
-      ==vtkMedField::PointField)
+      vtkfield.DataArray->InsertTuple(destIndex, id, fop->GetData());
+      }
+    vtkfield.DataArray->Squeeze();
+    }// point field on cell support
+  else if(foe->GetPointOrCell() == vtkMedUtilities::OnPoint &&
+     field->GetFieldType() == vtkMedField::PointField)
     {//support OnPoint
 
-    this->MedDriver->LoadPointFamilyIds(mesh);
+    vtkIdType maxId = fop->GetData()->GetNumberOfTuples();
 
-    bool useMed2VTKIndex=(this->Internal->Med2VTKPointIndex.find(foe)
-        !=this->Internal->Med2VTKPointIndex.end());
-    map<vtkIdType, vtkIdType> tmp;
-    const map<vtkIdType, vtkIdType>& med2VTKIndex=
-        (useMed2VTKIndex? this->Internal->Med2VTKPointIndex[foe]: tmp);
-
-    vtkMedIntArray* famIds=mesh->GetPointFamilyIds();
-
-    TimedFieldOverEntity & ref=refs[foe];
-    vtkMedFieldOverEntity* entity=ref.Entity;
-    vtkMedFieldStep* step=ref.Step;
-    vtkMedFieldStepOnMesh* stepOnMesh=ref.StepOnMesh;
-    med_int fid=foe->GetFamily()->GetId();
-
-    if(stepOnMesh->GetMetaInfo()==0&&stepOnMesh->GetHasProfile()==1)
-      {
-      this->MedDriver->Load(mesh, field, ref.Entity, ref.Step, ref.StepOnMesh);
-      }
-    vtkMedIntArray* profids=NULL;
-    if(stepOnMesh->GetHasProfile())
-      {
-      vtkMedProfile* profile=this->GetProfile(mesh, field, entity, step,
-          stepOnMesh);
-
-      this->MedDriver->Load(profile);
-      vtkIdType profIndex=0;
-      profids=profile->GetIds();
-      }//has profile
-
-    vtkIdType maxId=stepOnMesh->GetData()->GetNumberOfTuples();
-    if(profids!=NULL)
-      maxId=(profids->GetNumberOfTuples()<maxId? profids->GetNumberOfTuples()
-          : maxId);
-
-    vtkIdType destIndex=0;
     for(vtkIdType id=0; id<maxId; id++)
       {
+
       vtkIdType realIndex=id;
       if(profids!=NULL)
         {
         realIndex=profids->GetValue(id)-1; // -1 because med indices start at 1
         }
-      med_int famId=(famIds!=NULL? famIds->GetValue(realIndex): 0);
-      if(famId!=fid)
+
+      if(!foep->KeepPoint(realIndex))
         continue;
 
-      data->InsertNextTuple(stepOnMesh->GetData()->GetTuple(realIndex));
+      vtkfield.DataArray->InsertNextTuple(fop->GetData()->GetTuple(realIndex));
       }
-    data->Squeeze();
-    return;
+    vtkfield.DataArray->Squeeze();
     }// support on point
-}
 
-void vtkMedReader::GetCellPoints(vtkMedMesh* mesh, vtkMedEntityArray* array,
-    vtkIdType index, vtkIdList* ids)
-{
-  ids->Initialize();
-  if(array->GetGeometry()==MED_POLYEDRE)
+  // now generate the vector field if asked for
+  if(this->GenerateVectors)
     {
-    vtkMedIntArray* conn=array->GetConnectivityArray();
-    vtkMedIntArray* index0=array->GetIndex0();
-    vtkMedIntArray* index1=array->GetIndex1();
-    med_int start=index0->GetValue(index)-1;
-    med_int end=index0->GetValue(index+1)-1;
-    // the use of a set loses the order, but VTK do not support this order anyway.
-    set<med_int> pts;
-    if(array->GetConnectivity()==MED_NOD)
+    int ncomp = vtkfield.DataArray->GetNumberOfComponents();
+    if(ncomp > 1 && ncomp != 3)
       {
-      for(int ff=start; ff<end; ff++)
+      vtkDataArray* vectors = vtkfield.DataArray->NewInstance();
+      vectors->SetNumberOfComponents(3);
+      vectors->SetNumberOfTuples(vtkfield.DataArray->GetNumberOfTuples());
+      vtkfield.Vectors = vectors;
+      vectors->Delete();
+
+      vectors->CopyInformation(vtkfield.DataArray->GetInformation());
+
+      if(ncomp < 3)
+        vectors->SetComponentName(2, "Z");
+      else
+        vectors->SetComponentName(2, vtkfield.DataArray->GetComponentName(2));
+
+      vectors->SetComponentName(1, vtkfield.DataArray->GetComponentName(1));
+      vectors->SetComponentName(0, vtkfield.DataArray->GetComponentName(0));
+
+      int tuplesize = (ncomp > 3? ncomp: 3);
+      double* tuple = new double[tuplesize];
+      for(int tid=0; tid<tuplesize; tid++)
         {
-        med_int fstart=index1->GetValue(ff)-1;
-        med_int fend=index1->GetValue(ff+1)-1;
-        for(int pt=fstart; pt<fend; pt++)
-          {
-          pts.insert(conn->GetValue(pt)-1);
-          }
+        tuple[tid] = 0.0;
+        }
+
+      for(vtkIdType id=0; id < vtkfield.DataArray->GetNumberOfTuples(); id++)
+        {
+        vtkfield.DataArray->GetTuple(id, tuple);
+        vectors->SetTuple(id, tuple);
         }
       }
-    else // MED_DESC
-      {
-      vtkMedUnstructuredGrid* grid=vtkMedUnstructuredGrid::SafeDownCast(
-          mesh->GetGrid());
-      if(!grid)
-        {
-        vtkErrorMacro(
-            "MED_DESC connectivity is only supported on unstructured grids");
-        return;
-        }
-      vtkIdList* subIds=vtkIdList::New();
-      for(int ff=start; ff<end; ff++)
-        {
-        med_int fid=conn->GetValue(ff)-1;
-        med_geometrie_element geometry=
-            (med_geometrie_element) index1->GetValue(ff);
-        vtkMedEntityArray* subarray=grid->GetEntityArray(MED_FACE, geometry);
-        this->GetCellPoints(mesh, subarray, fid, subIds);
-        for(int id=0; id<subIds->GetNumberOfIds(); id++)
-          pts.insert(subIds->GetId(id)-1);
-        }
-      subIds->Delete();
-      }
-    for(set<med_int>::iterator it=pts.begin(); it!=pts.end(); it++)
-      {
-      ids->InsertNextId(*it);
-      }
-    }
-  else if(array->GetGeometry()==MED_POLYGONE)
-    {
-    vtkMedIntArray* conn=array->GetConnectivityArray();
-    vtkMedIntArray* nids=array->GetIndex0();
-    med_int start=nids->GetValue(index)-1;
-    med_int end=nids->GetValue(index+1)-1;
-    if(array->GetConnectivity()==MED_NOD)
-      {
-      for(int pt=start; pt<end; pt++)
-        {
-        ids->InsertNextId(conn->GetValue(pt)-1);
-        }
-      }
-    else // MED_DESC
-      {
-      //set<med_int> pts;
-      vtkIdList* subpts=vtkIdList::New();
-      vtkMedUnstructuredGrid* grid=vtkMedUnstructuredGrid::SafeDownCast(
-          mesh->GetGrid());
-      if(!grid)
-        {
-        vtkErrorMacro(
-            "MED_DESC connectivity is only supported on unstructured grids");
-        return;
-        }
-      for(int sub=start; sub<end; sub++)
-        {
-        med_int subid=conn->GetValue(sub)-1;
-        med_geometrie_element subgeo=MED_SEG2;
-        med_entite_maillage subtype=MED_ARETE;
-        vtkMedEntityArray* subarray=grid->GetEntityArray(subtype, subgeo);
-        this->GetCellPoints(mesh, subarray, subid, subpts);
-        // for each edge, I only add the first vertex to the VTK list,
-        //the second vertex should be equal to the first of the next edge.
-        ids->InsertNextId(subpts->GetId(0));
-        }
-      subpts->Delete();
-      }
-    }
-  else if(array->GetConnectivity()==MED_NOD||vtkMedUtilities::GetDimension(
-      array->GetGeometry())<2)
-    {
-    int npts=vtkMedUtilities::GetNumberOfPoint(array->GetGeometry());
-    vtkMedIntArray* conn=array->GetConnectivityArray();
-    for(int i=0; i<npts; i++)
-      {
-      ids->InsertNextId(conn->GetValue(npts*index+i)-1);
-      }
-    }
-  else
-    {
-    vtkIdList* subpts=vtkIdList::New();
-    int nsub=vtkMedUtilities::GetNumberOfSubEntity(array->GetGeometry());
-    vtkMedUnstructuredGrid* grid=vtkMedUnstructuredGrid::SafeDownCast(
-        mesh->GetGrid());
-    if(!grid)
-      {
-      vtkErrorMacro(
-          "MED_DESC connectivity is only supported on unstructured grids");
-      return;
-      }
-    vtkMedIntArray* conn=array->GetConnectivityArray();
-    ids->SetNumberOfIds(vtkMedUtilities::GetNumberOfPoint(array->GetGeometry()));
-    for(int sub=0; sub<nsub; sub++)
-      {
-      med_int subid=conn->GetValue(nsub*index+sub)-1;
-      med_geometrie_element subgeo=vtkMedUtilities::GetSubGeometry(
-          array->GetGeometry(), sub);
-      med_entite_maillage subtype=vtkMedUtilities::GetSubType(array->GetType());
-      vtkMedEntityArray* subarray=grid->GetEntityArray(subtype, subgeo);
-      this->GetCellPoints(mesh, subarray, subid, subpts);
-      vtkMedUtilities::ProjectConnectivity(array->GetGeometry(), ids, subpts,
-          sub);
-      }
-    subpts->Delete();
     }
 }
 
 int vtkMedReader::HasMeshAnyCellSelectedFamily(vtkMedMesh* mesh)
 {
-  int nfam=mesh->GetNumberOfFamily();
-  for(int famid=0; famid<nfam; famid++)
+  int nfam = mesh->GetNumberOfCellFamily();
+  for (int famid = 0; famid<nfam; famid++)
     {
-    vtkMedFamily* fam=mesh->GetFamily(famid);
-    if(fam->GetPointOrCell()!=vtkMedUtilities::OnCell||!this->GetFamilyStatus(
+    vtkMedFamily* fam = mesh->GetFamily(famid);
+    if (fam->GetPointOrCell()!=vtkMedUtilities::OnCell||!this->GetFamilyStatus(
         mesh, fam))
       continue;
     return true;
@@ -3050,19 +2707,19 @@ int vtkMedReader::HasMeshAnyCellSelectedFamily(vtkMedMesh* mesh)
 
 int vtkMedReader::HasMeshAnyPointSelectedFamily(vtkMedMesh* mesh)
 {
-  int nfam=mesh->GetNumberOfFamily();
-  for(int famid=0; famid<nfam; famid++)
+  int nfam = mesh->GetNumberOfCellFamily();
+  for (int famid = 0; famid<nfam; famid++)
     {
-    vtkMedFamily* fam=mesh->GetFamily(famid);
-    if(fam->GetPointOrCell()!=vtkMedUtilities::OnPoint||!this->GetFamilyStatus(
-        mesh, fam))
+    vtkMedFamily* fam = mesh->GetFamily(famid);
+    if (fam->GetPointOrCell()!=vtkMedUtilities::OnPoint
+        ||!this->GetFamilyStatus(mesh, fam))
       continue;
     return true;
     }
   return false;
 }
 
-void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
+void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil)
 {
   if(sil==NULL)
     return;
@@ -3100,216 +2757,130 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
   vtkIdType groupsRoot=sil->AddChild(rootId, childEdge);
   names.push_back("GroupTree");
 
-  // Add the attributes subtree
-  vtkIdType attributesRoot=sil->AddChild(rootId, childEdge);
-  names.push_back("Attributes");
-
   // Add a global entry to encode names for the cell types
   vtkIdType globalEntityRoot=sil->AddChild(rootId, childEdge);
-  names.push_back("CellTypes");
+  names.push_back("Entity");
 
   // Add the cell types subtree
   vtkIdType entityTypesRoot=sil->AddChild(rootId, childEdge);
-  names.push_back("CellTypeTree");
+  names.push_back("EntityTree");
 
   // this is the map that keep added cell types
-  map<Entity, vtkIdType> entityMap;
-  map<med_entite_maillage, vtkIdType> typeMap;
+  map<vtkMedEntity, vtkIdType> entityMap;
+  map<med_entity_type, vtkIdType> typeMap;
 
-  // this map will keep all added attributes
-  map<vtkstd::string, vtkstd::map<med_int, vtkIdType> > attributeMap;
-  map<vtkstd::string, vtkIdType> descMap;
-
-  int numMeshes=this->GetMedFile()->GetNumberOfMesh();
-  for(int meshIndex=0; meshIndex<numMeshes; meshIndex++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      meshfileit = this->Internal->MedFiles.begin();
+  while(meshfileit != this->Internal->MedFiles.end())
     {
-    vtkMedMesh* mesh=this->GetMedFile()->GetMesh(meshIndex);
+    vtkMedFile* file = meshfileit->second;
+    meshfileit++;
 
-    // add all the cell types, only valid for unstructured grids
-    vtkMedUnstructuredGrid* ugrid=vtkMedUnstructuredGrid::SafeDownCast(
-        mesh->GetGrid());
-    if(ugrid!=NULL)
+    int numMeshes=file->GetNumberOfMesh();
+    for(int meshIndex=0; meshIndex<numMeshes; meshIndex++)
       {
-      for(int entityIndex=0; entityIndex<ugrid->GetNumberOfEntityArray(); entityIndex++)
+      vtkMedMesh* mesh = file->GetMesh(meshIndex);
+      vtkMedGrid* grid = this->FindGridStep(mesh);
+
+      if(grid == NULL)
+        continue;
+
+      // add all entities
+      for(int entityIndex=0; entityIndex<grid->GetNumberOfEntityArray(); entityIndex++)
         {
-        vtkMedEntityArray* array=ugrid->GetEntityArray(entityIndex);
-        med_entite_maillage type=array->GetType();
-        med_geometrie_element geometry=array->GetGeometry();
+        vtkMedEntityArray* array=grid->GetEntityArray(entityIndex);
+        vtkMedEntity entity = array->GetEntity();
 
-        if(onlySelected&&!this->GetCellTypeStatus(type, geometry))
-          continue;
-
-        Entity entity=make_pair(type, geometry);
         if(entityMap.find(entity)==entityMap.end())
           {
           vtkIdType entityGlobalId=sil->AddChild(globalEntityRoot, childEdge);
-          names.push_back(vtkMedUtilities::CellTypeKey(type, geometry));
+          names.push_back(vtkMedUtilities::EntityKey(entity));
 
           vtkIdType typeId;
-          if(typeMap.find(type)==typeMap.end())
+          if(typeMap.find(entity.EntityType)==typeMap.end())
             {
             typeId=sil->AddChild(entityTypesRoot, childEdge);
-            names.push_back(vtkMedUtilities::TypeName(type));
-            typeMap[type]=typeId;
+            names.push_back(vtkMedUtilities::EntityName(entity.EntityType));
+            typeMap[entity.EntityType]=typeId;
             }
           else
             {
-            typeId=typeMap[type];
+            typeId=typeMap[entity.EntityType];
             }
           vtkIdType entityId=sil->AddChild(typeId, childEdge);
-          names.push_back(vtkMedUtilities::GeometryName(geometry));
+          names.push_back(vtkMedUtilities::GeometryName(entity.GeometryType));
 
           sil->AddEdge(entityId, entityGlobalId, crossEdge);
 
           entityMap[entity]=entityId;
           }
         }
-      }
-    bool hasCellFamily=true;
-    bool hasPointFamily=true;
-    if(onlySelected)
-      {
-      hasCellFamily=this->HasMeshAnyCellSelectedFamily(mesh);
-      hasPointFamily=this->HasMeshAnyPointSelectedFamily(mesh);
 
-      if(!hasCellFamily&&!hasPointFamily)
-        continue;
-      }
+      vtkIdType meshGroup = sil->AddChild(groupsRoot, childEdge);
+      names.push_back(vtkMedUtilities::SimplifyName(mesh->GetName()));
 
-    vtkIdType meshGroup=sil->AddChild(groupsRoot, childEdge);
-    names.push_back(vtkMedUtilities::SimplifyName(mesh->GetName()));
-
-    // add the two OnPoint and OnCell entries, for groups and for families
-    vtkIdType meshCellGroups=-1;
-    if(!onlySelected||hasCellFamily)
-      {
-      meshCellGroups=sil->AddChild(meshGroup, childEdge);
+      // add the two OnPoint and OnCell entries, for groups and for families
+      vtkIdType meshCellGroups = sil->AddChild(meshGroup, childEdge);
       names.push_back(vtkMedUtilities::OnCellName);
-      //sil->AddEdge(cellSupportRoot, meshCellGroups, crossEdge);
-      }
 
-    vtkIdType meshPointGroups=-1;
-    if(!onlySelected||hasPointFamily)
-      {
-      meshPointGroups=sil->AddChild(meshGroup, childEdge);
+      vtkIdType meshPointGroups = sil->AddChild(meshGroup, childEdge);
       names.push_back(vtkMedUtilities::OnPointName);
-      //sil->AddEdge(pointSupportRoot, meshPointGroups, crossEdge);
-      }
-    // this maps will keep all added groups on nodes/cells
-    map<vtkMedGroup*, vtkIdType> nodeGroupMap;
-    map<vtkMedGroup*, vtkIdType> cellGroupMap;
 
-    // add all families
-    for(int famIndex=0; famIndex<mesh->GetNumberOfFamily(); famIndex++)
-      {
-      vtkMedFamily* family=mesh->GetFamily(famIndex);
-      // family with Id 0 is both on cell and on points, so add it to both
-      map<vtkMedGroup*, vtkIdType> & groupMap=(family->GetPointOrCell()
-          ==vtkMedUtilities::OnPoint? nodeGroupMap: cellGroupMap);
-      vtkIdType groupRootId=
-          (family->GetPointOrCell()==vtkMedUtilities::OnPoint? meshPointGroups
-              : meshCellGroups);
+      // this maps will keep all added groups on nodes/cells of this mesh
+      map<string, vtkIdType> nodeGroupMap;
+      map<string, vtkIdType> cellGroupMap;
 
-      if(onlySelected&&!this->GetFamilyStatus(mesh, family))
-        continue;
-
-      vtkIdType familyGlobalId=sil->AddChild(globalFamilyRoot, childEdge);
-      names.push_back(vtkMedUtilities::FamilyKey(mesh->GetName()->GetString(),
-          family->GetPointOrCell(), family->GetName()->GetString()));
-
-      // if this family has no group, create a dummy NoGroup group entry
-      if(family->GetNumberOfGroup()==0)
+      // add all families
+      for(int famIndex=0; famIndex<mesh->GetNumberOfFamily(); famIndex++)
         {
-        vtkIdType groupGlobalId;
-        if(groupMap.find(NULL)==groupMap.end())
-          {
-          vtkIdType groupLocalId;
-          groupLocalId=sil->AddChild(groupRootId, childEdge);
-          names.push_back(vtkMedUtilities::NoGroupName);
+        vtkMedFamily* family=mesh->GetFamily(famIndex);
 
-          groupGlobalId=sil->AddChild(globalGroupRoot, childEdge);
-          names.push_back(vtkMedUtilities::GroupKey(
-              mesh->GetName()->GetString(), family->GetPointOrCell(),
-              vtkMedUtilities::NoGroupName));
+        vtkIdType globalFamilyId = sil->AddChild(globalFamilyRoot, childEdge);
+        names.push_back(vtkMedUtilities::FamilyKey(mesh->GetName(),
+                                                   family->GetPointOrCell(),
+                                                   family->GetName()));
 
-          sil->AddEdge(groupLocalId, groupGlobalId, crossEdge);
+        // family with Id 0 is both on cell and on points, so add it to both
+        map<string, vtkIdType> & groupMap=(family->GetPointOrCell()
+            ==vtkMedUtilities::OnPoint? nodeGroupMap: cellGroupMap);
 
-          groupMap[NULL]=groupGlobalId;
-          }
-        else
-          {
-          groupGlobalId=groupMap[NULL];
-          }
-        // add a cross link from this group to this family
-        if(onlySelected)
-          sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
-        }
-      // add all the groups of this family
-      for(vtkIdType groupIndex=0; groupIndex<family->GetNumberOfGroup(); groupIndex++)
-        {
-        vtkMedGroup* group=family->GetGroup(groupIndex);
-        vtkIdType groupGlobalId;
-        if(groupMap.find(group)==groupMap.end())
-          {
-          vtkIdType groupLocalId;
-          groupLocalId=sil->AddChild(groupRootId, childEdge);
-          names.push_back(vtkMedUtilities::SimplifyName(group->GetName()));
+        vtkIdType groupRootId =
+            (family->GetPointOrCell()==vtkMedUtilities::OnPoint?
+             meshPointGroups : meshCellGroups);
 
-          groupGlobalId=sil->AddChild(globalGroupRoot, childEdge);
-          names.push_back(vtkMedUtilities::GroupKey(
-              mesh->GetName()->GetString(), family->GetPointOrCell(),
-              group->GetName()->GetString()));
-          groupMap[group]=groupGlobalId;
+        // add all the groups of this family
+        for(vtkIdType groupIndex=0; groupIndex<family->GetNumberOfGroup();
+          groupIndex++)
+          {
+          vtkMedGroup* group=family->GetGroup(groupIndex);
 
-          sil->AddEdge(groupLocalId, groupGlobalId, crossEdge);
-          }
-        else
-          {
-          groupGlobalId=groupMap[group];
-          }
-        // add a cross link from this group to this family
-        if(onlySelected)
-          sil->AddEdge(groupGlobalId, familyGlobalId, crossEdge);
-        }//groupIndex
+          vtkIdType familyGroupId = sil->AddChild(globalFamilyId, childEdge);
+          names.push_back(vtkMedUtilities::FamilyKey(
+              mesh->GetName(), family->GetPointOrCell(),
+              family->GetName()));
 
-      // add all the attributes of this family
-      for(int attrIndex=0; attrIndex<family->GetNumberOfAttribute(); attrIndex++)
-        {
-        vtkMedAttribute* attribute=family->GetAttribute(attrIndex);
-        vtkstd::string desc=vtkMedUtilities::SimplifyName(
-            attribute->GetDescription());
-        vtkIdType attributeId;
-        vtkIdType descId;
-        if(descMap.find(desc)==descMap.end())
-          {
-          attributeMap[desc]=map<med_int, vtkIdType> ();
-          descId=sil->AddChild(attributesRoot, childEdge);
-          names.push_back(desc);
-          descMap[desc]=descId;
-          }
-        else
-          {
-          descId=descMap[desc];
-          }
-        map<med_int, vtkIdType>& attIds=attributeMap[desc];
-        if(attIds.find(attribute->GetValue())==attIds.end())
-          {
-          std::ostringstream sstr;
-          sstr<<attribute->GetValue();
-          attributeId=sil->AddChild(descId, childEdge);
-          names.push_back(sstr.str());
-          attIds[attribute->GetValue()]=attributeId;
-          }
-        else
-          {
-          attributeId=attIds[attribute->GetValue()];
-          }
-        // add a cross link from this attribute to this family
-        if(onlySelected)
-          sil->AddEdge(attributeId, familyGlobalId, crossEdge);
-        }
-      }//famIndex
-    }//meshIndex
+          vtkIdType groupGlobalId;
+          if(groupMap.find(group->GetName()->GetString())==groupMap.end())
+            {
+            vtkIdType groupLocalId;
+            groupLocalId=sil->AddChild(groupRootId, childEdge);
+            names.push_back(vtkMedUtilities::SimplifyName(group->GetName()));
+
+            groupGlobalId=sil->AddChild(globalGroupRoot, childEdge);
+            names.push_back(vtkMedUtilities::GroupKey(
+                mesh->GetName(), family->GetPointOrCell(),
+                group->GetName()));
+            groupMap[group->GetName()->GetString()]=groupGlobalId;
+
+            sil->AddEdge(groupLocalId, groupGlobalId, crossEdge);
+            }
+          vtkIdType groupId = groupMap[group->GetName()->GetString()];
+          sil->AddEdge(familyGroupId, groupId, childEdge);
+
+          }//groupIndex
+        }//famIndex
+      }//meshIndex
+    }// file iterator
 
   // This array is used to assign names to nodes.
   vtkStringArray* namesArray=vtkStringArray::New();
@@ -3328,44 +2899,28 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil, int onlySelected)
 void vtkMedReader::ClearMedSupports()
 {
   this->Internal->DataSetCache.clear();
-  this->Internal->Med2VTKPointIndex.clear();
+  //this->Internal->Med2VTKPointIndex.clear();
 
-  vtkMedFile* file=this->GetMedFile();
-  int numMeshes=file->GetNumberOfMesh();
-  for(int meshIndex=0; meshIndex<numMeshes; meshIndex++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      meshfileit = this->Internal->MedFiles.begin();
+  while(meshfileit != this->Internal->MedFiles.end())
     {
-    vtkMedMesh* mesh=this->GetMedFile()->GetMesh(meshIndex);
-    vtkMedUnstructuredGrid* ugrid=vtkMedUnstructuredGrid::SafeDownCast(
-        mesh->GetGrid());
-    if(ugrid!=NULL)
+    vtkMedFile* file = meshfileit->second;
+    meshfileit++;
+    int numMeshes=file->GetNumberOfMesh();
+    for(int meshIndex=0; meshIndex<numMeshes; meshIndex++)
       {
-      for(int entityIndex=0; entityIndex<ugrid->GetNumberOfEntityArray(); entityIndex++)
-        {
-        vtkMedEntityArray* array=ugrid->GetEntityArray(entityIndex);
-        if(array->GetConnectivityArray()!=NULL)
-          array->GetConnectivityArray()->Initialize();
-        if(array->GetGlobalIds()!=NULL)
-          array->GetGlobalIds()->Initialize();
-        if(array->GetIndex0()!=NULL)
-          array->GetIndex0()->Initialize();
-        if(array->GetIndex1()!=NULL)
-          array->GetIndex1()->Initialize();
-        if(array->GetFamilyIds()!=NULL)
-          array->GetFamilyIds()->Initialize();
-        }
+      vtkMedMesh* mesh=file->GetMesh(meshIndex);
+      mesh->ClearMedSupports();
       }
-    if(mesh->GetPointFamilyIds()!=NULL)
-      mesh->GetPointFamilyIds()->Initialize();
-    if(mesh->GetPointGlobalIds()!=NULL)
-      mesh->GetPointGlobalIds()->Initialize();
-    }
 
-  int numProf=file->GetNumberOfProfile();
-  for(int prof=0; prof<numProf; prof++)
-    {
-    vtkMedProfile* profile=file->GetProfile(prof);
-    if(profile->GetIds()!=NULL)
-      profile->GetIds()->Initialize();
+    int numProf = file->GetNumberOfProfile();
+    for (int prof = 0; prof<numProf; prof++)
+      {
+      vtkMedProfile* profile = file->GetProfile(prof);
+      if (profile->GetIds()!=NULL)
+        profile->GetIds()->Initialize();
+      }
     }
 }
 
@@ -3375,24 +2930,30 @@ void vtkMedReader::ClearMedFields()
   this->Internal->QuadOffsetKey.clear();
   this->Internal->QuadratureOffsetCache.clear();
 
-  vtkMedFile* file=this->GetMedFile();
-  int numFields=file->GetNumberOfField();
-  for(int ff=0; ff<numFields; ff++)
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
     {
-    vtkMedField* field=file->GetField(ff);
-    int nfoe=field->GetNumberOfFieldOverEntity();
-    for(int foeid=0; foeid<nfoe; foeid++)
+    vtkMedFile* file = fieldfileit->second;
+    fieldfileit++;
+
+    int numFields=file->GetNumberOfField();
+    for(int ff=0; ff<numFields; ff++)
       {
-      vtkMedFieldOverEntity* foe=field->GetFieldOverEntity(foeid);
-      for(int ss=0; ss<foe->GetNumberOfStep(); ss++)
+      vtkMedField* field=file->GetField(ff);
+      int nstep=field->GetNumberOfFieldStep();
+      for(int sid=0; sid<nstep; sid++)
         {
-        vtkMedFieldStep * fs=foe->GetStep(ss);
-        int nsom=fs->GetNumberOfStepOnMesh();
-        for(int somid=0; somid<nsom; somid++)
+        vtkMedFieldStep* step = field->GetFieldStep(sid);
+        for(int id=0; id<step->GetNumberOfFieldOverEntity(); id++)
           {
-          vtkMedFieldStepOnMesh* som=fs->GetStepOnMesh(somid);
-          if(som->GetData()!=NULL)
-            som->GetData()->Initialize();
+          vtkMedFieldOverEntity * fieldOverEntity=step->GetFieldOverEntity(id);
+          for(int pid = 0; pid < fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
+            {
+            vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
+            if(fop->GetData() != NULL)
+              fop->SetData(NULL);
+            }
           }
         }
       }
@@ -3407,16 +2968,10 @@ void vtkMedReader::ClearCaches(int when)
       this->Internal->CurrentDataSet.clear();
       this->Internal->DataSetCache.clear();
       this->Internal->FieldCache.clear();
-      this->Internal->StepCache.clear();
       this->Internal->UsedSupports.clear();
-      this->Internal->ProfileMatch.clear();
-      this->Internal->FieldOnFamilyOnEntityCache.clear();
-      this->Internal->FieldMatchCache.clear();
-      this->Internal->ProfileMatch.clear();
       this->Internal->QuadratureOffsetCache.clear();
       this->Internal->QuadOffsetKey.clear();
-      this->Internal->Med2VTKPointIndex.clear();
-      this->Internal->CurrentStep.clear();
+      //this->Internal->Med2VTKPointIndex.clear();
       break;
     case StartRequest:
       this->Internal->CurrentDataSet.clear();
@@ -3432,21 +2987,19 @@ void vtkMedReader::ClearCaches(int when)
         }
       break;
     case AfterCreateMedSupports:
-      // clear the unused supports and associated cached datasets and fields
+      // TODO : clear the unused supports and associated cached datasets and fields
       break;
     case EndBuildVTKSupports:
-      //TODO : depending on the strategy, clear some caches
       break;
     case EndRequest:
-      //TODO : depending on the strategy, clear some caches
       if(this->CacheStrategy==CacheNothing)
         {
         this->ClearMedSupports();
         this->ClearMedFields();
         }
-      else if(this->CacheStrategy==CacheGeometry)
+      else if(this->CacheStrategy==CacheGeometry && this->AnimationMode != Modes)
         {
-        this->ClearMedSupports();
+        this->ClearMedFields();
         }
       break;
   }
@@ -3456,14 +3009,13 @@ void vtkMedReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   PRINT_STRING(os, indent, FileName);
   PRINT_IVAR(os, indent, AnimationMode);
-  PRINT_IVAR(os, indent, Time);
+  PRINT_IVAR(os, indent, TimeIndexForIterations);
   PRINT_OBJECT(os, indent, PointFields);
   PRINT_OBJECT(os, indent, CellFields);
   PRINT_OBJECT(os, indent, QuadratureFields);
+  PRINT_OBJECT(os, indent, ElnoFields);
   PRINT_OBJECT(os, indent, Groups);
   PRINT_OBJECT(os, indent, Entities);
-  PRINT_OBJECT(os, indent, MedFile);
-  PRINT_OBJECT(os, indent, MedDriver);
   PRINT_IVAR(os, indent, CacheStrategy);
   this->Superclass::PrintSelf(os, indent);
 }

@@ -7,7 +7,7 @@ ENDIF(NOT VTK_FOUND)
 set(MedReader_CLASSES
     vtkMedReader
     vtkMedDriver
-    vtkMedDriver23
+    vtkMedDriver30
     vtkMedFactory
     vtkMedFile
     vtkMedMesh
@@ -15,24 +15,29 @@ set(MedReader_CLASSES
     vtkMedRegularGrid
     vtkMedPolarGrid
     vtkMedCartesianGrid
-    vtkMedStandardGrid
+    vtkMedCurvilinearGrid
     vtkMedUnstructuredGrid
     vtkMedFamily
     vtkMedGroup
     vtkMedField
-    vtkMedAttribute
     vtkMedEntityArray
     vtkMedProfile
-    vtkMedQuadratureDefinition
+    vtkMedLocalization
     vtkMedFieldOverEntity
     vtkMedFieldStep
     vtkMedUtilities
-    vtkMedFieldStepOnMesh
     vtkMedString
     vtkMedIntArrayInternal
     vtkMedIntArray
     vtkMedFamilyOnEntity
-    #vtkMedSupport
+    vtkMedInterpolation
+    vtkMedFraction
+    vtkMedFilter
+    vtkMedFieldOnProfile
+    vtkExtractGroup
+    vtkMedSelection
+    vtkMedLink
+    vtkMedFamilyOnEntityOnProfile
 )
 
 set(MedReader_SRCS)
@@ -44,19 +49,26 @@ foreach(class ${MedReader_CLASSES})
 endforeach(class)
 
 set_source_files_properties(
-    vtkMedGrid
-    vtkMedRegularGrid
-    PROPERTIES ABSTRACT 1
+  vtkMedGrid
+  vtkMedRegularGrid
+  vtkMedUtilities
+  PROPERTIES ABSTRACT 1
 )
 
 set_source_files_properties(
-    vtkMedIntArrayInternal
-    PROPERTIES WRAP_EXCLUDE 1
+  vtkMedIntArrayInternal
+  vtkMedUtilities
+  PROPERTIES WRAP_EXCLUDE 1
 )
 
 add_library(vtkMedReader ${MedReader_SRCS})
 
-target_link_libraries(vtkMedReader ${MED_LIBRARIES} vtkIO)
+set(VTK_LIBS vtkIO)
+if(${HDF5_IS_PARALLEL})
+  set(VTK_LIBS ${VTK_LIBS} vtkParallel)
+endif(${HDF5_IS_PARALLEL})
+
+target_link_libraries(vtkMedReader ${MED_LIBRARIES} ${VTK_LIBS})
 
 set(MedReader_BUILD_Testing ${VTK_BUILD_TESTING} CACHE BOOL "Build tests for the MedReader filter")
 

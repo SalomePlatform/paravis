@@ -6,6 +6,7 @@
 #include "vtkMedString.h"
 
 #include "vtkObjectFactory.h"
+#include "vtkInformation.h"
 #include "vtkDoubleArray.h"
 #include "vtkIntArray.h"
 #include "vtkLongLongArray.h"
@@ -17,6 +18,8 @@
 #include "vtkStringArray.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkOutEdgeIterator.h"
+#include "vtkInformationIntegerKey.h"
+#include "vtkInformationStringVectorKey.h"
 
 #include <sstream>
 using namespace std;
@@ -26,70 +29,57 @@ const char* vtkMedUtilities::NoGroupName="No Group";
 const char* vtkMedUtilities::OnPointName="OnPoint";
 const char* vtkMedUtilities::OnCellName="OnCell";
 
-const med_geometrie_element
-    vtkMedUtilities::CellGeometry[vtkMedUtilities::NumberOfCellGeometry]={
-        MED_POINT1, MED_SEG2, MED_SEG3, MED_TRIA3, MED_QUAD4, MED_TRIA6,
-        MED_QUAD8, MED_TETRA4, MED_PYRA5, MED_PENTA6, MED_HEXA8, MED_TETRA10,
-        MED_PYRA13, MED_PENTA15, MED_HEXA20, MED_POLYGONE, MED_POLYEDRE,
-        MED_NONE};
-
-const med_geometrie_element
-    vtkMedUtilities::FaceGeometry[vtkMedUtilities::NumberOfFaceGeometry]={
-        MED_TRIA3, MED_QUAD4, MED_TRIA6, MED_QUAD8, MED_POLYGONE};
-
-const med_geometrie_element
-    vtkMedUtilities::EdgeGeometry[vtkMedUtilities::NumberOfEdgeGeometry]={
-        MED_SEG2, MED_SEG3};
-
-const med_geometrie_element
-    vtkMedUtilities::VertexGeometry[vtkMedUtilities::NumberOfVertexGeometry]={
-        MED_POINT1};
-
-const med_connectivite
-    vtkMedUtilities::Connectivity[vtkMedUtilities::NumberOfConnectivity]={
-        MED_NOD, MED_DESC};
-
-const med_entite_maillage
-    vtkMedUtilities::EntityType[vtkMedUtilities::NumberOfEntityType]={
-        MED_MAILLE, MED_FACE, MED_ARETE, MED_NOEUD, MED_NOEUD_MAILLE};
-
 const int MED_TRIA_CHILD_TO_PARENT_INDEX[3][3]=
     {{0, 1, 3}, {1, 2, 4}, {2, 0, 5}};
 
-const int MED_QUAD_CHILD_TO_PARENT_INDEX[4][3]={{0, 1, 4}, {1, 2, 5},
-    {2, 3, 6}, {3, 0, 7}};
+const int MED_QUAD_CHILD_TO_PARENT_INDEX[4][3]=
+    {{0, 1, 4}, {1, 2, 5}, {2, 3, 6}, {3, 0, 7}};
 
-const int MED_TETRA_CHILD_TO_PARENT_INDEX[4][6]={{0, 1, 2, 4, 5, 6}, {0, 3, 1,
-    7, 8, 4}, {1, 3, 2, 8, 9, 5}, {2, 3, 0, 9, 7, 6}};
+const int MED_TETRA_CHILD_TO_PARENT_INDEX[4][6]=
+    {{0, 1, 2, 4, 5, 6},
+     {0, 3, 1, 7, 8, 4},
+     {1, 3, 2, 8, 9, 5},
+     {2, 3, 0, 9, 7, 6}};
 
-const int MED_HEXA_CHILD_TO_PARENT_INDEX[6][8]={{0, 1, 2, 3, 8, 9, 10, 11}, {4,
-    7, 6, 5, 15, 14, 13, 12}, {0, 4, 5, 1, 16, 12, 17, 8}, {1, 5, 6, 2, 17, 13,
-    18, 9}, {2, 6, 7, 3, 18, 14, 19, 10}, {3, 7, 4, 0, 19, 15, 16, 11}};
+const int MED_HEXA_CHILD_TO_PARENT_INDEX[6][8]=
+  {{0, 1, 2, 3, 8, 9, 10, 11},
+   {4, 7, 6, 5, 15, 14, 13, 12},
+   {0, 4, 5, 1, 16, 12, 17, 8},
+   {1, 5, 6, 2, 17, 13, 18, 9},
+   {2, 6, 7, 3, 18, 14, 19, 10},
+   {3, 7, 4, 0, 19, 15, 16, 11}};
 
-const int MED_PYRA_CHILD_TO_PARENT_INDEX[5][8]={{0, 1, 2, 3, 5, 6, 7, 8}, {0,
-    4, 1, -1, 9, 10, 5, -1}, {1, 4, 2, -1, 10, 11, 6, -1}, {2, 4, 3, -1, 11,
-    12, 7, -1}, {3, 4, 0, -1, 12, 9, 8, -1}};
+const int MED_PYRA_CHILD_TO_PARENT_INDEX[5][8]=
+  {{0, 1, 2, 3, 5, 6, 7, 8},
+   {0, 4, 1, -1, 9, 10, 5, -1},
+   {1, 4, 2, -1, 10, 11, 6, -1},
+   {2, 4, 3, -1, 11, 12, 7, -1},
+   {3, 4, 0, -1, 12, 9, 8, -1}};
 
-const int MED_PENTA_CHILD_TO_PARENT_INDEX[5][8]={{0, 1, 2, -1, 6, 7, 8, -1}, {
-    3, 5, 4, -1, 11, 10, 9, -1}, {0, 3, 4, 1, 12, 9, 13, 6}, {1, 4, 5, 2, 13,
-    10, 14, 7}, {2, 5, 3, 0, 14, 11, 12, 8}};
+const int MED_PENTA_CHILD_TO_PARENT_INDEX[5][8]=
+  {{0, 1, 2, -1, 6, 7, 8, -1},
+   {3, 5, 4, -1, 11, 10, 9, -1},
+   {0, 3, 4, 1, 12, 9, 13, 6},
+   {1, 4, 5, 2, 13, 10, 14, 7},
+   {2, 5, 3, 0, 14, 11, 12, 8}};
 
-vtkCxxRevisionMacro(vtkMedUtilities, "$Revision$")
-vtkStandardNewMacro(vtkMedUtilities)
+vtkInformationKeyMacro(vtkMedUtilities, ELNO, Integer);
+vtkInformationKeyMacro(vtkMedUtilities, ELGA, Integer);
+vtkInformationKeyMacro(vtkMedUtilities, BLOCK_NAME, StringVector);
 
 vtkDataArray* vtkMedUtilities::NewCoordArray()
 {
   return vtkMedUtilities::NewArray(MED_FLOAT64);
 }
 
-vtkDataArray* vtkMedUtilities::NewArray(med_type_champ type)
+vtkDataArray* vtkMedUtilities::NewArray(med_field_type type)
 {
   switch(type)
   {
     case MED_FLOAT64:
-      if(sizeof(double)==8)
+      if(sizeof(double)==8 && sizeof(med_float)==8)
         return vtkDoubleArray::New();
-      vtkGenericWarningMacro("double type do not match MED_FLOAT64, aborting")
+      vtkGenericWarningMacro("double type do not match med_float, aborting")
       return NULL;
     case MED_INT32:
       if(sizeof(vtkIdType)==4)
@@ -123,7 +113,7 @@ vtkDataArray* vtkMedUtilities::NewArray(med_type_champ type)
   }
 }
 
-const char* vtkMedUtilities::GeometryName(med_geometrie_element geometry)
+const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
 {
   switch(geometry)
   {
@@ -133,14 +123,20 @@ const char* vtkMedUtilities::GeometryName(med_geometrie_element geometry)
       return "MED_SEG2";
     case MED_SEG3:
       return "MED_SEG3";
+    case MED_SEG4:
+      return "MED_SEG4";
     case MED_TRIA3:
       return "MED_TRIA3";
     case MED_QUAD4:
       return "MED_QUAD4";
     case MED_TRIA6:
       return "MED_TRIA6";
+    case MED_TRIA7:
+      return "MED_TRIA7";
     case MED_QUAD8:
       return "MED_QUAD8";
+    case MED_QUAD9:
+      return "MED_QUAD9";
     case MED_TETRA4:
       return "MED_TETRA4";
     case MED_PYRA5:
@@ -151,52 +147,62 @@ const char* vtkMedUtilities::GeometryName(med_geometrie_element geometry)
       return "MED_HEXA8";
     case MED_TETRA10:
       return "MED_TETRA10";
+    case MED_OCTA12:
+      return "MED_OCTA12";
     case MED_PYRA13:
       return "MED_PYRA13";
     case MED_PENTA15:
       return "MED_PENTA15";
     case MED_HEXA20:
       return "MED_HEXA20";
-    case MED_POLYGONE:
-      return "MED_POLYGONE";
-    case MED_POLYEDRE:
-      return "MED_POLYEDRE";
-    case MED_NONE:
-      return "MED_NONE";
+    case MED_HEXA27:
+      return "MED_HEXA27";
+    case MED_POLYGON:
+      return "MED_POLYGON";
+    case MED_POLYHEDRON:
+      return "MED_POLYHEDRON";
+    case MED_NO_GEOTYPE:
+      return "MED_NO_GEOTYPE";
     default:
       return "UNKNOWN_GEOMETRY";
   }
 }
 
-const char* vtkMedUtilities::TypeName(med_entite_maillage type)
+const char* vtkMedUtilities::EntityName(med_entity_type type)
 {
   switch(type)
-  {
-    case MED_MAILLE:
-      return "MED_MAILLE";
-    case MED_FACE:
-      return "MED_FACE";
-    case MED_ARETE:
-      return "MED_ARETE";
-    case MED_NOEUD:
-      return "MED_NOEUD";
-    case MED_NOEUD_MAILLE:
-      return "MED_NOEUD_MAILLE";
+    {
+    case MED_CELL:
+      return "MED_CELL";
+    case MED_DESCENDING_FACE:
+      return "MED_DESCENDING_FACE";
+    case MED_DESCENDING_EDGE:
+      return "MED_DESCENDING_EDGE";
+    case MED_NODE:
+      return "MED_NODE";
+    case MED_NODE_ELEMENT:
+      return "MED_NODE_ELEMENT";
+    case MED_STRUCT_ELEMENT:
+      return "MED_STRUCT_ELEMENT";
+    case MED_UNDEF_ENTITY_TYPE:
+      return "MED_UNDEF_ENTITY_TYPE";
     default:
-      return "UNKNOWN_ENTITY_TYPE";
+      return "UNKNOWN_ENTITY_TYPE ";
   }
 }
 
-const char* vtkMedUtilities::ConnectivityName(med_connectivite conn)
+const char* vtkMedUtilities::ConnectivityName(med_connectivity_mode conn)
 {
   switch(conn)
-  {
-    case MED_NOD:
-      return "MED_NOD";
-    case MED_DESC:
-      return "MED_DESC";
+    {
+    case MED_NODAL:
+      return "MED_NODAL";
+    case MED_DESCENDING:
+      return "MED_DESCENDING";
+    case MED_NO_CMODE:
+      return "MED_NO_CMODE";
     default:
-      return "UNKNOWN_CONNECTIVITY";
+      return "UNKNOWN_CONNECTIVITY_MODE";
   }
 }
 
@@ -235,6 +241,14 @@ const std::string vtkMedUtilities::SimplifyName(const char* medName)
   return sstr.str();
 }
 
+const std::string vtkMedUtilities::FamilyKey(vtkMedString* meshName,
+    int pointOrCell, vtkMedString* familyName)
+{
+  return vtkMedUtilities::FamilyKey(meshName->GetString(),
+                                   pointOrCell,
+                                   familyName->GetString());
+}
+
 const std::string vtkMedUtilities::FamilyKey(const char* meshName,
     int pointOrCell, const char* familyName)
 {
@@ -248,41 +262,54 @@ const std::string vtkMedUtilities::FamilyKey(const char* meshName,
   return sstr.str();
 }
 
+const std::string vtkMedUtilities::GroupKey(vtkMedString* meshName,
+    int pointOrCell, vtkMedString* groupName)
+{
+  return vtkMedUtilities::GroupKey(meshName->GetString(),
+                                   pointOrCell,
+                                   groupName->GetString());
+}
+
 const std::string vtkMedUtilities::GroupKey(const char* meshName,
     int pointOrCell, const char* groupName)
 {
   ostringstream sstr;
-  sstr<<"GROUP"<<Separator<<SimplifyName(meshName)<<Separator;
+  sstr << "GROUP" << vtkMedUtilities::Separator
+      << vtkMedUtilities::SimplifyName(meshName)
+      << vtkMedUtilities::Separator;
   if(pointOrCell==OnCell)
-    sstr<<vtkMedUtilities::OnCellName;
+    sstr << vtkMedUtilities::OnCellName;
   else
-    sstr<<vtkMedUtilities::OnPointName;
+    sstr << vtkMedUtilities::OnPointName;
   if(groupName==NULL)
-    sstr<<Separator<<NoGroupName;
+    sstr << vtkMedUtilities::Separator
+        << vtkMedUtilities::NoGroupName;
   else
-    sstr<<Separator<<SimplifyName(groupName);
+    sstr << vtkMedUtilities::Separator
+        << vtkMedUtilities::SimplifyName(groupName);
+
   return sstr.str();
 }
 
-const std::string vtkMedUtilities::CellTypeKey(med_entite_maillage type,
-    med_geometrie_element geometry)
+const std::string vtkMedUtilities::EntityKey(const vtkMedEntity& entity)
 {
   ostringstream sstr;
-  sstr<<"CELL_TYPE"<<Separator<<TypeName(type)<<Separator<<GeometryName(geometry);
+  sstr << "CELL_TYPE" << Separator << EntityName(entity.EntityType)
+      << Separator<<GeometryName(entity.GeometryType);
   return sstr.str();
 }
 
-int vtkMedUtilities::GetNumberOfPoint(med_geometrie_element geometry)
+int vtkMedUtilities::GetNumberOfPoint(med_geometry_type geometry)
 {
   return geometry%100;
 }
 
-int vtkMedUtilities::GetDimension(med_geometrie_element geometry)
+int vtkMedUtilities::GetDimension(med_geometry_type geometry)
 {
   return geometry/100;
 }
 
-int vtkMedUtilities::GetVTKCellType(med_geometrie_element geometry)
+int vtkMedUtilities::GetVTKCellType(med_geometry_type geometry)
 {
 
   switch(geometry)
@@ -293,14 +320,20 @@ int vtkMedUtilities::GetVTKCellType(med_geometrie_element geometry)
       return VTK_LINE;
     case MED_SEG3:
       return VTK_QUADRATIC_EDGE;
+    case MED_SEG4:
+      return VTK_CUBIC_LINE;
     case MED_TRIA3:
       return VTK_TRIANGLE;
     case MED_QUAD4:
       return VTK_QUAD;
     case MED_TRIA6:
       return VTK_QUADRATIC_TRIANGLE;
+    case MED_TRIA7:
+      return VTK_BIQUADRATIC_TRIANGLE;
     case MED_QUAD8:
       return VTK_QUADRATIC_QUAD;
+    case MED_QUAD9:
+      return VTK_BIQUADRATIC_QUAD;
     case MED_TETRA4:
       return VTK_TETRA;
     case MED_PYRA5:
@@ -311,17 +344,21 @@ int vtkMedUtilities::GetVTKCellType(med_geometrie_element geometry)
       return VTK_HEXAHEDRON;
     case MED_TETRA10:
       return VTK_QUADRATIC_TETRA;
+    case MED_OCTA12:
+      return VTK_HEXAGONAL_PRISM;
     case MED_PYRA13:
       return VTK_QUADRATIC_PYRAMID;
     case MED_PENTA15:
       return VTK_QUADRATIC_WEDGE;
     case MED_HEXA20:
       return VTK_QUADRATIC_HEXAHEDRON;
-    case MED_POLYGONE:
+    case MED_HEXA27:
+      return VTK_TRIQUADRATIC_HEXAHEDRON;
+    case MED_POLYGON:
       return VTK_POLYGON;
-    case MED_POLYEDRE:
-      return VTK_CONVEX_POINT_SET;
-    case MED_NONE:
+    case MED_POLYHEDRON:
+      return VTK_POLYHEDRON;
+    case MED_NO_GEOTYPE:
       return VTK_EMPTY_CELL;
     default:
       vtkGenericWarningMacro("No vtk type matches " << vtkMedUtilities::GeometryName(geometry) << ", aborting")
@@ -330,7 +367,19 @@ int vtkMedUtilities::GetVTKCellType(med_geometrie_element geometry)
   }
 }
 
-int vtkMedUtilities::GetNumberOfSubEntity(med_geometrie_element geometry)
+int vtkMedUtilities::MedToVTKIndex(int vtktype, int node)
+{
+  if(vtktype != VTK_TRIQUADRATIC_HEXAHEDRON)
+    return node;
+
+  static int VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[27] =
+    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+     24, 22, 21, 23, 20, 25, 26};
+
+  return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node];
+}
+
+int vtkMedUtilities::GetNumberOfSubEntity(med_geometry_type geometry)
 {
   switch(geometry)
   {
@@ -340,13 +389,19 @@ int vtkMedUtilities::GetNumberOfSubEntity(med_geometrie_element geometry)
       return 2;
     case MED_SEG3:
       return 3;
+    case MED_SEG4:
+      return 4;
     case MED_TRIA3:
       return 3;
     case MED_QUAD4:
       return 4;
     case MED_TRIA6:
       return 3;
+    case MED_TRIA7:
+      return 3;
     case MED_QUAD8:
+      return 4;
+    case MED_QUAD9:
       return 4;
     case MED_TETRA4:
       return 4;
@@ -358,42 +413,47 @@ int vtkMedUtilities::GetNumberOfSubEntity(med_geometrie_element geometry)
       return 6;
     case MED_TETRA10:
       return 4;
+    case MED_OCTA12:
+      return 8;
     case MED_PYRA13:
       return 5;
     case MED_PENTA15:
       return 5;
     case MED_HEXA20:
       return 6;
-    case MED_POLYGONE:
-      return 0;
-    case MED_POLYEDRE:
-      return 0;
-    case MED_NONE:
+    case MED_HEXA27:
+      return 6;
+    case MED_POLYGON:
+      return -1;
+    case MED_POLYHEDRON:
+      return -1;
+    case MED_NO_GEOTYPE:
       return 0;
     default:
-      vtkGenericWarningMacro("No vtk type matches " << vtkMedUtilities::GeometryName(geometry) << ", aborting")
-      ;
+      vtkGenericWarningMacro("No vtk type matches "
+                             << vtkMedUtilities::GeometryName(geometry)
+                             << ", aborting");
       return -1;
   }
 }
 
-med_entite_maillage vtkMedUtilities::GetSubType(med_entite_maillage type)
+med_entity_type vtkMedUtilities::GetSubType(med_entity_type type)
 {
   switch(type)
-  {
-    case MED_MAILLE:
-      return MED_FACE;
-    case MED_FACE:
-      return MED_ARETE;
-    case MED_ARETE:
-      return MED_NOEUD;
+    {
+    case MED_CELL:
+      return MED_DESCENDING_FACE;
+    case MED_DESCENDING_FACE:
+      return MED_DESCENDING_EDGE;
+    case MED_DESCENDING_EDGE:
+      return MED_NODE;
     default:
-      return MED_NOEUD;
-  }
+      return MED_NODE;
+    }
 }
 
-med_geometrie_element vtkMedUtilities::GetSubGeometry(
-    med_geometrie_element geometry, int index)
+med_geometry_type vtkMedUtilities::GetSubGeometry(
+		med_geometry_type geometry, int index)
 {
   switch(geometry)
   {
@@ -401,49 +461,63 @@ med_geometrie_element vtkMedUtilities::GetSubGeometry(
       return MED_POINT1;
     case MED_SEG3:
       return MED_POINT1;
+    case MED_SEG4:
+      return MED_POINT1;
+
     case MED_TRIA3:
-      return MED_SEG2;
-    case MED_QUAD4:
       return MED_SEG2;
     case MED_TRIA6:
       return MED_SEG3;
+    case MED_TRIA7:
+      return MED_SEG3;
+
+    case MED_QUAD4:
+      return MED_SEG2;
     case MED_QUAD8:
       return MED_SEG3;
+    case MED_QUAD9:
+      return MED_SEG3;
+
     case MED_TETRA4:
       return MED_TRIA3;
-    case MED_PYRA5:
-    {
-    if(index==0)
-      return MED_QUAD4;
-    return MED_TRIA3;
-    }
-    case MED_PENTA6:
-    {
-    if(index==0||index==1)
-      return MED_TRIA3;
-    else
-      return MED_QUAD4;
-    }
-    case MED_HEXA8:
-      return MED_QUAD4;
     case MED_TETRA10:
       return MED_TRIA6;
+
+    case MED_PYRA5:
+      {
+      if(index==0)
+        return MED_QUAD4;
+      return MED_TRIA3;
+      }
     case MED_PYRA13:
-    {
-    if(index==0)
-      return MED_QUAD8;
-    else
-      return MED_TRIA6;
-    }
+      {
+      if(index==0)
+        return MED_QUAD8;
+      else
+        return MED_TRIA6;
+      }
+
+    case MED_PENTA6:
+      {
+      if(index==0||index==1)
+        return MED_TRIA3;
+      else
+        return MED_QUAD4;
+      }
     case MED_PENTA15:
-    {
-    if(index==0||index==1)
-      return MED_TRIA6;
-    else
-      return MED_QUAD8;
-    }
+      {
+      if(index==0||index==1)
+        return MED_TRIA6;
+      else
+        return MED_QUAD8;
+      }
+
+    case MED_HEXA8:
+      return MED_QUAD4;
     case MED_HEXA20:
       return MED_QUAD8;
+    case MED_HEXA27:
+      return MED_QUAD9;
     default:
       return MED_NONE;
   }
@@ -486,16 +560,18 @@ void vtkMedUtilities::SplitGroupKey(const char* name, vtkstd::string& mesh,
   group=remain.substr(pos+1, remain.size()-pos-1);
 }
 
-int vtkMedUtilities::GetParentNodeIndex(med_geometrie_element parentGeometry,
+int vtkMedUtilities::GetParentNodeIndex(med_geometry_type parentGeometry,
     int subEntityIndex, int subEntityNodeIndex)
 {
   switch(parentGeometry)
   {
     case MED_TRIA3:
     case MED_TRIA6:
+    case MED_TRIA7:
       return MED_TRIA_CHILD_TO_PARENT_INDEX[subEntityIndex][subEntityNodeIndex];
     case MED_QUAD4:
     case MED_QUAD8:
+    case MED_QUAD9:
       return MED_QUAD_CHILD_TO_PARENT_INDEX[subEntityIndex][subEntityNodeIndex];
     case MED_TETRA4:
     case MED_TETRA10:
@@ -508,23 +584,120 @@ int vtkMedUtilities::GetParentNodeIndex(med_geometrie_element parentGeometry,
       return MED_PENTA_CHILD_TO_PARENT_INDEX[subEntityIndex][subEntityNodeIndex];
     case MED_HEXA8:
     case MED_HEXA20:
+    case MED_HEXA27:
       return MED_HEXA_CHILD_TO_PARENT_INDEX[subEntityIndex][subEntityNodeIndex];
   }
   return -1;
 }
 
-void vtkMedUtilities::ProjectConnectivity(med_geometrie_element parentGeometry,
-    vtkIdList* parentIds, vtkIdList* subEntityIds, int subEntityIndex)
+void vtkMedUtilities::ProjectConnectivity(med_geometry_type parentGeometry,
+    vtkIdList* parentIds, vtkIdList* subEntityIds, int subEntityIndex, bool invert)
 {
   for(int subEntityNodeIndex=0; subEntityNodeIndex
       <subEntityIds->GetNumberOfIds(); subEntityNodeIndex++)
     {
+    int realIndex = subEntityNodeIndex;
+    if(invert)
+      realIndex = subEntityIds->GetNumberOfIds() - subEntityNodeIndex - 1;
     parentIds->SetId(GetParentNodeIndex(parentGeometry, subEntityIndex,
-        subEntityNodeIndex), subEntityIds->GetId(subEntityNodeIndex));
+        subEntityNodeIndex), subEntityIds->GetId(realIndex));
     }
 }
 
-void vtkMedUtilities::PrintSelf(ostream& os, vtkIndent indent)
+std::string vtkMedUtilities::GetModeKey(int index, double frequency)
 {
-  this->Superclass::PrintSelf(os, indent);
+  std::ostringstream key;
+  key<<"["<<index<<"] "<<frequency;
+  return key.str();
+}
+
+int vtkMedUtilities::GetModeFromKey(const char* key, int& index,
+    double& frequency)
+{
+  const std::string k(key);
+  size_t index_start=k.find("[");
+  size_t index_end=k.find("]");
+  const string index_string=k.substr(index_start, index_end);
+  stringstream indexsstr;
+  indexsstr<<index_string;
+  indexsstr>>index;
+  const string freq_string=k.substr(index_end+1, string::npos);
+  stringstream freqsstr;
+  freqsstr<<freq_string;
+  freqsstr>>frequency;
+  return 1;
+}
+
+vtkMultiBlockDataSet* vtkMedUtilities::GetParent(vtkMultiBlockDataSet* root,
+                                vtkStringArray* path)
+{
+    vtkMultiBlockDataSet* output=root;
+    vtkMultiBlockDataSet* parent=output;
+    for(int depth = 0; depth<path->GetNumberOfValues(); depth++)
+      {
+      vtkStdString parentName = path->GetValue(depth);
+      bool found=false;
+      for(int blockId=0; blockId<parent->GetNumberOfBlocks(); blockId++)
+        {
+        vtkInformation* metaData=parent->GetMetaData(blockId);
+        if(metaData->Has(vtkCompositeDataSet::NAME()))
+          {
+          const char* blockName=metaData->Get(vtkCompositeDataSet::NAME());
+          if(parentName==blockName &&
+              vtkMultiBlockDataSet::SafeDownCast(
+                  parent->GetBlock(blockId))!=NULL)
+            {
+            parent=vtkMultiBlockDataSet::SafeDownCast(parent->GetBlock(blockId));
+            found=true;
+            break;
+            }
+          }
+        }
+      if (!found)
+        {
+        // If I am here, it means that I did not find any block with the good name, create one
+        int nb=parent->GetNumberOfBlocks();
+        vtkMultiBlockDataSet* block=vtkMultiBlockDataSet::New();
+        parent->SetBlock(nb, block);
+        block->Delete();
+        parent->GetMetaData(nb)->Set(vtkCompositeDataSet::NAME(),
+            parentName.c_str());
+        parent=block;
+        }
+      }
+    return parent;
+}
+
+bool operator==(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1)
+{
+  return cs0.IterationIt == cs1.IterationIt && cs0.TimeIt == cs1.TimeIt;
+}
+
+bool operator!=(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1)
+{
+  return cs0.IterationIt != cs1.IterationIt || cs0.TimeIt != cs1.TimeIt;
+}
+
+bool operator<(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1)
+{
+  if(cs0.IterationIt != cs1.IterationIt)
+    return cs0.IterationIt < cs1.IterationIt;
+  return cs0.TimeIt < cs1.TimeIt;
+}
+
+bool operator==(const vtkMedEntity& e0, const vtkMedEntity& e1)
+{
+  return e0.EntityType == e1.EntityType && e0.GeometryType == e1.GeometryType;
+}
+
+bool operator!=(const vtkMedEntity& e0, const vtkMedEntity& e1)
+{
+  return e0.EntityType != e1.EntityType || e0.GeometryType != e1.GeometryType;
+}
+
+bool operator<(const vtkMedEntity& e0, const vtkMedEntity& e1)
+{
+  if(e0.EntityType != e1.EntityType)
+    return e1.EntityType < e1.EntityType;
+  return e0.GeometryType < e1.GeometryType;
 }

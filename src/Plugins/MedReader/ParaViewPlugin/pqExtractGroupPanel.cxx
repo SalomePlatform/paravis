@@ -19,7 +19,6 @@
 #include "vtkProcessModuleConnectionManager.h"
 
 #include "vtkMedUtilities.h"
-#include "vtkSMExtractGroupProxy.h"
 
 #include "pqTreeWidget.h"
 #include "pqTreeWidgetItemObject.h"
@@ -62,11 +61,9 @@ pqExtractGroupPanel::pqExtractGroupPanel(pqProxy* object_proxy, QWidget* p) :
   this->UI = new pqUI(this);
   this->UI->setupUi(this);
 
-  this->UI->VTKConnect->Connect(this->proxy(),
-      vtkCommand::UpdateInformationEvent, this, SLOT(updateSIL()));
   pqProxySILModel* proxyModel;
 
-  // connect groups to MeshGroupRoot
+  // connect groups to groupsRoot
   proxyModel = new pqProxySILModel("GroupTree", &this->UI->SILModel);
   proxyModel->setSourceModel(&this->UI->SILModel);
   this->UI->Groups->setModel(proxyModel);
@@ -76,18 +73,18 @@ pqExtractGroupPanel::pqExtractGroupPanel(pqProxy* object_proxy, QWidget* p) :
   this->UI->groupModel->setSourceModel(&this->UI->SILModel);
 
   // connect cell types to "EntityRoot"
-  proxyModel = new pqProxySILModel("CellTypeTree", &this->UI->SILModel);
+  proxyModel = new pqProxySILModel("EntityTree", &this->UI->SILModel);
   proxyModel->setSourceModel(&this->UI->SILModel);
-  this->UI->CellTypes->setModel(proxyModel);
-  this->UI->CellTypes->setHeaderHidden(true);
+  this->UI->Entity->setModel(proxyModel);
+  this->UI->Entity->setHeaderHidden(true);
 
-  this->UI->entityModel = new pqProxySILModel("CellTypes", &this->UI->SILModel);
+  this->UI->entityModel = new pqProxySILModel("Entity", &this->UI->SILModel);
   this->UI->entityModel->setSourceModel(&this->UI->SILModel);
 
   this->updateSIL();
 
   this->UI->Groups->header()->setStretchLastSection(true);
-  this->UI->CellTypes->header()->setStretchLastSection(true);
+  this->UI->Entity->header()->setStretchLastSection(true);
 
   this->linkServerManagerProperties();
 
@@ -103,10 +100,16 @@ pqExtractGroupPanel::pqExtractGroupPanel(pqProxy* object_proxy, QWidget* p) :
       new pqTreeViewSelectionHelper(tree);
       }
 
-  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
-  this->connect(this->UI->entityModel, SIGNAL(valuesChanged()), this, SLOT(setModified()));
+  this->connect(this->UI->groupModel, SIGNAL(valuesChanged()),
+                this, SLOT(setModified()));
+  this->connect(this->UI->entityModel, SIGNAL(valuesChanged()),
+                this, SLOT(setModified()));
 
   this->UI->tabWidget->setCurrentIndex(0);
+
+  this->UI->VTKConnect->Connect(this->proxy(),
+      vtkCommand::UpdateInformationEvent, this, SLOT(updateSIL()));
+
 }
 
 pqExtractGroupPanel::~pqExtractGroupPanel()
@@ -121,7 +124,7 @@ void pqExtractGroupPanel::linkServerManagerProperties()
 
   this->UI->Links.addPropertyLink(this->UI->entityModel, "values",
       SIGNAL(valuesChanged()), this->proxy(), this->proxy()->GetProperty(
-          "CellTypes"));
+          "Entity"));
 
   this->Superclass::linkServerManagerProperties();
 
@@ -129,22 +132,21 @@ void pqExtractGroupPanel::linkServerManagerProperties()
 
 void pqExtractGroupPanel::updateSIL()
 {
-  vtkSMExtractGroupProxy* filter = vtkSMExtractGroupProxy::SafeDownCast(
-      this->proxy());
-  filter->UpdatePropertyInformation(filter->GetProperty("SILUpdateStamp"));
+  this->proxy()->UpdatePropertyInformation(
+      this->proxy()->GetProperty("SILUpdateStamp"));
 
-  int stamp = vtkSMPropertyHelper(filter, "SILUpdateStamp").GetAsInt();
+  int stamp = vtkSMPropertyHelper(this->proxy(), "SILUpdateStamp").GetAsInt();
   if(stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
     vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
-    pm->GatherInformation(filter->GetConnectionID(),
-        vtkProcessModule::DATA_SERVER, info, filter->GetID());
+    pm->GatherInformation(this->proxy()->GetConnectionID(),
+        vtkProcessModule::DATA_SERVER, info, this->proxy()->GetID());
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
-    this->UI->CellTypes->expandAll();
+    this->UI->Entity->expandAll();
 
     info->Delete();
     }

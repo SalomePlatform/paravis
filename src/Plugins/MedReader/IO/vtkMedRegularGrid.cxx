@@ -4,70 +4,72 @@
 #include "vtkDataArray.h"
 
 #include "vtkMedUtilities.h"
+#include "vtkMedFile.h"
+#include "vtkMedDriver.h"
+#include "vtkMedMesh.h"
 
-vtkCxxGetObjectVectorMacro(vtkMedRegularGrid, Coordinates, vtkDataArray);
-vtkCxxSetAbstractObjectVectorMacro(vtkMedRegularGrid, Coordinates, vtkDataArray);
+vtkCxxGetObjectVectorMacro(vtkMedRegularGrid, AxisCoordinate, vtkDataArray);
+vtkCxxSetAbstractObjectVectorMacro(vtkMedRegularGrid, AxisCoordinate, vtkDataArray);
 
 vtkCxxRevisionMacro(vtkMedRegularGrid, "$Revision$")
 vtkStandardNewMacro(vtkMedRegularGrid)
 
 vtkMedRegularGrid::vtkMedRegularGrid()
 {
-	this->Coordinates = new vtkObjectVector<vtkDataArray>();
-	this->Size = NULL;
+	this->AxisCoordinate = new vtkObjectVector<vtkDataArray>();
 }
 
 vtkMedRegularGrid::~vtkMedRegularGrid()
 {
-	delete this->Coordinates;
-	if (this->Size)
-		delete[] this->Size;
-	this->Size = NULL;
+	delete this->AxisCoordinate;
 }
 
 void vtkMedRegularGrid::SetDimension(med_int dim)
 {
-	if (this->Size)
-		delete[] this->Size;
-	this->Size = NULL;
-	if (dim > 0)
-		{
-		this->Size = new med_int[dim];
-		}
-	this->SetNumberOfCoordinates(dim);
-	this->Superclass::SetDimension(dim);
+	if(dim < 0)
+		dim = 0;
+	this->AxisSize.resize(dim);
+	this->SetNumberOfAxisCoordinate(dim);
 }
 
-void vtkMedRegularGrid::SetSize(med_int* size)
+int	vtkMedRegularGrid::GetDimension()
 {
-	if (this->Size == NULL || size == NULL)
+	return this->AxisSize.size();
+}
+
+void	vtkMedRegularGrid::SetAxisSize(int axis, med_int size)
+{
+	if(axis < 0)
 		return;
-	for (int dim = 0; dim < this->Dimension; dim++)
+
+	if(axis >= this->GetDimension())
 		{
-		this->Size[dim] = size[dim];
+		this->SetDimension(axis+1);
 		}
+
+	this->AxisSize[axis] = size;
 }
 
-med_int* vtkMedRegularGrid::GetSize()
+med_int vtkMedRegularGrid::GetAxisSize(int dim)
 {
-	return this->Size;
-}
-
-med_int vtkMedRegularGrid::GetSize(int dim)
-{
-	if (this->Size == NULL)
+	if(dim < 0 || dim >= this->AxisSize.size())
 		return 0;
-	return this->Size[dim];
+	return this->AxisSize[dim];
 }
 
 med_int vtkMedRegularGrid::GetNumberOfPoints()
 {
 	med_int npts = 1;
-	for(int dim = 0; dim < this->GetDimension(); dim++)
+	for(int dim = 0; dim < this->AxisSize.size(); dim++)
 		{
-		npts *= this->Size[dim];
+		npts *= this->AxisSize[dim];
 		}
 	return npts;
+}
+
+void	vtkMedRegularGrid::LoadCoordinates()
+{
+	this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
 }
 
 void vtkMedRegularGrid::PrintSelf(ostream& os, vtkIndent indent)

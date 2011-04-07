@@ -3,4 +3,5 @@
             extensions="med"
             file_description="MED Files">
     </Reader>
+    <Filter name="ExtractGroup"/>
 </ParaViewReaders>

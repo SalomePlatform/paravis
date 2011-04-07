@@ -18,15 +18,8 @@ public:
   /// destructor
   ~pqMedReaderPanel();
 
-public slots:
-  // accept changes made by this panel
-  //virtual void accept();
-  // reset changes made by this panel
-  //virtual void reset();
-
 protected slots:
-  //void geometryItemChanged(QTreeWidgetItem * item, int column);
-  void timeModeChanged(int timeMode);
+  void animationModeChanged(int mode);
 
   void timeComboChanged(int timeStep);
 
@@ -41,7 +34,8 @@ protected:
     PM_NONE = -1,
     PM_POINT,
     PM_CELL,
-    PM_QUADRATURE
+    PM_QUADRATURE,
+    PM_ELNO
   };
 
   void addSelectionsToTreeWidget(const QString& prop,
@@ -51,7 +45,7 @@ protected:
       const QString& realName, QTreeWidget* tree, PixmapType pix,
       const QString& prop, int propIdx);
 
-  void setupTimeModeWidget();
+  void setupAnimationModeWidget();
   void updateAvailableTimes();
 
   class pqUI;
@@ -59,4 +53,3 @@ protected:
 };
 
 #endif
-

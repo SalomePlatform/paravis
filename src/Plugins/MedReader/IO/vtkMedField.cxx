@@ -4,22 +4,27 @@
 #include "vtkSmartPointer.h"
 #include "vtkStringArray.h"
 #include "vtkMedFieldOverEntity.h"
-#include "vtkMedFieldStepOnMesh.h"
 #include "vtkMedFieldStep.h"
 #include "vtkMedString.h"
 #include "vtkMedUtilities.h"
+#include "vtkMedFieldOnProfile.h"
+#include "vtkMedInterpolation.h"
+#include "vtkMedFile.h"
 
 #include <string>
-using std::string;
+#include <map>
+using namespace std;
 
-vtkCxxGetObjectVectorMacro(vtkMedField, FieldOverEntity, vtkMedFieldOverEntity);
-vtkCxxSetObjectVectorMacro(vtkMedField, FieldOverEntity, vtkMedFieldOverEntity);
+vtkCxxGetObjectVectorMacro(vtkMedField, Interpolation, vtkMedInterpolation);
+vtkCxxSetObjectVectorMacro(vtkMedField, Interpolation, vtkMedInterpolation);
 
 vtkCxxGetObjectVectorMacro(vtkMedField, Unit, vtkMedString);
 vtkCxxSetObjectVectorMacro(vtkMedField, Unit, vtkMedString);
 
 vtkCxxGetObjectVectorMacro(vtkMedField, ComponentName, vtkMedString);
 vtkCxxSetObjectVectorMacro(vtkMedField, ComponentName, vtkMedString);
+
+vtkCxxSetObjectMacro(vtkMedField, ParentFile, vtkMedFile);
 
 vtkCxxRevisionMacro(vtkMedField, "$Revision$")
 vtkStandardNewMacro(vtkMedField)
@@ -29,64 +34,213 @@ vtkMedField::vtkMedField()
 	this->NumberOfComponent = -1;
 	this->DataType = MED_FLOAT64;
 	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_TAILLE_NOM);
-	this->FieldOverEntity = new vtkObjectVector<vtkMedFieldOverEntity> ();
+	this->Name->SetSize(MED_NAME_SIZE);
+	this->MeshName = vtkMedString::New();
+	this->MeshName->SetSize(MED_NAME_SIZE);
+	this->TimeUnit = vtkMedString::New();
+	this->TimeUnit->SetSize(MED_LNAME_SIZE);
+	this->FieldStep = new vtkMedComputeStepMap<vtkMedFieldStep> ();
 	this->Unit = new vtkObjectVector<vtkMedString> ();
 	this->ComponentName = new vtkObjectVector<vtkMedString> ();
-	this->MedIndex = -1;
-	this->Type = -1;
+	this->Interpolation = new vtkObjectVector<vtkMedInterpolation> ();
+	this->MedIterator = -1;
+	this->FieldType = UnknownFieldType;
+	this->ParentFile = NULL;
 }
 
 vtkMedField::~vtkMedField()
 {
 	this->Name->Delete();
-	delete this->FieldOverEntity;
+	delete this->FieldStep;
 	delete this->Unit;
 	delete this->ComponentName;
 }
 
-void vtkMedField::ComputeFieldSupportType()
+void vtkMedField::ComputeFieldType()
 {
-	if (this->FieldOverEntity->size() == 0)
+	this->FieldType = UnknownFieldType;
+	if (this->FieldStep->size() == 0)
 		{
-		this->Type = -1;
 		return;
 		}
 
-	string name = this->Name->GetString();
-	if(name.find("ELGA") != string::npos || name.find("ELNO") != string::npos)
-	  {
-    this->Type = QuadratureField;
-    return;
-	  }
-
-	for (int index = 0; index < this->FieldOverEntity->size(); index++)
+	// look for the med_entity_type
+	// on which this field is.
+	for(int sid = 0; sid < this->GetNumberOfFieldStep(); sid++)
 		{
-		vtkMedFieldOverEntity* fieldOverEntity = this->FieldOverEntity->at(index);
-		med_entite_maillage type = fieldOverEntity->GetMedType();
-		if (type == MED_NOEUD)
+		vtkMedFieldStep* step = this->GetFieldStep(sid);
+		for(int eid = 0; eid < step->GetNumberOfFieldOverEntity(); eid++)
 			{
-			this->Type = PointField;
-			return;
-			}
-		else
-			{
-			for (int stepIndex = 0; stepIndex < fieldOverEntity->GetNumberOfStep(); stepIndex++)
+			vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(eid);
+			med_entity_type type = fieldOverEntity->GetEntity().EntityType;
+
+			if (type == MED_NODE)
 				{
-				vtkMedFieldStep* step = fieldOverEntity->GetStep(stepIndex);
-				for (int stepOnMeshId = 0; stepOnMeshId < step->GetNumberOfStepOnMesh(); stepOnMeshId++)
+				this->FieldType |= PointField;
+				}
+			else if(type == MED_NODE_ELEMENT )
+				{
+				this->FieldType |= ElnoField;
+				}
+			else
+				{
+				for(int pid=0; pid<fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
 					{
-					vtkMedFieldStepOnMesh* stepOnMesh = step->GetStepOnMesh(stepOnMeshId);
-					if (stepOnMesh->GetNumberOfQuadraturePoint() > 1)
+					vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
+					const char* locname = fop->GetLocalizationName()->GetString();
+					if(strcmp(locname, MED_NO_LOCALIZATION) != 0 )
 						{
-						this->Type = QuadratureField;
-						return;
+						this->FieldType |= QuadratureField;
+						}
+					else
+						{
+						this->FieldType |= CellField;
 						}
 					}
 				}
 			}
 		}
-	this->Type = CellField;
+}
+
+int vtkMedField::HasManyFieldTypes()
+{
+	int numberOfTypes = 0;
+	numberOfTypes += (this->FieldType & vtkMedField::PointField) != 0;
+	numberOfTypes += (this->FieldType & vtkMedField::CellField) != 0;
+	numberOfTypes += (this->FieldType & vtkMedField::QuadratureField) != 0;
+	numberOfTypes += (this->FieldType & vtkMedField::ElnoField) != 0;
+
+	return numberOfTypes > 1;
+}
+
+int vtkMedField::GetFirstType()
+{
+	if((this->FieldType & vtkMedField::PointField) != 0)
+		return vtkMedField::PointField;
+
+	if((this->FieldType & vtkMedField::CellField) != 0)
+		return vtkMedField::CellField;
+
+	if((this->FieldType & vtkMedField::QuadratureField) != 0)
+		return vtkMedField::QuadratureField;
+
+	if((this->FieldType & vtkMedField::ElnoField) != 0)
+		return vtkMedField::ElnoField;
+}
+
+void	vtkMedField::ExtractFieldType(vtkMedField* otherfield, int type)
+{
+	this->GetName()->SetString(otherfield->GetName()->GetString());
+	this->SetLocal(otherfield->GetLocal());
+	this->SetMedIterator(otherfield->GetMedIterator());
+	this->SetDataType(otherfield->GetDataType());
+	this->GetMeshName()->SetString(otherfield->GetMeshName()->GetString());
+	this->GetTimeUnit()->SetString(otherfield->GetTimeUnit()->GetString());
+	this->SetParentFile(otherfield->GetParentFile());
+
+	this->SetNumberOfComponent(otherfield->GetNumberOfComponent());
+	for(int i=0; i< this->GetNumberOfComponent(); i++)
+		{
+		this->SetComponentName(i, otherfield->GetComponentName(i));
+		}
+
+	this->AllocateNumberOfInterpolation(otherfield->GetNumberOfInterpolation());
+	for(int i=0; i<this->GetNumberOfInterpolation(); i++)
+		{
+		this->SetInterpolation(i, otherfield->GetInterpolation(i));
+		}
+
+	this->AllocateNumberOfUnit(otherfield->GetNumberOfUnit());
+	for(int i=0; i<this->GetNumberOfUnit(); i++)
+		{
+		this->SetUnit(i, otherfield->GetUnit(i));
+		}
+
+	int nstep = otherfield->GetNumberOfFieldStep();
+	map<vtkMedFieldStep*, vtkMedFieldStep*> stepmap;
+	for(int stepid=0; stepid<nstep; stepid++)
+		{
+		vtkMedFieldStep* otherstep = otherfield->GetFieldStep(stepid);
+		vtkMedFieldStep* step = vtkMedFieldStep::New();
+		step->SetComputeStep(otherstep->GetComputeStep());
+		this->AddFieldStep(step);
+		step->Delete();
+
+		stepmap[otherstep] = step;
+
+		vtkMedFieldStep* previousstep = NULL;
+		if(stepmap.find(otherstep->GetPreviousStep()) != stepmap.end())
+			{
+			previousstep = stepmap[otherstep->GetPreviousStep()];
+			}
+		step->SetPreviousStep(previousstep);
+		step->SetParentField(this);
+		step->SetMeshComputeStep(otherstep->GetMeshComputeStep());
+
+		for(int eid=0; eid<otherstep->GetNumberOfFieldOverEntity(); eid++)
+			{
+			vtkMedFieldOverEntity* fieldOverEntity = otherstep->GetFieldOverEntity(eid);
+
+			if(type == vtkMedField::PointField)
+				{
+				if(fieldOverEntity->GetEntity().EntityType != MED_NODE)
+					{
+					continue;
+					}
+				step->AppendFieldOverEntity(fieldOverEntity);
+				otherstep->RemoveFieldOverEntity(fieldOverEntity);
+				fieldOverEntity->SetParentStep(step);
+				}
+			else if(type == vtkMedField::ElnoField)
+				{
+				if(fieldOverEntity->GetEntity().EntityType != MED_NODE_ELEMENT)
+					{
+					continue;
+					}
+
+				step->AppendFieldOverEntity(fieldOverEntity);
+				otherstep->RemoveFieldOverEntity(fieldOverEntity);
+				eid--;
+				fieldOverEntity->SetParentStep(step);
+				}
+			else
+				{
+				if(fieldOverEntity->GetEntity().EntityType == MED_NODE)
+					{
+					continue;
+					}
+				vtkMedFieldOverEntity* newfoe = vtkMedFieldOverEntity::New();
+				newfoe->SetEntity(fieldOverEntity->GetEntity());
+				newfoe->SetHasProfile(fieldOverEntity->GetHasProfile());
+				newfoe->SetParentStep(step);
+				step->AppendFieldOverEntity(newfoe);
+				newfoe->Delete();
+				for(int pid=0; pid<fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
+					{
+					vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
+					const char* locname = fop->GetLocalizationName()->GetString();
+					if((type == vtkMedField::QuadratureField
+						 && strcmp(locname, MED_NO_LOCALIZATION) != 0) ||
+						 (type == vtkMedField::CellField
+						 && strcmp(locname, MED_NO_LOCALIZATION) == 0 ))
+						{
+						newfoe->AppendFieldOnProfile(fop);
+						fieldOverEntity->RemoveFieldOnProfile(fop);
+						pid--;
+						fop->SetParentFieldOverEntity(newfoe);
+						}
+					}
+				if(fieldOverEntity->GetNumberOfFieldOnProfile() == 0)
+					{
+					otherstep->RemoveFieldOverEntity(fieldOverEntity);
+					eid--;
+					}
+				}
+			}
+		}
+
+	this->ComputeFieldType();
+	otherfield->ComputeFieldType();
 }
 
 void vtkMedField::SetNumberOfComponent(int ncomp)
@@ -99,35 +253,62 @@ void vtkMedField::SetNumberOfComponent(int ncomp)
 	this->AllocateNumberOfComponentName(this->NumberOfComponent);
 	for (int comp = 0; comp < this->NumberOfComponent; comp++)
 		{
-		this->Unit->at(comp)->SetSize(MED_TAILLE_PNOM);
-		this->ComponentName->at(comp)->SetSize(MED_TAILLE_PNOM);
+		this->Unit->at(comp)->SetSize(MED_SNAME_SIZE);
+		this->ComponentName->at(comp)->SetSize(MED_SNAME_SIZE);
 		}
 
 	this->Modified();
 }
 
-vtkMedFieldOverEntity* vtkMedField::GetFieldOverEntity(	med_entite_maillage type,
-																												med_geometrie_element geometry)
+void	vtkMedField::AddFieldStep(vtkMedFieldStep* step)
 {
-	for (int index = 0; index < this->FieldOverEntity->size(); index++)
-		{
-		vtkMedFieldOverEntity* fieldOverEntity = this->FieldOverEntity->at(index);
-		if (fieldOverEntity->GetMedType() == type && fieldOverEntity->GetGeometry()
-				== geometry)
-			return fieldOverEntity;
-		}
-	return NULL;
+	this->FieldStep->AddObject(step->GetComputeStep(), step);
+}
+
+void	vtkMedField::ClearFieldStep()
+{
+	this->FieldStep->clear();
+}
+
+vtkMedFieldStep* vtkMedField::GetFieldStep(const vtkMedComputeStep& cs)
+{
+	return this->FieldStep->GetObject(cs);
+}
+
+vtkMedFieldStep* vtkMedField::FindFieldStep(const vtkMedComputeStep& cs,
+																						int strategy)
+{
+	return this->FieldStep->FindObject(cs, strategy);
+}
+
+med_int vtkMedField::GetNumberOfFieldStep()
+{
+	return this->FieldStep->GetNumberOfObject();
+}
+
+vtkMedFieldStep* vtkMedField::GetFieldStep(med_int id)
+{
+	return this->FieldStep->GetObject(id);
+}
+
+void  vtkMedField::GatherFieldTimes(std::set<med_float>& times)
+{
+	this->FieldStep->GatherTimes(times);
+}
+
+void  vtkMedField::GatherFieldIterations(med_float time,
+																				 std::set<med_int>& iterations)
+{
+	this->FieldStep->GatherIterations(time, iterations);
 }
 
 void vtkMedField::PrintSelf(ostream& os, vtkIndent indent)
 {
 	this->Superclass::PrintSelf(os, indent);
-	PRINT_IVAR(os, indent, MedIndex);
+	PRINT_IVAR(os, indent, MedIterator);
 	PRINT_MED_STRING(os, indent, Name);
 	PRINT_IVAR(os, indent, NumberOfComponent);
-	PRINT_IVAR(os, indent, Type);
+	PRINT_IVAR(os, indent, FieldType);
 	PRINT_IVAR(os, indent, DataType);
-	PRINT_OBJECT_VECTOR(os, indent, FieldOverEntity);
-	PRINT_STRING_VECTOR(os, indent, Unit);
-	PRINT_STRING_VECTOR(os, indent, ComponentName);
+	PRINT_IVAR(os, indent, Local);
 }

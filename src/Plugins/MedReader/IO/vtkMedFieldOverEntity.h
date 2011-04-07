@@ -5,7 +5,9 @@
 #include "vtkMed.h"
 
 #include "vtkMedSetGet.h"
+#include "vtkMedUtilities.h"
 
+class vtkMedFieldOnProfile;
 class vtkMedFieldStep;
 
 class VTK_EXPORT vtkMedFieldOverEntity: public vtkObject
@@ -17,40 +19,39 @@ public:
 
   // Description:
   // the support of the cells : one of
-  // MED_MAILLE, MED_FACE, MED_ARETE, MED_NOEUD, MED_NOEUD_MAILLE
-  vtkSetMacro(MedType, med_entite_maillage);
-  vtkGetMacro(MedType, med_entite_maillage);
-
-  // Description:
-  // The type of the cells : one of
-  // MED_POINT1, MED_SEG2, MED_SEG3, MED_TRIA3, MED_QUAD4, MED_TRIA6, MED_QUAD8,
-	// MED_TETRA4, MED_PYRA5, MED_PENTA6, MED_HEXA8, MED_TETRA10, MED_PYRA13,
-	// MED_PENTA15, MED_HEXA20, MED_POLYGONE, MED_POLYEDRE
-  vtkSetMacro(Geometry, med_geometrie_element);
-  vtkGetMacro(Geometry, med_geometrie_element);
-
-  // Description:
-  // Set the number of steps of this field over these cells.
-	vtkGetObjectVectorMacro(Step, vtkMedFieldStep);
-	vtkSetObjectVectorMacro(Step, vtkMedFieldStep);
+  void  SetEntity(const vtkMedEntity& entity){this->Entity = entity;}
+  const vtkMedEntity& GetEntity(){return this->Entity;}
 
 	// Description:
-	// This ivar describes if this field is an ELNO field.
-	vtkSetMacro(IsELNO, int);
-	vtkGetMacro(IsELNO, int);
+	// This is the vtkMedFieldStep that owns this vtkMedFieldOverEntity
+	virtual void	SetParentStep(vtkMedFieldStep*);
+	vtkGetObjectMacro(ParentStep, vtkMedFieldStep);
 
-	virtual med_entite_maillage GetType();
+  // Description:
+  // This array store for each profile the field over this profile
+  vtkGetObjectVectorMacro(FieldOnProfile, vtkMedFieldOnProfile);
+  vtkSetObjectVectorMacro(FieldOnProfile, vtkMedFieldOnProfile);
 
+  // Description:
+  // This flag is set during the information pass, and tells if
+  // there is a profile of not.
+  // Note that if there is no profile, a dummy vtkMedFieldOnProfile
+  // is created to store the actual data.
+  vtkGetMacro(HasProfile, int);
+  vtkSetMacro(HasProfile, int);
 
 protected:
   vtkMedFieldOverEntity();
   virtual ~vtkMedFieldOverEntity();
 
-  med_entite_maillage	MedType;
-  med_geometrie_element	Geometry;
-  int IsELNO;
+  vtkMedFieldStep* ParentStep;
+
+  vtkMedEntity	Entity;
+
+  int HasProfile;
+
   //BTX
-  vtkObjectVector<vtkMedFieldStep>* Step;
+  vtkObjectVector<vtkMedFieldOnProfile>* FieldOnProfile;
   //ETX
 
 private:

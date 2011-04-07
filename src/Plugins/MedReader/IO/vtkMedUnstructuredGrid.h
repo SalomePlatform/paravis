@@ -18,8 +18,21 @@ public :
 
   // Description:
   // this array contains the coordinates of the points used by this grid.
-  virtual void	SetCoordinates(vtkDataArray*);
+  virtual void SetCoordinates(vtkDataArray*);
   vtkGetObjectMacro(Coordinates, vtkDataArray);
+
+	// Description:
+	// returns true if the Coordinate array is set and corresponds
+	// to the number of points
+	virtual int IsCoordinatesLoaded();
+
+  // Description:
+  // Initialize the global Ids of the first element of each MedEntityArray
+  virtual void  InitializeCellGlobalIds();
+
+	// Description:
+	// Free the memory associated with this grid.
+	virtual void	ClearMedSupports();
 
   // Description:
   // Set the number of points in the grid.
@@ -28,43 +41,18 @@ public :
   vtkSetMacro(NumberOfPoints, med_int);
   vtkGetMacro(NumberOfPoints, med_int);
 
-  // Description:
-  // This is the coordinate system the grid live in.
-  vtkSetMacro(CoordinateSystem, med_repere);
-  vtkGetMacro(CoordinateSystem, med_repere);
-
-  // Description:
-  // Add a cell array to this unstructured grid.
-  // each cell array represents a different cell type.
-	vtkGetObjectVectorMacro(EntityArray, vtkMedEntityArray);
-	vtkSetObjectVectorMacro(EntityArray, vtkMedEntityArray);
-
-	// Description:
-	// returns true if the Coordinate array is set and corresponds
-	// to the number of points
-	virtual int IsCoordinatesLoaded();
-
-	// Description:
-	// return the vtkMedEntityArray that match the Entity type, if any.
-	virtual vtkMedEntityArray* GetEntityArray(med_entite_maillage, med_geometrie_element);
-
-  // Description:
-  // Initialize the global Ids of the first element of each MedEntityArray
-	virtual void  InitializeCellGlobalIds();
+  virtual void  LoadCoordinates();
 
 protected:
-	vtkMedUnstructuredGrid();
+  vtkMedUnstructuredGrid();
   virtual ~vtkMedUnstructuredGrid();
 
   vtkDataArray* Coordinates;
+
   med_int NumberOfPoints;
-  med_repere CoordinateSystem;
-  //BTX
-  vtkObjectVector<vtkMedEntityArray>* EntityArray;
-	//ETX
 
 private:
-	vtkMedUnstructuredGrid(const vtkMedUnstructuredGrid&); // Not implemented.
+  vtkMedUnstructuredGrid(const vtkMedUnstructuredGrid&); // Not implemented.
   void operator=(const vtkMedUnstructuredGrid&); // Not implemented.
 };
 

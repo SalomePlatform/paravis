@@ -11,45 +11,51 @@
 #include "vtkMedUtilities.h"
 #include "vtkMedString.h"
 #include "vtkMedIntArray.h"
+#include "vtkMedFile.h"
 
-#include <set>
 #include <sstream>
-using std::set;
 
-vtkCxxGetObjectVectorMacro(vtkMedMesh, Family, vtkMedFamily)
-vtkCxxSetObjectVectorMacro(vtkMedMesh, Family, vtkMedFamily)
+vtkCxxGetObjectVectorMacro(vtkMedMesh, CellFamily, vtkMedFamily);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, CellFamily, vtkMedFamily);
+vtkCxxGetObjectVectorMacro(vtkMedMesh, PointFamily, vtkMedFamily);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, PointFamily, vtkMedFamily);
 
-vtkCxxGetObjectVectorMacro(vtkMedMesh, PointGroup, vtkMedGroup)
-vtkCxxSetObjectVectorMacro(vtkMedMesh, PointGroup, vtkMedGroup)
-vtkCxxGetObjectVectorMacro(vtkMedMesh, CellGroup, vtkMedGroup)
-vtkCxxSetObjectVectorMacro(vtkMedMesh, CellGroup, vtkMedGroup)
+vtkCxxGetObjectVectorMacro(vtkMedMesh, PointGroup, vtkMedGroup);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, PointGroup, vtkMedGroup);
+vtkCxxGetObjectVectorMacro(vtkMedMesh, CellGroup, vtkMedGroup);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, CellGroup, vtkMedGroup);
 
-vtkCxxGetObjectVectorMacro(vtkMedMesh, PointFamilyOnEntity, vtkMedFamilyOnEntity)
-vtkCxxSetObjectVectorMacro(vtkMedMesh, PointFamilyOnEntity, vtkMedFamilyOnEntity)
+vtkCxxGetObjectVectorMacro(vtkMedMesh, AxisName, vtkMedString);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, AxisName, vtkMedString);
+vtkCxxGetObjectVectorMacro(vtkMedMesh, AxisUnit, vtkMedString);
+vtkCxxSetObjectVectorMacro(vtkMedMesh, AxisUnit, vtkMedString);
 
-vtkCxxSetObjectMacro(vtkMedMesh,Grid,vtkMedGrid)
-vtkCxxSetObjectMacro(vtkMedMesh,PointGlobalIds,vtkMedIntArray)
-vtkCxxSetObjectMacro(vtkMedMesh,PointFamilyIds,vtkMedIntArray)
+vtkCxxSetObjectMacro(vtkMedMesh, ParentFile, vtkMedFile);
 
 vtkCxxRevisionMacro(vtkMedMesh, "$Revision$")
 vtkStandardNewMacro(vtkMedMesh)
 
 vtkMedMesh::vtkMedMesh()
 {
-  this->Grid = NULL;
+  this->GridStep = new vtkMedComputeStepMap<vtkMedGrid> ();
   this->Name = vtkMedString::New();
-  this->Name->SetSize(MED_TAILLE_NOM);
+  this->Name->SetSize(MED_NAME_SIZE);
   this->UniversalName = vtkMedString::New();
-  this->UniversalName->SetSize(MED_TAILLE_LNOM);
+  this->UniversalName->SetSize(MED_LNAME_SIZE);
   this->Description = vtkMedString::New();
-  this->Description->SetSize(MED_TAILLE_DESC);
-  this->PointGlobalIds = NULL;
-  this->PointFamilyIds = NULL;
-  this->Family = new vtkObjectVector<vtkMedFamily> ();
+  this->Description->SetSize(MED_COMMENT_SIZE);
+  this->TimeUnit = vtkMedString::New();
+  this->TimeUnit->SetSize(MED_LNAME_SIZE);
+  this->CellFamily = new vtkObjectVector<vtkMedFamily> ();
+  this->PointFamily = new vtkObjectVector<vtkMedFamily> ();
   this->PointGroup = new vtkObjectVector<vtkMedGroup> ();
   this->CellGroup = new vtkObjectVector<vtkMedGroup> ();
-  this->PointFamilyOnEntity = new vtkObjectVector<vtkMedFamilyOnEntity> ();
-  this->MedIndex = -1;
+  this->AxisName = new vtkObjectVector<vtkMedString> ();
+  this->AxisUnit = new vtkObjectVector<vtkMedString> ();
+  this->MedIterator = -1;
+  this->MeshType = MED_UNDEF_MESH_TYPE;
+  this->StructuredGridType = MED_UNDEF_GRID_TYPE;
+  this->ParentFile = NULL;
 }
 
 vtkMedMesh::~vtkMedMesh()
@@ -57,30 +63,16 @@ vtkMedMesh::~vtkMedMesh()
   this->Name->Delete();
   this->UniversalName->Delete();
   this->Description->Delete();
-  this->SetGrid(NULL);
-  this->SetPointGlobalIds(NULL);
-  this->SetPointFamilyIds(NULL);
-  delete this->Family;
+  delete this->CellFamily;
+  delete this->PointFamily;
   delete this->PointGroup;
   delete this->CellGroup;
-  delete this->PointFamilyOnEntity;
+  delete this->AxisName;
+  delete this->AxisUnit;
+  delete this->GridStep;
 }
 
-int vtkMedMesh::IsPointGlobalIdsLoaded()
-{
-  return this->PointGlobalIds != NULL && this->Grid != NULL
-      && this->PointGlobalIds->GetNumberOfTuples()
-          == this->Grid->GetNumberOfPoints();
-}
-
-int vtkMedMesh::IsPointFamilyIdsLoaded()
-{
-  return this->PointFamilyIds != NULL && this->Grid != NULL
-      && this->PointFamilyIds->GetNumberOfTuples()
-          == this->Grid->GetNumberOfPoints();
-}
-
-vtkMedGroup* vtkMedMesh::GetGroup(int pointOrCell, const char* name)
+vtkMedGroup* vtkMedMesh::GetOrCreateGroup(int pointOrCell, const char* name)
 {
   if(pointOrCell == vtkMedUtilities::OnCell)
     {
@@ -92,6 +84,12 @@ vtkMedGroup* vtkMedMesh::GetGroup(int pointOrCell, const char* name)
         return group;
         }
       }
+    vtkMedGroup* group = vtkMedGroup::New();
+    this->CellGroup->push_back(group);
+    //group->SetPointOrCell(vtkMedUtilities::OnCell);
+    group->GetName()->SetString(name);
+    group->Delete();
+    return group;
     }
   else
     {
@@ -103,70 +101,76 @@ vtkMedGroup* vtkMedMesh::GetGroup(int pointOrCell, const char* name)
         return group;
         }
       }
+    vtkMedGroup* group = vtkMedGroup::New();
+    this->CellGroup->push_back(group);
+    //group->SetPointOrCell(vtkMedUtilities::OnPoint);
+    group->GetName()->SetString(name);
+    group->Delete();
+    return group;
     }
   return NULL;
 }
 
-void vtkMedMesh::ComputePointFamilies()
+int vtkMedMesh::GetNumberOfFamily()
 {
-  this->PointFamilyOnEntity->clear();
-  set<med_int> famIds;
-  if(this->PointFamilyIds == NULL)
+  return this->GetNumberOfCellFamily() + this->GetNumberOfPointFamily();
+}
+
+vtkMedFamily* vtkMedMesh::GetFamily(int index)
+{
+  if(index < 0)
+    return NULL;
+  if(index < this->GetNumberOfCellFamily())
+    return this->GetCellFamily(index);
+  else if(index < GetNumberOfFamily())
+    return this->GetPointFamily(index - this->GetNumberOfCellFamily());
+  else return NULL;
+}
+
+vtkMedFamily* vtkMedMesh::GetOrCreateCellFamilyById(med_int id)
+{
+  for(int i = 0; i < this->GetNumberOfCellFamily(); i++)
     {
-    vtkMedFamilyOnEntity* foe = vtkMedFamilyOnEntity::New();
-    this->AppendPointFamilyOnEntity(foe);
-    foe->Delete();
-    foe->SetFamily(this->GetPointFamilyOnEntityById(0)->GetFamily());
-    return;
+    vtkMedFamily* family = this->GetCellFamily(i);
+    if(family->GetId() == id)
+      {
+      return family;
+      }
     }
-  for(vtkIdType index = 0; index < this->PointFamilyIds->GetNumberOfTuples(); index++)
+  vtkMedFamily* family = vtkMedFamily::New();
+  family->SetId(id);
+  vtkstd::ostringstream sstr;
+  sstr << "UNDEFINED_CELL_FAMILY_" << id;
+  family->GetName()->SetString(sstr.str().c_str());
+  family->SetPointOrCell(vtkMedUtilities::OnCell);
+  family->SetMedIterator(-1);
+  this->AppendCellFamily(family);
+  family->Delete();
+  return family;
+}
+
+void  vtkMedMesh::SetNumberOfAxis(int naxis)
+{
+  this->AllocateNumberOfAxisName(naxis);
+  this->AllocateNumberOfAxisUnit(naxis);
+  for(int axis = 0; axis < naxis; axis++)
     {
-    famIds.insert(this->PointFamilyIds->GetValue(index));
-    }
-  set<med_int>::iterator it = famIds.begin();
-  while(it != famIds.end())
-    {
-    vtkMedFamilyOnEntity* foe = vtkMedFamilyOnEntity::New();
-    foe->SetMesh(this);
-    this->AppendPointFamilyOnEntity(foe);
-    foe->Delete();
-    foe->SetFamily(this->GetOrCreatePointFamilyById(*it));
-    it++;
+    this->AxisName->at(axis)->SetSize(MED_SNAME_SIZE);
+    this->AxisUnit->at(axis)->SetSize(MED_SNAME_SIZE);
     }
 }
 
-int vtkMedMesh::HasPointFamily(vtkMedFamily* family)
+int  vtkMedMesh::GetNumberOfAxis()
 {
-  if(this->PointFamilyIds == NULL && family->GetId() == 0)
-    return 1;
-  for(vtkObjectVector<vtkMedFamilyOnEntity>::iterator it =
-      this->PointFamilyOnEntity->begin(); it
-      != this->PointFamilyOnEntity->end(); it++)
-    {
-    if((*it)->GetFamily() == family)
-      return 1;
-    }
-  return 0;
-}
-
-vtkMedFamilyOnEntity* vtkMedMesh::GetPointFamilyOnEntityById(med_int id)
-{
-  for(int i = 0; i < this->GetNumberOfPointFamilyOnEntity(); i++)
-    {
-    vtkMedFamilyOnEntity* foe = this->GetPointFamilyOnEntity(i);
-    if(foe->GetFamily()->GetId() == id)
-      return foe;
-    }
-  return NULL;
+  return this->AxisName->size();
 }
 
 vtkMedFamily* vtkMedMesh::GetOrCreatePointFamilyById(med_int id)
 {
-  for(int i = 0; i < this->GetNumberOfFamily(); i++)
+  for(int i = 0; i < this->GetNumberOfPointFamily(); i++)
     {
-    vtkMedFamily* family = this->GetFamily(i);
-    if(family->GetPointOrCell() != vtkMedUtilities::OnPoint)
-      continue;
+    vtkMedFamily* family = this->GetPointFamily(i);
+
     if(family->GetId() == id)
       return family;
     }
@@ -176,55 +180,74 @@ vtkMedFamily* vtkMedMesh::GetOrCreatePointFamilyById(med_int id)
   sstr << "UNDEFINED_POINT_FAMILY_" << id;
   family->GetName()->SetString(sstr.str().c_str());
   family->SetPointOrCell(vtkMedUtilities::OnPoint);
-  family->SetMedIndex(-1);
-  this->AppendFamily(family);
+  this->AppendPointFamily(family);
   family->Delete();
   return family;
 }
 
-vtkMedFamily* vtkMedMesh::GetOrCreateCellFamilyById(med_int id)
+void  vtkMedMesh::AddGridStep(vtkMedGrid* grid)
 {
-  for(int i = 0; i < this->GetNumberOfFamily(); i++)
-    {
-    vtkMedFamily* family = this->GetFamily(i);
-    if(family->GetPointOrCell() != vtkMedUtilities::OnCell)
-      continue;
-    if(family->GetId() == id)
-      return family;
-    }
-  vtkMedFamily* family = vtkMedFamily::New();
-  family->SetId(id);
-  vtkstd::ostringstream sstr;
-  sstr << "UNDEFINED_CELL_FAMILY_" << id;
-  family->GetName()->SetString(sstr.str().c_str());
-  family->SetPointOrCell(vtkMedUtilities::OnCell);
-  family->SetMedIndex(-1);
-  this->AppendFamily(family);
-  family->Delete();
-  return family;
+  this->GridStep->AddObject(grid->GetComputeStep(), grid);
 }
 
-int vtkMedMesh::GetNumberOfCellFamily()
+void  vtkMedMesh::ClearGridStep()
 {
-  int nb = 0;
-  for(int i = 0; i < this->GetNumberOfFamily(); i++)
+  this->GridStep->clear();
+}
+
+vtkMedGrid* vtkMedMesh::GetGridStep(const vtkMedComputeStep& cs)
+{
+  return this->GridStep->GetObject(cs);
+}
+
+vtkMedGrid* vtkMedMesh::FindGridStep(const vtkMedComputeStep& cs,
+                                     int strategy)
+{
+  return this->GridStep->FindObject(cs, strategy);
+}
+
+void  vtkMedMesh::GatherGridTimes(std::set<med_float>& timeset)
+{
+  this->GridStep->GatherTimes(timeset);
+}
+
+void  vtkMedMesh::GatherGridIterations(med_float time,
+                                       std::set<med_int>& iterationset)
+{
+  this->GridStep->GatherIterations(time, iterationset);
+}
+
+void  vtkMedMesh::ClearMedSupports()
+{
+  med_int stepnb = this->GridStep->GetNumberOfObject();
+  for(med_int stepid = 0; stepid<stepnb; stepid++ )
     {
-    vtkMedFamily* family = this->GetFamily(i);
-    if(family->GetPointOrCell() == vtkMedUtilities::OnCell)
-      nb++;
+    vtkMedGrid* grid = this->GridStep->GetObject(stepid);
+    grid->ClearMedSupports();
     }
-  return nb;
+}
+
+med_int vtkMedMesh::GetNumberOfGridStep()
+{
+  return this->GridStep->GetNumberOfObject();
+}
+
+vtkMedGrid* vtkMedMesh::GetGridStep(med_int id)
+{
+  return this->GridStep->GetObject(id);
 }
 
 void vtkMedMesh::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  PRINT_IVAR(os, indent, MedIndex);
+  PRINT_IVAR(os, indent, MedIterator);
   PRINT_MED_STRING(os, indent, Name);
   PRINT_MED_STRING(os, indent, UniversalName);
   PRINT_MED_STRING(os, indent, Description);
-  PRINT_OBJECT_VECTOR(os, indent, Family);
+  PRINT_OBJECT_VECTOR(os, indent, CellFamily);
+  PRINT_OBJECT_VECTOR(os, indent, PointFamily);
   PRINT_OBJECT_VECTOR(os, indent, PointGroup);
   PRINT_OBJECT_VECTOR(os, indent, CellGroup);
-  PRINT_OBJECT(os, indent, Grid);
+  PRINT_OBJECT_VECTOR(os, indent, AxisName);
+  PRINT_OBJECT_VECTOR(os, indent, AxisUnit);
 }

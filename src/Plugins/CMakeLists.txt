@@ -7,4 +7,12 @@ ENDIF(COMMAND CMAKE_POLICY)
 FIND_PACKAGE(ParaView REQUIRED)
 INCLUDE(${PARAVIEW_USE_FILE})
 
-SUBDIRS(Filter ToolBar MedReader ParaMEDCorba TableReader NavigationMode)
+SUBDIRS(
+  #Filter 
+  #ToolBar 
+  MedReader 
+  ParaMEDCorba 
+  TableReader 
+  NavigationMode 
+  IntegrationPoints
+)

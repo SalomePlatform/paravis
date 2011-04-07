@@ -19,6 +19,7 @@
 #
 #  See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
+PROJECT(PARAVIS)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
 IF(COMMAND cmake_policy)

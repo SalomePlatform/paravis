@@ -8,7 +8,9 @@ class vtkMedString;
 class vtkMedMesh;
 class vtkMedField;
 class vtkMedProfile;
-class vtkMedQuadratureDefinition;
+class vtkMedLocalization;
+class vtkMedLink;
+class vtkMedDriver;
 
 class VTK_EXPORT vtkMedFile: public vtkObject
 {
@@ -18,15 +20,38 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
+  // Set the file name to read from
+  vtkSetStringMacro(FileName);
+  vtkGetStringMacro(FileName);
+
+  // Description:
+  // This is the description of this file as stored in the med file.
+  vtkGetObjectMacro(MedDriver, vtkMedDriver);
+
+  // Description:
+  // This method tries to create a new driver for this file.
+  // It returns 1 on success, 0 on failure.
+  virtual int CreateDriver();
+
+  // Description:
+  // read information from this file, and create the meta data structure
+  virtual void  ReadInformation();
+
+  // Description:
   // Container of the meshes.
-	vtkGetObjectVectorMacro(Mesh, vtkMedMesh);
-	vtkSetObjectVectorMacro(Mesh, vtkMedMesh);
-	virtual vtkMedMesh* GetMesh(vtkMedString*);
+  vtkGetObjectVectorMacro(Mesh, vtkMedMesh);
+  vtkSetObjectVectorMacro(Mesh, vtkMedMesh);
+  virtual vtkMedMesh* GetMesh(vtkMedString*);
 
   // Description:
   // Container of the fields.
 	vtkGetObjectVectorMacro(Field, vtkMedField);
 	vtkSetObjectVectorMacro(Field, vtkMedField);
+
+  // Description:
+  // Container of the fields.
+  vtkGetObjectVectorMacro(Link, vtkMedLink);
+  vtkSetObjectVectorMacro(Link, vtkMedLink);
 
   // Description:
   // Container of the profiles.
@@ -36,27 +61,43 @@ public:
 
   // Description:
   // Container of the quadrature definitions.
-	vtkGetObjectVectorMacro(QuadratureDefinition, vtkMedQuadratureDefinition);
-	vtkSetObjectVectorMacro(QuadratureDefinition, vtkMedQuadratureDefinition);
-	virtual vtkMedQuadratureDefinition*	GetQuadratureDefinition(vtkMedString*);
+  vtkGetObjectVectorMacro(Localization, vtkMedLocalization);
+  vtkSetObjectVectorMacro(Localization, vtkMedLocalization);
+  virtual vtkMedLocalization*	GetLocalization(vtkMedString*);
 
   // Description:
   // This is the description of this file as stored in the med file.
-	vtkGetObjectMacro(Description, vtkMedString);
+  vtkGetObjectMacro(Comment, vtkMedString);
 
+  // Description:
+  // Those 3 numbers describe the version of med used to create this file.
+  vtkSetMacro(VersionMajor, int);
+  vtkGetMacro(VersionMajor, int);
+  vtkSetMacro(VersionMinor, int);
+  vtkGetMacro(VersionMinor, int);
+  vtkSetMacro(VersionRelease, int);
+  vtkGetMacro(VersionRelease, int);
 
 protected:
 	vtkMedFile();
   virtual ~vtkMedFile();
 
-  vtkMedString* Description;
+  char * FileName;
+  vtkMedDriver* MedDriver;
+  virtual void  SetMedDriver(vtkMedDriver*);
+
+  int VersionMajor;
+  int VersionMinor;
+  int VersionRelease;
+
+  vtkMedString* Comment;
   //BTX
   vtkObjectVector<vtkMedMesh>* Mesh;
   vtkObjectVector<vtkMedField>* Field;
   vtkObjectVector<vtkMedProfile>* Profile;
-  vtkObjectVector<vtkMedQuadratureDefinition>* QuadratureDefinition;
+  vtkObjectVector<vtkMedLocalization>* Localization;
+  vtkObjectVector<vtkMedLink>* Link;
   //ETX
-
 
 private:
 	vtkMedFile(const vtkMedFile&); // Not implemented.

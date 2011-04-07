@@ -3,23 +3,26 @@
 
 #include "vtkMultiBlockDataSetAlgorithm.h"
 #include "vtkMedSetGet.h"
+#include <map>
 
 class vtkMedFile;
 class vtkMedDriver;
-class vtkDataArraySelection;
+class vtkMedSelection;
 class vtkMedFieldOverEntity;
 class vtkMedFieldStep;
 class vtkMedField;
 class vtkMedMesh;
 class vtkMedFamily;
-class vtkMedQuadratureDefinition;
+class vtkMedLocalization;
 class vtkMedEntityArray;
 class vtkMedFamilyOnEntity;
+class vtkMedFamilyOnEntityOnProfile;
 class vtkMedProfile;
-class vtkMedFieldStepOnMesh;
-//BTX
-class ComputeStep;
-//ETX
+class vtkMedComputeStep;
+class vtkMedGrid;
+class vtkMedFieldOnProfile;
+class vtkMedListOfFieldSteps;
+class vtkMedString;
 
 class vtkUnstructuredGrid;
 class vtkUnsignedCharArray;
@@ -33,7 +36,7 @@ class VTK_EXPORT vtkMedReader: public vtkMultiBlockDataSetAlgorithm
 {
 public:
   static vtkMedReader* New();
-vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
+  vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -65,43 +68,40 @@ vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
   }
 
   // Description:
-  // Get the DataArraySelection objects to select point/cell/quadrature fields.
-  // These objects are initialized during the RequestInformation call.
-  vtkGetObjectMacro(PointFields, vtkDataArraySelection)
-  vtkGetObjectMacro(CellFields, vtkDataArraySelection)
-  vtkGetObjectMacro(QuadratureFields, vtkDataArraySelection)
-
-  // Description:
   // use these methods to enable/disable point arrays
   virtual int GetPointFieldArrayStatus(const char* name);
   virtual void SetPointFieldArrayStatus(const char* name, int status);
   virtual int GetNumberOfPointFieldArrays();
-  virtual const char*
-  GetPointFieldArrayName(int);
+  virtual const char* GetPointFieldArrayName(int);
 
   // Description:
   // use these methods to enable/disable cell arrays
   virtual int GetCellFieldArrayStatus(const char* name);
   virtual void SetCellFieldArrayStatus(const char* name, int status);
   virtual int GetNumberOfCellFieldArrays();
-  virtual const char*
-  GetCellFieldArrayName(int);
+  virtual const char* GetCellFieldArrayName(int);
 
   // Description:
   // use these methods to enable/disable quadrature arrays
   virtual int GetQuadratureFieldArrayStatus(const char* name);
   virtual void SetQuadratureFieldArrayStatus(const char* name, int status);
   virtual int GetNumberOfQuadratureFieldArrays();
-  virtual const char*
-  GetQuadratureFieldArrayName(int);
+  virtual const char* GetQuadratureFieldArrayName(int);
+
+  // Description:
+  // use these methods to enable/disable quadrature arrays
+  virtual int GetElnoFieldArrayStatus(const char* name);
+  virtual void SetElnoFieldArrayStatus(const char* name, int status);
+  virtual int GetNumberOfElnoFieldArrays();
+  virtual const char* GetElnoFieldArrayName(int);
 
   // Description:
   // use this method to enable/disable cell types
-  // the key is encoded with the vtkMedUtilities::CellTypeKey method
+  // the key is encoded with the vtkMedUtilities::EntityKey method
   // which returns a string
   // CELL_TYPE/MED_ENTITE_MAILLAGE/MED_GEOMETRIE_ELEMENT
-  virtual void SetCellTypeStatus(const char* key, int flag);
-  virtual int GetCellTypeStatus(int type, int geometry);
+  virtual void SetEntityStatus(const char* key, int flag);
+  virtual int GetEntityStatus(int type, int geometry);
 
   // Description:
   // use this method to enable/disable a family support
@@ -121,42 +121,48 @@ vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
   // for a given time t, the reader will return for each field the
   // ComputeStep with the highest time inferior
   // to t, and with the highest iteration.
-  // Iteration (2) : you need to also set the Time field. In this case,
-  // the reader will understand
+  // Iteration (2) : you need to also set the TimeIndexForIterations field.
+  // In this case, the reader will understand
   // time requests has a request to iterate over iterations for the given time.
-  // ModeShape (3) : the reader will output a deformed shape of the input,
-  // the time is understood as the phase.
-  // times of the given ModeShapeField are understood has displacement modes.
-  // all other fields are loaded at the given PhysicalTime.
+  // Modes (3) : the reader will output the selected fields at all selected
+  // frequencies, and will output a fake TimeRange of -PI/+PI.
+  // Use the *FrequencyArray* interface to select them.
   //BTX
-  enum
+  enum eAnimationMode
   {
-    Default=0, PhysicalTime=1, Iteration=2, ModeShape=3
+    Default=0, PhysicalTime=1, Iteration=2, Modes=3
   };
   //ETX
-  vtkSetMacro(AnimationMode, int)
-  vtkGetMacro(AnimationMode, int)
+  vtkSetMacro(AnimationMode, int);
+  vtkGetMacro(AnimationMode, int);
 
   // Description:
   // in med files, the ComputeSteps are defined by a
   // pair <iteration, physicalTime>.
-  // the PhysicalTime ivar is used if the TimeMode is either
-  // Iteration or ModeShape.
-  // it fixes the PhysicalTime when iterating over iterations,
-  // or when the times are used as modeshapes
-  // for a given field
-  vtkSetMacro(Time, double)
-  vtkGetMacro(Time, double)
+  // the TimeIndexForIterations ivar is used only if the TimeMode is
+  // Iteration.
+  // it fixes the PhysicalTime index when iterating over iterations : only
+  // iterations with the corresponding physical time will be iterated over.
+  // The index given here is an index into the AvailableTimes array
+  // that is returned be the GetAvailableTimes Method.
+  vtkSetMacro(TimeIndexForIterations, double);
+  vtkGetMacro(TimeIndexForIterations, double);
 
   // Description:
-  // returns the available times. Use this to get the times when in
-  // iteration mode, or the frequencies when in ModeShape mode.
-  virtual vtkDoubleArray*
-  GetAvailableTimes();
+  // use these methods to enable/disable a given frequency for modal analysis
+  virtual int GetFrequencyArrayStatus(const char* name);
+  virtual void SetFrequencyArrayStatus(const char* name, int status);
+  virtual int GetNumberOfFrequencyArrays();
+  virtual const char* GetFrequencyArrayName(int);
+
+  // Description:
+  // returns the available physical times. Use this to get the times when in
+  // iteration mode.
+  virtual vtkDoubleArray* GetAvailableTimes();
 
   // Description:
   // Build the graph used to pass information to the client on the supports
-  virtual void BuildSIL(vtkMutableDirectedGraph*, int onlySelected=0);
+  virtual void BuildSIL(vtkMutableDirectedGraph*);
 
   // Description:
   // Every time the SIL is updated a this will return a different value.
@@ -170,7 +176,7 @@ vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
   // The CacheStrategy indicates to the reader if it
   // should cache some of the arrays.
   //BTX
-  enum
+  enum eCacheStrategy
   {
     CacheNothing, CacheGeometry, CacheGeometryAndFields
   };
@@ -187,21 +193,11 @@ vtkTypeRevisionMacro(vtkMedReader, vtkMultiBlockDataSetAlgorithm)
   void ClearMedFields();
 
   // Description:
-  // when answering to time requests, this reader tries to find the
-  // good time step.
-  // if the time step is present in the file, it returns it. Else,
-  // it returns the nearest inferior step.
-  // But due to some rounding errors, the pipeline may
-  // ask for a pipeline which is very near an existing one, but
-  // slightly inferior.
-  // the reader use this value to return the superior step in this case.
-  // this value is relative to the difference of the two successive steps.
-  vtkSetMacro(TimePrecision, double)
-  vtkGetMacro(TimePrecision, double)
-
-  // Description :
-  // This key contains the SIL describing the data selected by the user.
-  static vtkInformationDataObjectKey* SELECTED_SIL();
+  // If this flag is set, the reader will output a vector field for each
+  // field in the file that has 2 or more components by extracting the
+  // first 3 compoenents
+  vtkSetMacro(GenerateVectors, int);
+  vtkGetMacro(GenerateVectors, int);
 
 protected:
   vtkMedReader();
@@ -222,18 +218,6 @@ protected:
   virtual int RequestData(vtkInformation*, vtkInformationVector**,
       vtkInformationVector*);
 
-  virtual void SetMedDriver(vtkMedDriver*);
-  vtkGetObjectMacro(MedDriver, vtkMedDriver)
-
-  virtual void SetMedFile(vtkMedFile*);
-  vtkGetObjectMacro(MedFile, vtkMedFile)
-
-  // Description:
-  // create a driver adapted to the given file.
-  // the user has the responsibility to delete it.
-  vtkMedDriver*
-  NewMedDriver(const char*);
-
   // Description:
   // Gather all compute steps in the fields
   virtual void GatherComputeSteps();
@@ -245,7 +229,7 @@ protected:
   // Description:
   // returns 1 if at least one the families of this mesh is selected,
   // 0 otherwise.
-  virtual int IsMeshSelected(int);
+  virtual int IsMeshSelected(vtkMedMesh*);
 
   // Description:
   // returns if the field is selected.
@@ -253,29 +237,15 @@ protected:
   virtual int IsPointFieldSelected(vtkMedField*);
   virtual int IsCellFieldSelected(vtkMedField*);
   virtual int IsQuadratureFieldSelected(vtkMedField*);
+  virtual int IsElnoFieldSelected(vtkMedField*);
 
   virtual void AddQuadratureSchemeDefinition(vtkInformation*,
-      vtkMedQuadratureDefinition*);
+      vtkMedLocalization*);
+  virtual void BuildUnstructuredGridForCellSupport(
+      vtkMedFamilyOnEntityOnProfile*, vtkUnstructuredGrid*);
+  virtual void BuildUnstructuredGridForPointSupport(
+      vtkMedFamilyOnEntityOnProfile*, vtkUnstructuredGrid*);
 
-  virtual void BuildUnstructuredGridForCellSupport(vtkMedFamilyOnEntity*,
-      vtkUnstructuredGrid*);
-  virtual void BuildUnstructuredGridForPointSupport(vtkMedFamilyOnEntity*,
-      vtkUnstructuredGrid*);
-
-  virtual bool KeepCell(vtkMedFamily*, vtkMedEntityArray*, vtkIdType);
-  virtual bool KeepPoint(vtkMedFamily*, vtkMedMesh*, vtkIdType);
-  virtual bool KeepPoint(vtkMedFamilyOnEntity*, vtkIdType);
-
-  // Description:
-  // this method is used internally to update all the arrays (float or double)
-  // for modal analysis.
-  // The array values are following a sinusoidal curve between -PI and +PI.
-  void ComputeModalFields(vtkFieldData* attributes);
-
-  // Description:
-  // This method is used to update the values of a given array
-  // for modal analysis.
-  void ComputeModalField(vtkDataArray* attribute, vtkDataArray* newAttribute);
   //BTX
   enum
   {
@@ -290,81 +260,55 @@ protected:
 
   virtual void CreateMedSupports();
 
-  virtual void BuildVTKSupport(vtkMedFamilyOnEntity*);
+  virtual bool BuildVTKSupport(vtkMedFamilyOnEntityOnProfile*,
+                               int doBuildSupport);
 
-  virtual void MapFieldsOnSupport(vtkMedFamilyOnEntity* foe);
+  virtual void MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foe,
+                                  int doMapField);
 
-  //BTX
-  virtual vtkMultiBlockDataSet* GetParent(const vtkList<vtkstd::string>& path);
-  //ETX
+  virtual void CreateVTKFieldOnSupport(vtkMedFieldOnProfile*,
+                                       vtkMedFamilyOnEntityOnProfile*,
+                                       int doCreateField);
 
-  virtual int IsFieldOnSupport(vtkMedField*, vtkMedFamilyOnEntity*);
-
-  virtual void CreateVTKFieldOnSupport(vtkMedField*, vtkMedFamilyOnEntity*);
-
-  virtual void FlagUsedPointsOnCellSupport(vtkMedFamilyOnEntity*,
-      vtkUnsignedCharArray*);
-
-  virtual int CanShallowCopyMed2VTK(vtkMedField*, vtkMedFamilyOnEntity*);
-
-  virtual int IsCellFamilyOnEntityOnCellProfile(vtkMedFamilyOnEntity*,
-      vtkMedProfile*, bool exact);
-
-  virtual int IsCellFamilyOnEntityOnPointProfile(vtkMedFamilyOnEntity*,
-      vtkMedProfile*, bool exact);
-
-  virtual int IsPointFamilyOnEntityOnPointProfile(vtkMedFamilyOnEntity*,
-      vtkMedProfile*, bool exact);
-
-  virtual int IsFamilyOnEntityOnProfile(vtkMedFamilyOnEntity*, vtkMedProfile*,
-      int fieldSupportType, bool exact);
-
-  virtual void InitializeQuadratureOffsets(vtkMedField*,
-      vtkMedFamilyOnEntity*);
-
-  virtual void GetCellPoints(vtkMedMesh*, vtkMedEntityArray*, vtkIdType,
-      vtkIdList*);
-
-  virtual void SetVTKFieldOnSupport(vtkMedField*, vtkMedFamilyOnEntity*);
+  virtual void MapFieldOnSupport(vtkMedFieldOnProfile*,
+                                 vtkMedFamilyOnEntityOnProfile*,
+                                 int doCreateField);
 
   // Description:
-  // update the internal cache with the step associated to this field.
-  virtual void SelectStep(vtkMedField*);
+  // This method is called after all info from all med files are read.
+  // it links information coming from different files :
+  // for instance, it creates the vtkMedFamilyOnEntityOnProfile instances
+  // to link mesh and field.
+  virtual void  LinkMedInfo();
+
+  virtual vtkMedProfile* GetProfile(vtkMedString*);
+
+  virtual vtkMedLocalization* GetLocalization(vtkMedString*);
+
+  virtual int GetLocalizationKey(vtkMedFieldOnProfile*);
+
+  virtual void InitializeQuadratureOffsets(vtkMedFieldOnProfile*,
+                                           vtkMedFamilyOnEntityOnProfile*);
+
+  virtual void SetVTKFieldOnSupport(vtkMedFieldOnProfile*,
+                                    vtkMedFamilyOnEntityOnProfile*);
 
   // Description:
-  // returns the ComputeStep asked by the time request, depending on
-  // the chosen animation mode
-  vtkMedFieldStep*
-  GetSelectedStep(vtkMedField*, vtkMedFieldOverEntity*, int timeIndex,
-      int iterationIndex);
+  // returns the current grid to use for this mesh.
+  vtkMedGrid* FindGridStep(vtkMedMesh* mesh);
+
+  virtual void  GatherFieldSteps(vtkMedField*, vtkMedListOfFieldSteps&);
 
   // Description:
-  // returns the index of the time step to use.
-  // if the given time exists in the available times, returns its index.
-  // If not, returns the index of the immediate inferior time. A small
-  // threshold is applied to get superior time if the asked time is very
-  // near an existing time. (the TimePrecision is relative to the difference
-  // between the 2 successive steps.
-  virtual int GetTimeIndex(vtkMedField*, double);
-  virtual int GetIterationIndex(vtkMedField*, int, double);
-  virtual int GetLastIterationIndex(vtkMedField*, int);
+  // returns the index of the given frequency in the AvailableTimes array.
+  vtkIdType GetFrequencyIndex(double);
 
   virtual void ChooseRealAnimationMode();
-
-  virtual vtkMedProfile* GetProfile(vtkMedMesh*, vtkMedField*,
-      vtkMedFieldOverEntity*, vtkMedFieldStep*, vtkMedFieldStepOnMesh*);
-
-  virtual vtkMedQuadratureDefinition*
-  GetQuadratureDefinition(vtkMedMesh*, vtkMedField*, vtkMedFieldOverEntity*,
-      vtkMedFieldStep*, vtkMedFieldStepOnMesh*);
-
-  virtual int GetQuadratureDefinitionKey(vtkMedMesh*, vtkMedField*,
-      vtkMedFieldOverEntity*, vtkMedFieldStep*, vtkMedFieldStepOnMesh*);
 
   // Description :
   // Load the connectivity of this entities, and also those of the
   // sub-entities in the case of non nodal connectivity.
-  virtual void LoadConnectivity(vtkMedMesh*, vtkMedEntityArray*);
+  virtual void LoadConnectivity(vtkMedEntityArray*);
 
   virtual void InitializeCellGlobalIds();
 
@@ -386,31 +330,34 @@ protected:
   // if a group status has been set after the last family status update.
   virtual void SelectFamiliesFromGroups();
 
+  // Description:
+  // Format the id list so that it respects the VTK format for polyhedrons :
+  // numfaces, npts_face0, pt0, ... npts_face1, pt1 ....
+  void  FormatPolyhedronForVTK(vtkMedFamilyOnEntityOnProfile*,
+                               vtkIdType, vtkIdList*);
+
   // Field selections
-  vtkDataArraySelection* PointFields;
-  vtkDataArraySelection* CellFields;
-  vtkDataArraySelection* QuadratureFields;
+  vtkMedSelection* PointFields;
+  vtkMedSelection* CellFields;
+  vtkMedSelection* QuadratureFields;
+  vtkMedSelection* ElnoFields;
 
   // Support selection
-  vtkDataArraySelection* Entities;
-  vtkDataArraySelection* Groups;
+  vtkMedSelection* Entities;
+  vtkMedSelection* Groups;
 
   // name of the file to read from
   char* FileName;
 
   // time management
   int AnimationMode;
-  double Time;
-  double TimePrecision;
+  double TimeIndexForIterations;
   vtkDoubleArray* AvailableTimes;
-
-  // store the internal structure of the file
-  vtkMedFile* MedFile;
-
-  // store the internal structure of the file
-  vtkMedDriver* MedDriver;
+  double TimePrecision;
+  vtkMedSelection* Frequencies;
 
   int CacheStrategy;
+  int GenerateVectors;
 
   //BTX
   class vtkMedReaderInternal;

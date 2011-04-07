@@ -7,6 +7,7 @@ class vtkInformation;
 class vtkInformationVector;
 class vtkDataArraySelection;
 class vtkTimeStamp;
+class vtkStringArray;
 
 class vtkExtractGroup: public vtkMultiBlockDataSetAlgorithm
 {
@@ -24,7 +25,7 @@ vtkTypeRevisionMacro(vtkExtractGroup, vtkMultiBlockDataSetAlgorithm)
   // the key is encoded with the vtkMedUtilities::CellTypeKey method
   // which returns a string
   // CELL_TYPE/MED_ENTITE_MAILLAGE/MED_GEOMETRIE_ELEMENT
-  virtual void SetCellTypeStatus(const char* key, int flag);
+  virtual void SetEntityStatus(const char* key, int flag);
 
   // Description:
   // use this method to enable/disable a family support
@@ -53,7 +54,7 @@ protected:
 
   // Description :
   // returns 1 if this cell type is to be passed through
-  int IsCellTypeSelected(const char*);
+  int IsEntitySelected(const char*);
 
   // Description :
   // returns 1 if this family is to be passed through
@@ -83,6 +84,11 @@ protected:
   // Update the Family status from te group status.
   // The family status is lazily updated when GetFamilyStatus is called.
   virtual void SelectFamiliesFromGroups();
+
+  // Description:
+  // returns true if the block described by the given information
+  // is selected.
+  virtual int IsBlockSelected(vtkStringArray* path);
 
   virtual void ClearSelections();
 

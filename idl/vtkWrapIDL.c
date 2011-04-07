@@ -595,10 +595,10 @@ void read_class_functions(const char* name, const char* classname, FILE* fp)
   while (fgets(sig,bs-1,fin) != 0) {
 #if defined(IDL_I_CC)
     if(strncmp("#include \"PARAVIS_Gen_vtk",sig,25)==0) {
-      fprintf(fp,"#include \"PARAVIS_Gen_vtk");
+      fprintf(fp, "%s",sig);
     }
     if(strncmp("#include <vtk",sig,13)==0) {
-      fprintf(fp,"#include <vtk");
+      fprintf(fp, "%s",sig);
     }
 #endif
 

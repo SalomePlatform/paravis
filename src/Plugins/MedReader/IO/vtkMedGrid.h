@@ -3,9 +3,13 @@
 
 #include "vtkObject.h"
 #include "vtkMedSetGet.h"
+#include "vtkMedUtilities.h"
 #include "vtkMed.h"
+#include "vtkMedIntArray.h"
 
 class vtkMedString;
+class vtkMedFamilyOnEntity;
+class vtkMedIntArray;
 
 class VTK_EXPORT vtkMedGrid : public vtkObject
 {
@@ -14,40 +18,116 @@ public :
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
-  // The dimension of the space this mesh lives in.
-  virtual void	SetDimension(med_int);
-  vtkGetMacro(Dimension, med_int);
+  // This identifies the time and iteration of this grid
+  void  SetComputeStep(vtkMedComputeStep cs)
+    {
+    this->ComputeStep = cs;
+    }
+  vtkMedComputeStep  GetComputeStep()
+    {
+    return this->ComputeStep;
+    }
 
-	// Description:
-	// The units of each component of this field
-	vtkGetObjectVectorMacro(Unit, vtkMedString);
-	vtkSetObjectVectorMacro(Unit, vtkMedString);
-
-	// Description:
-	// The name of each component of this field
-	vtkGetObjectVectorMacro(ComponentName, vtkMedString);
-	vtkSetObjectVectorMacro(ComponentName, vtkMedString);
-
-	// Description:
-	// returns the number of points. Each sub class has to implement this method.
-	virtual med_int	GetNumberOfPoints() = 0;
+  // Description:
+  // returns the number of points. Each sub class has to implement this method.
+  virtual med_int GetNumberOfPoints() = 0;
 
   // Description:
   // Initialize the global Ids of the first element of each MedEntityArray
   virtual void  InitializeCellGlobalIds(){;}
 
+  // Description:
+  // this stores the array giving the family id for each point of this mesh.
+  //vtkGetObjectVectorMacro(PointFamilyData, vtkMedFamilyOnEntity);
+  //vtkSetObjectVectorMacro(PointFamilyData, vtkMedFamilyOnEntity);
+  //virtual vtkMedFamilyOnEntity* GetPointFamilyDataById(med_int id);
+
+  // Description:
+  // Gather the families that are present on this mesh nodes
+  //virtual void ComputePointFamilies();
+
+  // Description:
+  // this array contains the global ids of the points used by the grid.
+  virtual void  SetPointGlobalIds(vtkMedIntArray*);
+  vtkGetObjectMacro(PointGlobalIds, vtkMedIntArray);
+
+  // Description:
+  // this array contains the family ids of the points used by the grid.
+  //virtual void  SetPointFamilyIds(vtkMedIntArray*);
+  //vtkGetObjectMacro(PointFamilyIds, vtkMedIntArray);
+
+  // Description:
+  // The mesh that use this grid
+  virtual void  SetParentMesh(vtkMedMesh*);
+  vtkGetObjectMacro(ParentMesh, vtkMedMesh);
+
+  // Description:
+  // The mesh that use this grid
+  virtual void  SetPreviousGrid(vtkMedGrid*);
+  vtkGetObjectMacro(PreviousGrid, vtkMedGrid);
+
+  // Description:
+  // returns 1 if the global Ids array is set, and the
+  //  number of tuples matches the number of points
+  virtual int IsPointGlobalIdsLoaded();
+
+  // Description:
+  // clear the entity arrays storing the connectivity
+  virtual void  ClearMedSupports();
+
+  // Description:
+  // This is the coordinate system the grid live in.
+  vtkSetMacro(CoordinateSystem, med_axis_type);
+  vtkGetMacro(CoordinateSystem, med_axis_type);
+
+  // Description:
+  // This flag is set during the information loading, and tells if the
+  // coordinates of this grid at this step has changed from the previous step.
+  // if not, you should request the coordinates array from the previous grid
+  // instead of this one.
+  vtkSetMacro(UsePreviousCoordinates, bool);
+  vtkGetMacro(UsePreviousCoordinates, bool);
+
+  // Description:
+  // Add a cell array to this unstructured grid.
+  // each cell array represents a different cell type.
+  vtkGetObjectVectorMacro(EntityArray, vtkMedEntityArray);
+  vtkSetObjectVectorMacro(EntityArray, vtkMedEntityArray);
+
+  // Description:
+  // load the family ids using the driver
+  //void  LoadPointFamilyIds();
+
+  virtual void  LoadCoordinates() = 0;
+
+	// Description:
+	// return the vtkMedEntityArray that match the Entity type, if any.
+	virtual vtkMedEntityArray* GetEntityArray(const vtkMedEntity&);
+
 protected:
-	vtkMedGrid();
+  vtkMedGrid();
   virtual ~vtkMedGrid();
 
-  med_int Dimension;
+  vtkMedComputeStep ComputeStep;
+  vtkMedIntArray* PointGlobalIds;
+  //vtkMedIntArray* PointFamilyIds;
+
+  vtkMedMesh* ParentMesh;
+
+  vtkMedGrid* PreviousGrid;
+
   //BTX
-  vtkObjectVector<vtkMedString>* Unit;
-  vtkObjectVector<vtkMedString>* ComponentName;
+  //vtkObjectVector<vtkMedFamilyOnEntity>* PointFamilyData;
+  //ETX
+
+  bool UsePreviousCoordinates;
+  med_axis_type CoordinateSystem;
+  //BTX
+  vtkObjectVector<vtkMedEntityArray>* EntityArray;
   //ETX
 
 private:
-	vtkMedGrid(const vtkMedGrid&); // Not implemented.
+  vtkMedGrid(const vtkMedGrid&); // Not implemented.
   void operator=(const vtkMedGrid&); // Not implemented.
 
 };

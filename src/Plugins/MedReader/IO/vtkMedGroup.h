@@ -19,15 +19,14 @@ public :
 	// Description:
 	// This ivar says if this group contains point or cell families
 	// This value is either vtkMedUtilities::OnPoint or vtkMedUtilities::OnCell
-	vtkSetMacro(PointOrCell, int);
-	vtkGetMacro(PointOrCell, int);
+//	vtkSetMacro(PointOrCell, int);
+//	vtkGetMacro(PointOrCell, int);
 
 protected:
 	vtkMedGroup();
   virtual ~vtkMedGroup();
 
   vtkMedString* Name;
-  int PointOrCell;
 
 private:
 	vtkMedGroup(const vtkMedGroup&); // Not implemented.

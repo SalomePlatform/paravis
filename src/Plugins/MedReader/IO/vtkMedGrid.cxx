@@ -5,50 +5,67 @@
 #include "vtkMedUtilities.h"
 #include "vtkMedMesh.h"
 #include "vtkMedString.h"
+#include "vtkMedIntArray.h"
+#include "vtkMedFamilyOnEntity.h"
+#include "vtkMedFamily.h"
+#include "vtkMedEntityArray.h"
+#include "vtkMedFile.h"
+#include "vtkMedDriver.h"
 
-vtkCxxGetObjectVectorMacro(vtkMedGrid, Unit, vtkMedString);
-vtkCxxSetObjectVectorMacro(vtkMedGrid, Unit, vtkMedString);
+#include <set>
+using std::set;
 
-vtkCxxGetObjectVectorMacro(vtkMedGrid, ComponentName, vtkMedString);
-vtkCxxSetObjectVectorMacro(vtkMedGrid, ComponentName, vtkMedString);
+vtkCxxGetObjectVectorMacro(vtkMedGrid, EntityArray, vtkMedEntityArray);
+vtkCxxSetObjectVectorMacro(vtkMedGrid, EntityArray, vtkMedEntityArray);
+
+vtkCxxSetObjectMacro(vtkMedGrid, PointGlobalIds, vtkMedIntArray);
+vtkCxxSetObjectMacro(vtkMedGrid, ParentMesh, vtkMedMesh);
+vtkCxxSetObjectMacro(vtkMedGrid, PreviousGrid, vtkMedGrid);
 
 vtkCxxRevisionMacro(vtkMedGrid, "$Revision$")
 
 vtkMedGrid::vtkMedGrid()
 {
-	this->Unit = new vtkObjectVector<vtkMedString> ();
-	this->ComponentName = new vtkObjectVector<vtkMedString> ();
-	this->Dimension = -1;
+  this->ParentMesh = NULL;
+  this->PointGlobalIds = NULL;
+  this->PreviousGrid = NULL;
+
+  this->CoordinateSystem = MED_CARTESIAN;
+  this->EntityArray = new vtkObjectVector<vtkMedEntityArray>();
+  this->UsePreviousCoordinates = false;
 }
 
 vtkMedGrid::~vtkMedGrid()
 {
-	delete this->Unit;
-	delete this->ComponentName;
+  this->SetPointGlobalIds(NULL);
+  this->SetParentMesh(NULL);
+  delete this->EntityArray;
 }
 
-void vtkMedGrid::SetDimension(med_int dim)
+int vtkMedGrid::IsPointGlobalIdsLoaded()
 {
-	if (this->Dimension == dim)
-		return;
+  return this->PointGlobalIds != NULL
+      && this->PointGlobalIds->GetNumberOfTuples()
+          == this->GetNumberOfPoints();
+}
 
-	this->Dimension = dim;
+void  vtkMedGrid::ClearMedSupports()
+{
+  this->SetPointGlobalIds(NULL);
+}
 
-	this->AllocateNumberOfUnit(dim);
-	this->AllocateNumberOfComponentName(dim);
-	for (int comp = 0; comp < dim; comp++)
+vtkMedEntityArray* vtkMedGrid::GetEntityArray(const vtkMedEntity& entity)
+{
+	for(int id = 0; id < this->EntityArray->size(); id++)
 		{
-		this->Unit->at(comp)->SetSize(MED_TAILLE_PNOM);
-		this->ComponentName->at(comp)->SetSize(MED_TAILLE_PNOM);
+		vtkMedEntityArray* array = this->EntityArray->at(id);
+		if(array->GetEntity() == entity)
+			return array;
 		}
-
-	this->Modified();
+	return NULL;
 }
 
 void vtkMedGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
-	PRINT_IVAR(os, indent, Dimension);
-	PRINT_STRING_VECTOR(os, indent, Unit);
-	PRINT_STRING_VECTOR(os, indent, ComponentName);
+  this->Superclass::PrintSelf(os, indent);
 }

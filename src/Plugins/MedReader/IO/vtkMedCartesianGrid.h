@@ -10,6 +10,8 @@ public :
   vtkTypeRevisionMacro(vtkMedCartesianGrid, vtkMedRegularGrid);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  virtual void  LoadCoordinates();
+
 protected:
 	vtkMedCartesianGrid();
   virtual ~vtkMedCartesianGrid();
