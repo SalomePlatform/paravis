@@ -16,7 +16,7 @@ from string import upper
 try:
     import pvsimple as pv
     # TODO(MZN): to be removed (issue with Point Sprite texture)
-    import paravisSM as sm
+    #import paravisSM as sm
 except:
     import paraview.simple as pv
     import paraview.servermanager as sm
@@ -140,7 +140,7 @@ class GaussType:
 
     _type2mode = {SPRITE: 'Texture',
                   POINT: 'SimplePoint',
-                  SPHERE: 'Sphere'}
+                  SPHERE: 'Sphere (Texture)'}
 
     @classmethod
     def get_mode(cls, type):
@@ -705,8 +705,10 @@ def select_all_cells(proxy):
     Used in creation of mesh/submesh presentation.
 
     """
-    all_cell_types = proxy.CellTypes.Available
-    proxy.CellTypes = all_cell_types
+    ### Old API all_cell_types = proxy.CellTypes.Available
+    all_cell_types = proxy.Entity.Available
+    ### Old API proxy.CellTypes = all_cell_types
+    proxy.Entity = all_cell_types
     proxy.UpdatePipeline()
 
 
@@ -718,7 +720,8 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
     types with data for even one field (from available) will be selected.
 
     """
-    all_cell_types = proxy.CellTypes.Available
+    #all_cell_types = proxy.CellTypes.Available
+    all_cell_types = proxy.Entity.Available
     all_arrays = list(proxy.CellArrays.GetData())
     all_arrays.extend(proxy.PointArrays.GetData())
 
@@ -730,7 +733,8 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
     cell_types_on = []
 
     for cell_type in all_cell_types:
-        proxy.CellTypes = [cell_type]
+        #proxy.CellTypes = [cell_type]
+        proxy.Entity = [cell_type]
         proxy.UpdatePipeline()
 
         cell_arrays = proxy.GetCellDataInformation().keys()
@@ -753,7 +757,8 @@ def select_cells_with_data(proxy, on_points=None, on_cells=None):
                 cell_types_on.append(cell_type)
 
     # Select cell types
-    proxy.CellTypes = cell_types_on
+    #proxy.CellTypes = cell_types_on
+    proxy.Entity = cell_types_on
     proxy.UpdatePipeline()
 
 
@@ -905,25 +910,27 @@ def get_lookup_table(field_name, nb_components, vector_mode='Magnitude'):
 
 def get_group_mesh_name(full_group_name):
     """Return mesh name of the group by its full name."""
-    group_name = full_group_name.split('/')[1]
-
-    return group_name
+    aList = full_group_name.split('/')
+    if len(aList) >= 2 :
+        group_name = full_group_name.split('/')[1]
+        return group_name
 
 
 def get_group_entity(full_group_name):
     """Return entity type of the group by its full name."""
-    entity_name = full_group_name.split('/')[2]
-
-    entity = EntityType.get_type(entity_name)
-
-    return entity
+    aList = full_group_name.split('/')
+    if len(aList) >= 3 :
+        entity_name = full_group_name.split('/')[2]
+        entity = EntityType.get_type(entity_name)
+        return entity
 
 
 def get_group_short_name(full_group_name):
     """Return short name of the group by its full name."""
-    short_name = full_group_name.split('/')[3]
-
-    return short_name
+    aList = full_group_name.split('/')
+    if len(aList) >= 4 :
+        short_name = full_group_name.split('/')[3]
+        return short_name
 
 
 def get_mesh_names(proxy):
@@ -2092,19 +2099,19 @@ def GaussPointsOnField(proxy, entity, field_name,
     # Render mode
     gausspnt.RenderMode = GaussType.get_mode(primitive)
 
-    if primitive == GaussType.SPRITE:
+    #if primitive == GaussType.SPRITE:
         # Set texture
         # TODO(MZN): replace with pvsimple high-level interface
-        texture = sm.CreateProxy("textures", "SpriteTexture")
-        alphamprop = texture.GetProperty("AlphaMethod")
-        alphamprop.SetElement(0, 2)  # Clamp
-        alphatprop = texture.GetProperty("AlphaThreshold")
-        alphatprop.SetElement(0, 63)
-        maxprop = texture.GetProperty("Maximum")
-        maxprop.SetElement(0, 255)
-        texture.UpdateVTKObjects()
+    #    texture = sm.CreateProxy("textures", "SpriteTexture")
+    #    alphamprop = texture.GetProperty("AlphaMethod")
+    #    alphamprop.SetElement(0, 2)  # Clamp
+    #    alphatprop = texture.GetProperty("AlphaThreshold")
+    #    alphatprop.SetElement(0, 63)
+    #    maxprop = texture.GetProperty("Maximum")
+    #    maxprop.SetElement(0, 255)
+    #    texture.UpdateVTKObjects()
 
-        gausspnt.Texture = texture
+    #    gausspnt.Texture = texture
         #gausspnt.Texture.AlphaMethod = 'Clamp'
         #gausspnt.Texture.AlphaThreshold = 63
         #gausspnt.Texture.Maximum= 255

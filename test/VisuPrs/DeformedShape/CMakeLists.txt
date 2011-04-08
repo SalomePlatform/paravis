@@ -36,12 +36,11 @@ IF (PYTHON_EXECUTABLE)
       B1
       B2
       B3
-      B4           
-      C8
+      B4
       E0
       E1
       E2
-      E3     
+      E3
       E4
       E5
       E6
@@ -57,7 +56,7 @@ IF (PYTHON_EXECUTABLE)
       F6
       F7
       F8
-      F9            
+      F9
       )
     ADD_TEST(DEFORMEDSHAPE_${tfile} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py ${PARAVIS_TEST_OUTPUT_DIR})
     SET_TESTS_PROPERTIES(DEFORMEDSHAPE_${tfile} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")

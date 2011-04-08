@@ -31,8 +31,6 @@ aView = GetRenderView()
 
 
 field_names = proxy.PointArrays.GetData()
-aNbOnNodes = len(aFieldNames)
-aFieldNames.extend(proxy.CellArrays.GetData())
 aTimeStamps = proxy.TimestepValues.GetData()
 aFieldEntity = EntityType.NODE
 aFieldName = "MODES_DEPL"
