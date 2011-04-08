@@ -115,6 +115,7 @@ SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 SET(nodist_salomeres_DATA
   PARAVIS_images.qm
   PARAVIS_msg_en.qm
+  PARAVIS_msg_fr.qm
   )
 
 SET(srcs)

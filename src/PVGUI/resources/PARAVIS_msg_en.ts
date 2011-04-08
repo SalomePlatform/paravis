@@ -1,4 +1,6 @@
-<!DOCTYPE TS><TS>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.0" language="en">
 <context>
     <name>@default</name>
     <message>
@@ -173,8 +175,8 @@
 <context>
     <name>PVGUI_ViewManager</name>
     <message>
-	<source>PARAVIEW_VIEW_TITLE</source>
-	<translation>ParaView scene:%M - viewer:%V</translation>
+        <source>PARAVIEW_VIEW_TITLE</source>
+        <translation>ParaView scene:%M - viewer:%V</translation>
     </message>
 </context>
 <context>
@@ -353,7 +355,7 @@
     </message>
     <message>
         <source>MEN_CANTUNDO</source>
-        <translation>Can't Undo</translation>
+        <translation>Can&apos;t Undo</translation>
     </message>
     <message>
         <source>MEN_UNDO_ACTION</source>
@@ -381,7 +383,7 @@
     </message>
     <message>
         <source>MEN_CANTREDO</source>
-        <translation>Can't Redo</translation>
+        <translation>Can&apos;t Redo</translation>
     </message>
     <message>
         <source>MEN_REDO_ACTION</source>
@@ -409,7 +411,7 @@
     </message>
     <message>
         <source>MEN_CANT_CAMERA_UNDO</source>
-        <translation>Can't Undo Camera</translation>
+        <translation>Can&apos;t Undo Camera</translation>
     </message>
     <message>
         <source>MEN_CAMERA_UNDO_ACTION</source>
@@ -437,7 +439,7 @@
     </message>
     <message>
         <source>MEN_CANT_CAMERA_REDO</source>
-        <translation>Can't Redo Camera</translation>
+        <translation>Can&apos;t Redo Camera</translation>
     </message>
     <message>
         <source>MEN_CAMERA_REDO_ACTION</source>
@@ -469,11 +471,11 @@
     </message>
     <message>
         <source>STB_CHANGE_INPUT</source>
-        <translation>Change a Filter's Input</translation>
+        <translation>Change a Filter&apos;s Input</translation>
     </message>
     <message>
         <source>INF_APP_CHANGE_INPUTACTIONS</source>
-        <translation>Change a Filter's Input</translation>
+        <translation>Change a Filter&apos;s Input</translation>
     </message>
     <message>
         <source>MEN_IGNORE_TIME</source>
@@ -485,7 +487,7 @@
     </message>
     <message>
         <source>STB_IGNORE_TIME</source>
-        <translation>Disregard this source/filter's time from animation</translation>
+        <translation>Disregard this source/filter&apos;s time from animation</translation>
     </message>
     <message>
         <source>TOP_DELETE</source>
@@ -1185,7 +1187,7 @@
     </message>
     <message>
         <source>ERR_STATE_CANNOT_BE_RESTORED</source>
-        <translation>The state can't be restored.</translation>
+        <translation>The state can&apos;t be restored.</translation>
     </message>
 </context>
 </TS>
