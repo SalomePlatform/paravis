@@ -56,6 +56,18 @@ std::vector<double> ParaMEDMEM2VTK::FillMEDCouplingFieldDoublePartOnly(SALOME_ME
   int timeDiscr=(*tinyL)[1];
   int nbOfTuples=(*tinyL)[3];
   int nbOfComponents=(*tinyL)[4];
+  std::vector<std::string> comps(nbOfComponents);
+  for(int i=0;i<nbOfComponents;i++)
+    {
+      std::string comp((*tinyS)[i]);
+      if(!comp.empty())
+        comps[i]=comp;
+      else
+        {
+          std::ostringstream oss; oss << "Comp" << i;
+          comps[i]=oss.str();
+        }
+    }
   std::string name;
   if(timeDiscr!=7)
     name=((*tinyS)[nbOfComponents]);
@@ -92,6 +104,8 @@ std::vector<double> ParaMEDMEM2VTK::FillMEDCouplingFieldDoublePartOnly(SALOME_ME
   var0->SetName(name.c_str());
   var0->SetNumberOfComponents(nbOfComponents);
   var0->SetNumberOfTuples(nbOfTuples);
+  for(int i=0;i<nbOfComponents;i++)
+    var0->SetComponentName(i,comps[i].c_str());
   var0Ptr=var0->GetPointer(0);
   if(timeDiscr==7)
     {
@@ -168,12 +182,25 @@ vtkDoubleArray *ParaMEDMEM2VTK::BuildFromMEDCouplingFieldDoubleArr(SALOME_MED::D
   int nbOfTuples=(*tinyL)[0];
   int nbOfCompo=(*tinyL)[1];
   std::string name((*tinyS)[0]);
+  std::vector<std::string> comps(nbOfCompo);
+  for(int i=0;i<nbOfCompo;i++)
+    comps[i]=(*tinyS)[i+1];
   delete tinyL;
   delete tinyS;
   //
   ret->SetName(name.c_str());
   ret->SetNumberOfComponents(nbOfCompo);
   ret->SetNumberOfTuples(nbOfTuples);
+  for(int i=0;i<nbOfCompo;i++)
+    {
+      if(!comps[i].empty())
+        ret->SetComponentName(i,comps[i].c_str());
+      else
+        {
+          std::ostringstream oss; oss << "Comp" << i;
+          ret->SetComponentName(i,oss.str().c_str());
+        }
+    }
   int nbElems=nbOfCompo*nbOfTuples;
   double *pt=ret->GetPointer(0);
   dadPtr->getSerialisationData(bigD);
