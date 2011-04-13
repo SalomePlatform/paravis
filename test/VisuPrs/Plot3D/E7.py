@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"Plot3D/E7") 
 
-file = datadir + "couplex_alain_236.med"
+file = datadir + "couplex_alain.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

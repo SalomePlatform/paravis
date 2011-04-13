@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"MeshPresentation/F6") 
 
-file = datadir + "maill.0_236.med"
+file = datadir + "maill.0.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

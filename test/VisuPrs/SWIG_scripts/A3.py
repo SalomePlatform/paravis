@@ -8,8 +8,8 @@ import pvsimple
 
 my_paravis = paravis.myParavis
 
-print 'Importing "TimeStamps_236.med"...............',
-file_path = datadir + "TimeStamps_236.med"
+print 'Importing "TimeStamps.med"...............',
+file_path = datadir + "TimeStamps.med"
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 

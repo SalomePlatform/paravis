@@ -13,8 +13,8 @@ DELAY = 2
 my_paravis = paravis.myParavis
 
 # Step 1
-print 'Importing "pointe_236.med"...............',
-file_path = datadir + "pointe_236.med"
+print 'Importing "pointe.med"...............',
+file_path = datadir + "pointe.med"
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 

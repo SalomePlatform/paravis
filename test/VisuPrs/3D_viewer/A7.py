@@ -22,7 +22,7 @@ my_view = GetRenderView()
 reset_view(my_view)
 Render(my_view)
 
-file_name = datadir + "Tetra4_236.med"
+file_name = datadir + "Tetra4.med"
 print " --------------------------------- "
 print "file ", file_name
 print " --------------------------------- "

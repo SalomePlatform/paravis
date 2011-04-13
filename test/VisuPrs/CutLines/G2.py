@@ -11,7 +11,7 @@ import paravis
 myParavis = paravis.myParavis
 picturedir = get_picture_dir(sys.argv[1], "CutLines/G2")
 
-theFileName = datadir +  "Bug829_resu_mode_236.med"
+theFileName = datadir +  "Bug829_resu_mode.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "

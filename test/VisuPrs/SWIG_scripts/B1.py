@@ -31,7 +31,7 @@ view.Background = color
 pvsimple.Render()
 
 # Import MED file
-med_file = datadir + "pointe_236.med"
+med_file = datadir + "pointe.med"
 field_name = "fieldnodedouble"
 entity = EntityType.NODE
 timestamp = 1
@@ -264,7 +264,7 @@ sleep(DELAY)
 view = pvsimple.CreateRenderView()
 reset_view(view)
 
-med_file = datadir + "TimeStamps_236.med"
+med_file = datadir + "TimeStamps.med"
 field_name = "vitesse"
 entity = EntityType.NODE
 timestamp = 2

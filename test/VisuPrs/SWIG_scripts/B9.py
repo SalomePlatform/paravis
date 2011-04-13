@@ -12,7 +12,7 @@ my_paravis = paravis.myParavis
 view1 = pvsimple.GetRenderView()
 
 # Import MED file
-med_file = datadir + "pointe_236.med"
+med_file = datadir + "pointe.med"
 field_name = "fieldnodedouble"
 entity = EntityType.NODE
 timestamp = 1

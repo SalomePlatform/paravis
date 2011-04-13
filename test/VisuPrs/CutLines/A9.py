@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"CutLines/A9") 
 
-file = datadir + "Quad4_236.med"
+file = datadir + "Quad4.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

@@ -10,9 +10,9 @@ my_paravis = paravis.myParavis
 #====================Stage1: Importing MED file====================
 print "**** Stage1: Importing MED file"
 
-print 'Import "ResOK_0000_236.med"...............',
+print 'Import "ResOK_0000.med"...............',
 
-file_path = datadir + "ResOK_0000_236.med"
+file_path = datadir + "ResOK_0000.med"
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 

@@ -14,7 +14,7 @@ picturedir = get_picture_dir(sys.argv[1], "StreamLines/E8")
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "KCOUPLEX1_236.med"
+file = datadir +  "KCOUPLEX1.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

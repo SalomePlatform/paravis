@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"ScalarMap/G1") 
 
-file = datadir + "maill.2_236.med"
+file = datadir + "maill.2.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

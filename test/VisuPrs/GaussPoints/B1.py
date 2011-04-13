@@ -16,7 +16,7 @@ if not picturedir.endswith(os.sep):
     picturedir += os.sep
     
 # MED file
-file_name = datadir + "test_55_solid_concentr_dom_236.med"
+file_name = datadir + "test_55_solid_concentr_dom.med"
 field_name = "RN_precipite_restr"
 timestamp_nb = 1
 

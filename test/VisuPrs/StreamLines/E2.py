@@ -14,7 +14,7 @@ picturedir = get_picture_dir(sys.argv[1], "StreamLines/E2")
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "cas2_2d_couplage_chess_castem_236.med"
+file = datadir +  "cas2_2d_couplage_chess_castem.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

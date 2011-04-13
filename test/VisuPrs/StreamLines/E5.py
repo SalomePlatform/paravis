@@ -14,7 +14,7 @@ picturedir = get_picture_dir(sys.argv[1], "StreamLines/E5")
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "hydro_sea_alv_236.med"
+file = datadir +  "hydro_sea_alv.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

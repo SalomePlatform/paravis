@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"DeformedShape/A8") 
 
-file = datadir + "Tria3_236.med"
+file = datadir + "Tria3.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

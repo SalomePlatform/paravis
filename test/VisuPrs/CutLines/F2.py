@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"CutLines/F2") 
 
-file = datadir + "T_COUPLEX1_236.med"
+file = datadir + "T_COUPLEX1.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

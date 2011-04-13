@@ -9,7 +9,7 @@ my_paravis = paravis.myParavis
 
 #====================Stage1: Import MED file=========================
 print 'Importing "fra.med"...................',
-medFile = datadir + "fra_236.med"
+medFile = datadir + "fra.med"
 my_paravis.ImportFile(medFile)
 med_reader = pvsimple.GetActiveSource()
 

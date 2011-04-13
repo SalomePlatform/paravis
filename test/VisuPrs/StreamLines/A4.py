@@ -14,7 +14,7 @@ picturedir = get_picture_dir(sys.argv[1], "StreamLines/A4")
 # Create presentations
 myParavis = paravis.myParavis
 
-file = datadir +  "Hexa8_236.med"
+file = datadir +  "Hexa8.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

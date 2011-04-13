@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"Plot3D/B1") 
 
-file = datadir + "carre_en_quad4_seg2_fields_236.med"
+file = datadir + "carre_en_quad4_seg2_fields.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

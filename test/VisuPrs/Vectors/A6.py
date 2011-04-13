@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"Vectors/A6") 
 
-file = datadir + "clo_236.med"
+file = datadir + "clo.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

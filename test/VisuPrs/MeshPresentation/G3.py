@@ -11,7 +11,7 @@ import paravis
 myParavis = paravis.myParavis
 picturedir = get_picture_dir(sys.argv[1], "MeshPresentation/G3")
 
-theFileName = datadir +  "Box1_236.med"
+theFileName = datadir +  "Box1.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "

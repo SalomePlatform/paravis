@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"IsoSurfaces/E4") 
 
-file = datadir + "champc_236.med"
+file = datadir + "champc.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

@@ -12,7 +12,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1],"ScalarMap_On_DeformedShape/A7") 
 
-file = datadir + "Tetra4_236.med"
+file = datadir + "Tetra4.med"
 print " --------------------------------- "
 print "file ", file
 print " --------------------------------- "

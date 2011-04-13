@@ -12,8 +12,8 @@ my_paravis = paravis.myParavis
 
 print "**** Stage1: Importing MED file"
 
-print 'Import "ResOK_0000_236.med"...............',
-file_path = datadir + "ResOK_0000_236.med"
+print 'Import "ResOK_0000.med"...............',
+file_path = datadir + "ResOK_0000.med"
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 
@@ -101,8 +101,8 @@ else:
 
 #====================Stage3: Another Med file import====================
 
-print 'Import "Fields_group3D_236.med"...............',
-file_path = datadir + "Fields_group3D_236.med"
+print 'Import "Fields_group3D.med"...............',
+file_path = datadir + "Fields_group3D.med"
 my_paravis.ImportFile(file_path)
 med_reader1 = pvsimple.GetActiveSource()
 

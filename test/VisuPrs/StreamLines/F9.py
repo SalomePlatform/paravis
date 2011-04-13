@@ -14,14 +14,14 @@ my_paravis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1], "StreamLines/F9")
 
-# Import of the "Bug829_resu_mode_236.med" file
-file_path = datadir + "Bug829_resu_mode_236.med"
+# Import of the "Bug829_resu_mode.med" file
+file_path = datadir + "Bug829_resu_mode.med"
 
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 
 if med_reader is None:
-    raise RuntimeError("Bug829_resu_mode_236.med was not imported!!!")
+    raise RuntimeError("Bug829_resu_mode.med was not imported!!!")
 
 # Get view
 view = pvsimple.GetRenderView()

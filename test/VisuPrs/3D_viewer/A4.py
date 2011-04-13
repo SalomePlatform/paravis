@@ -22,7 +22,7 @@ my_view = GetRenderView()
 reset_view(my_view)
 Render(my_view)
 
-file_name = datadir + "hydro_sea_alv_236.med"
+file_name = datadir + "hydro_sea_alv.med"
 print " --------------------------------- "
 print "file ", file_name
 print " --------------------------------- "

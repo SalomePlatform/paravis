@@ -49,7 +49,7 @@ my_view = GetRenderView()
 reset_view(my_view)
 Render(my_view)
 
-theFileName = datadir + "cube_hexa8_quad4_236.med"
+theFileName = datadir + "cube_hexa8_quad4.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "

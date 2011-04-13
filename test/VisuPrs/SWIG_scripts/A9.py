@@ -42,7 +42,7 @@ pv_root_dir = os.getenv("PARAVIS_ROOT_DIR")
 pv.LoadPlugin(pv_root_dir + "/lib/paraview/libMedReaderPlugin.so")
 
 # Import MED file
-med_file = datadir + "pointe_236.med"
+med_file = datadir + "pointe.med"
 field_name = "fieldnodedouble"
 entity = EntityType.NODE
 timestamp = 1
@@ -247,7 +247,7 @@ sleep(DELAY)
 view = pv.CreateRenderView()
 reset_view(view)
 
-med_file = datadir + "TimeStamps_236.med"
+med_file = datadir + "TimeStamps.med"
 field_name = "vitesse"
 entity = EntityType.NODE
 timestamp = 2

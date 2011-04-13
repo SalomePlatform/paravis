@@ -70,10 +70,10 @@ def change_representation(prs, repres, opacity, linew):
     pass
 
 
-# ResOK_0000_236.med
+# ResOK_0000.med
 
-print 'Import "ResOK_0000_236.med"...............',
-file_path = datadir + "ResOK_0000_236.med"
+print 'Import "ResOK_0000.med"...............',
+file_path = datadir + "ResOK_0000.med"
 field_name = 'vitesse'
 node_entity = EntityType.NODE
 
@@ -106,10 +106,10 @@ clines = CutPlanesOnField(med_reader, node_entity, field_name, 1)
 change_representation(clines, 'Points', 0.6, 4)
 
 
-# fra_236.med
+# fra.med
 
-print 'Import "fra_236.med"...............',
-file_path = datadir + "fra_236.med"
+print 'Import "fra.med"...............',
+file_path = datadir + "fra.med"
 field_name = 'VITESSE'
 
 pvsimple.SetActiveSource(None)

@@ -11,9 +11,9 @@ my_paravis = paravis.myParavis
 #====================Stage1: Import from MED file in ParaVis============
 print "**** Stage1: Import from MED file in ParaVis"
 
-print 'Import "Hexa8_236.med"....................',
+print 'Import "Hexa8.med"....................',
 
-file_path = datadir + "Hexa8_236.med"
+file_path = datadir + "Hexa8.med"
 my_paravis.ImportFile(file_path)
 med_reader = pvsimple.GetActiveSource()
 
