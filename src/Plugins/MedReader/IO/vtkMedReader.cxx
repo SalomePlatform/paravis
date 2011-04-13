@@ -1820,7 +1820,6 @@ bool vtkMedReader::BuildVTKSupport(
   else
     {
     vtkDataSet* dataset = NULL;
-    int valid = 0;
     if(doBuildSupport)
       {
 
@@ -1834,37 +1833,37 @@ bool vtkMedReader::BuildVTKSupport(
                   CreateVTKDataSet(foep);
         }
       }
-    if(dataset == NULL)
-      {
-      return false;
-      }
 
     this->Internal->DataSetCache[foep]=dataset;
     cachedDataSet = dataset;
-    dataset->Delete();
+    if(dataset != NULL)
+      dataset->Delete();
   }
 
   vtkMultiBlockDataSet* root=vtkMedUtilities::GetParent(this->GetOutput(), path);
   int nb=root->GetNumberOfBlocks();
 
-  vtkDataSet* realDataSet=cachedDataSet->NewInstance();
-  root->SetBlock(nb, realDataSet);
-  realDataSet->Delete();
-
-  root->GetMetaData(nb)->Set(vtkCompositeDataSet::NAME(), finalName.c_str());
-  realDataSet->ShallowCopy(cachedDataSet);
-
-  this->Internal->DataSetCache[foep]=cachedDataSet;
-  this->Internal->CurrentDataSet[foep]=realDataSet;
-
-  path->InsertNextValue(finalName);
-  path->SetName("BLOCK_NAME");
-  realDataSet->GetFieldData()->AddArray(path);
-  realDataSet->GetInformation()->Remove(vtkMedUtilities::BLOCK_NAME());
-  for(int depth=0; depth<path->GetNumberOfValues(); depth++)
+  if(cachedDataSet != NULL)
     {
-    realDataSet->GetInformation()->Set(vtkMedUtilities::BLOCK_NAME(),
-                                       path->GetValue(depth), depth);
+    vtkDataSet* realDataSet=cachedDataSet->NewInstance();
+    root->SetBlock(nb, realDataSet);
+    realDataSet->Delete();
+
+    root->GetMetaData(nb)->Set(vtkCompositeDataSet::NAME(), finalName.c_str());
+    realDataSet->ShallowCopy(cachedDataSet);
+
+    this->Internal->DataSetCache[foep]=cachedDataSet;
+    this->Internal->CurrentDataSet[foep]=realDataSet;
+
+    path->InsertNextValue(finalName);
+    path->SetName("BLOCK_NAME");
+    realDataSet->GetFieldData()->AddArray(path);
+    realDataSet->GetInformation()->Remove(vtkMedUtilities::BLOCK_NAME());
+    for(int depth=0; depth<path->GetNumberOfValues(); depth++)
+      {
+      realDataSet->GetInformation()->Set(vtkMedUtilities::BLOCK_NAME(),
+                                         path->GetValue(depth), depth);
+      }
     }
 }
 
