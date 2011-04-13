@@ -1,7 +1,17 @@
 #include "vtkMedCurvilinearGrid.h"
 
+#include "vtkMedMesh.h"
+#include "vtkMedFile.h"
+#include "vtkMedDriver.h"
+#include "vtkMedFamilyOnEntityOnProfile.h"
+#include "vtkMedFamilyOnEntity.h"
+#include "vtkMedEntityArray.h"
+#include "vtkMedProfile.h"
+#include "vtkMedFamily.h"
+
 #include "vtkObjectFactory.h"
 #include "vtkDataArray.h"
+#include "vtkStructuredGrid.h"
 
 vtkCxxSetObjectMacro(vtkMedCurvilinearGrid, Coordinates, vtkDataArray);
 
@@ -50,7 +60,91 @@ med_int vtkMedCurvilinearGrid::GetAxisSize(int axis)
 
 void  vtkMedCurvilinearGrid::LoadCoordinates()
 {
-	//TODO
+	vtkMedDriver* driver = this->GetParentMesh()->GetParentFile()->GetMedDriver();
+	driver->LoadCoordinates(this);
+}
+
+int vtkMedCurvilinearGrid::IsCoordinatesLoaded()
+{
+  return this->Coordinates != NULL && this->Coordinates->GetNumberOfTuples()
+     == this->NumberOfPoints;
+}
+
+double* vtkMedCurvilinearGrid::GetCoordTuple(med_int index)
+{
+  return this->Coordinates->GetTuple(index);
+}
+
+vtkDataSet* vtkMedCurvilinearGrid::CreateVTKDataSet(
+    vtkMedFamilyOnEntityOnProfile* foep)
+{
+  vtkStructuredGrid* vtkgrid = vtkStructuredGrid::New();
+
+  vtkPoints* points = vtkPoints::New();
+  vtkgrid->SetPoints(points);
+  points->Delete();
+
+  vtkgrid->SetDimensions(this->GetAxisSize(0),
+                         this->GetAxisSize(1),
+                         this->GetAxisSize(2));
+
+  this->LoadCoordinates();
+
+  if(this->GetDimension() == 3)
+    {
+    vtkgrid->GetPoints()->SetData(this->GetCoordinates());
+    }
+  else
+    {
+    vtkDataArray* coords = vtkDataArray::SafeDownCast(
+        vtkAbstractArray::CreateArray(this->GetCoordinates()->GetDataType()));
+    coords->SetNumberOfComponents(3);
+    coords->SetNumberOfTuples(this->GetNumberOfPoints());
+    vtkgrid->GetPoints()->SetData(coords);
+    coords->Delete();
+
+    med_int npts = this->GetNumberOfPoints();
+    double coord[3] = {0, 0, 0};
+    for(med_int id=0; id<npts; id++)
+      {
+      double * tuple = this->Coordinates->GetTuple(id);
+      for(int dim=0; dim<this->GetDimension(); dim++)
+        {
+        coord[dim] = tuple[dim];
+        }
+      coords->SetTuple(id, coord);
+      }
+    }
+
+  if(foep->GetProfile() != NULL)
+    {
+    foep->GetProfile()->Load();
+    vtkMedIntArray* pids = foep->GetProfile()->GetIds();
+    med_int previd = -1;
+    for(med_int pid=0; pid<pids->GetNumberOfTuples(); pid++)
+      {
+      med_int id = pids->GetValue(pid) - 1;
+      for(med_int theid=previd+1; theid<id; theid++)
+        {
+        vtkgrid->BlankCell(theid);
+        }
+
+      previd = id;
+      }
+    }
+
+  if(foep->GetFamilyOnEntity()->GetEntityArray()->GetNumberOfFamilyOnEntity() > 1)
+    {
+    med_int famid = foep->GetFamilyOnEntity()->GetFamily()->GetId();
+    vtkMedEntityArray* ea = foep->GetFamilyOnEntity()->GetEntityArray();
+    for(med_int id=0; id<vtkgrid->GetNumberOfCells(); id++)
+      {
+      if(ea->GetFamilyId(id) != famid)
+        vtkgrid->BlankCell(id);
+      }
+    }
+
+  return vtkgrid;
 }
 
 void vtkMedCurvilinearGrid::PrintSelf(ostream& os, vtkIndent indent)

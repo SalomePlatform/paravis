@@ -8,7 +8,6 @@
 #include "vtkMedField.h"
 #include "vtkMedProfile.h"
 #include "vtkMedLocalization.h"
-#include "vtkMedString.h"
 #include "vtkMedUtilities.h"
 #include "vtkMedLink.h"
 #include "vtkMedDriver.h"
@@ -36,8 +35,7 @@ vtkStandardNewMacro(vtkMedFile)
 
 vtkMedFile::vtkMedFile()
 {
-  this->Comment = vtkMedString::New();
-  this->Comment->SetSize(MED_COMMENT_SIZE);
+  this->Comment = NULL;
   this->Mesh = new vtkObjectVector<vtkMedMesh> ();
   this->Field = new vtkObjectVector<vtkMedField> ();
   this->Profile = new vtkObjectVector<vtkMedProfile> ();
@@ -52,7 +50,7 @@ vtkMedFile::vtkMedFile()
 
 vtkMedFile::~vtkMedFile()
 {
-  this->Comment->Delete();
+  this->SetComment(NULL);
   delete this->Mesh;
   delete this->Field;
   delete this->Profile;
@@ -100,12 +98,12 @@ void  vtkMedFile::ReadInformation()
   this->MedDriver->ReadFileInformation(this);
 }
 
-vtkMedMesh* vtkMedFile::GetMesh(vtkMedString* str)
+vtkMedMesh* vtkMedFile::GetMesh(const char* str)
 {
   for (int m = 0; m < this->Mesh->size(); m++)
     {
     vtkMedMesh* mesh = this->Mesh->at(m);
-    if (strcmp(mesh->GetName()->GetString(), str->GetString()) == 0)
+    if (strcmp(mesh->GetName(), str) == 0)
       {
       return mesh;
       }
@@ -113,12 +111,12 @@ vtkMedMesh* vtkMedFile::GetMesh(vtkMedString* str)
   return NULL;
 }
 
-vtkMedProfile* vtkMedFile::GetProfile(vtkMedString* str)
+vtkMedProfile* vtkMedFile::GetProfile(const char* str)
 {
   for (int profId = 0; profId < this->Profile->size(); profId++)
     {
     vtkMedProfile* profile = this->Profile->at(profId);
-    if (strcmp(profile->GetName()->GetString(), str->GetString()) == 0)
+    if (strcmp(profile->GetName(), str) == 0)
       {
       return profile;
       }
@@ -127,12 +125,12 @@ vtkMedProfile* vtkMedFile::GetProfile(vtkMedString* str)
 
 }
 
-vtkMedLocalization* vtkMedFile::GetLocalization(vtkMedString* str)
+vtkMedLocalization* vtkMedFile::GetLocalization(const char* str)
 {
   for (int quadId = 0; quadId < this->Localization->size(); quadId++)
     {
     vtkMedLocalization* loc = this->Localization->at(quadId);
-    if (strcmp(loc->GetName()->GetString(), str->GetString()) == 0)
+    if (strcmp(loc->GetName(), str) == 0)
       {
       return loc;
       }
@@ -144,7 +142,6 @@ void vtkMedFile::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 
-  PRINT_MED_STRING(os, indent, Comment);
   PRINT_OBJECT_VECTOR(os, indent, Mesh);
   PRINT_OBJECT_VECTOR(os, indent, Field);
   PRINT_OBJECT_VECTOR(os, indent, Profile);

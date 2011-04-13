@@ -66,6 +66,8 @@ public:
 	virtual void	SetPreviousStep(vtkMedFieldStep*);
 	vtkGetObjectMacro(PreviousStep, vtkMedFieldStep);
 
+	virtual void	LoadInformation();
+
 protected:
 	vtkMedFieldStep();
 	virtual ~vtkMedFieldStep();

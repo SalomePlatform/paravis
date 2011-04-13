@@ -8,7 +8,6 @@
 #include "vtkMedSetGet.h"
 #include "vtkMed.h"
 #include "vtkMedReader.h"
-#include "vtkMedString.h"
 
 #include <utility>
 #include <string>
@@ -18,7 +17,6 @@
 #include <map>
 
 class vtkDataArray;
-class vtkMedString;
 class vtkMedMesh;
 class vtkMedFamily;
 class vtkMedGroup;
@@ -49,52 +47,39 @@ bool operator<(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1);
 class vtkMedEntity
 {
 public :
+
   vtkMedEntity() : EntityType(MED_NODE),
-                     GeometryType(MED_NONE),
-                     GeometryName(vtkMedString::New())
+                     GeometryType(MED_NONE)
     {
-    this->GeometryName->SetSize(MED_NAME_SIZE);
     }
 
   vtkMedEntity(med_entity_type type, med_geometry_type geometry) :
       EntityType(type),
-      GeometryType(geometry),
-      GeometryName(vtkMedString::New())
+      GeometryType(geometry)
     {
-    this->GeometryName->SetSize(MED_NAME_SIZE);
     }
 
   ~vtkMedEntity()
     {
-    this->GeometryName->Delete();
     }
-
-  const vtkMedString*  GetGeometryName() const {return this->GeometryName;}
-  vtkMedString*  GetGeometryName() {return this->GeometryName;}
 
   vtkMedEntity(const vtkMedEntity& entity) :
       EntityType(entity.EntityType),
       GeometryType(entity.GeometryType)
     {
-    this->GeometryName = vtkMedString::New();
-    this->GeometryName->SetSize(MED_NAME_SIZE);
-    this->GeometryName->SetString(entity.GetGeometryName()->GetString());
+    this->GeometryName = entity.GeometryName;
     }
 
   void operator=(const vtkMedEntity& entity)
     {
     this->EntityType = entity.EntityType;
     this->GeometryType = entity.GeometryType;
-    this->GeometryName = vtkMedString::New();
-    this->GeometryName->SetSize(MED_NAME_SIZE);
-    this->GeometryName->SetString(entity.GetGeometryName()->GetString());
+    this->GeometryName = entity.GeometryName;
     }
 
   med_entity_type EntityType;
   med_geometry_type GeometryType;
-
-protected :
-  vtkMedString* GeometryName;
+  std::string GeometryName;
 };
 
 bool operator==(const vtkMedEntity& cs0, const vtkMedEntity& cs1);
@@ -139,23 +124,7 @@ public:
   // returns a name for the given med_connectivity_mode
   static const char* ConnectivityName(med_connectivity_mode conn);
 
-//  // Description:
-//  // returns the ith med_connectivity_mode
-//  static const int NumberOfConnectivity = 2;
-//  static const med_connectivity_mode Connectivity[NumberOfConnectivity];
-
-//  // Description:
-//  // returns the ith med_entity_type
-//  static const int NumberOfEntityType = 7;
-//  static const med_entity_type EntityType[NumberOfEntityType];
-
   static const std::string SimplifyName(const char* medName);
-  static const std::string SimplifyName(const vtkMedString*);
-
-  static const std::string FamilyKey(vtkMedString* meshName, int pointOrCell,
-      vtkMedString* familyName);
-  static const std::string GroupKey(vtkMedString* meshName, int pointOrCell,
-      vtkMedString* groupName);
 
   static const std::string FamilyKey(const char* meshName, int pointOrCell,
       const char* familyName);
@@ -202,13 +171,19 @@ public:
   static void SplitGroupKey(const char* name, vtkstd::string& mesh,
       vtkstd::string& entity, vtkstd::string& group);
 
-  static std::string GetModeKey(int index, double frequency);
+  static std::string GetModeKey(int index, double frequency, int maxindex);
   static int  GetModeFromKey(const char*, int& index, double& frequency);
 
   static int MedToVTKIndex(int vtktype, int node);
 
   static vtkMultiBlockDataSet* GetParent(vtkMultiBlockDataSet* root,
                                   vtkStringArray* path);
+
+  // Description:
+  // Format the id list so that it respects the VTK format for polyhedrons :
+  // numfaces, npts_face0, pt0, ... npts_face1, pt1 ....
+  static int  FormatPolyhedronForVTK(vtkMedFamilyOnEntityOnProfile*,
+                               vtkIdType, vtkIdList*);
   //ETX
 };
 

@@ -13,6 +13,8 @@ class vtkMedIntArray;
 class vtkMedComputeStep;
 class vtkMedFile;
 
+class vtkStringArray;
+
 #include <set>
 
 class VTK_EXPORT vtkMedMesh: public vtkObject
@@ -24,19 +26,23 @@ public:
 
   // Description:
   // The name of the mesh in the med file.
-  vtkGetObjectMacro(Name, vtkMedString);
+  vtkGetStringMacro(Name);
+  vtkSetStringMacro(Name);
 
   // Description:
   // The universal name of the mesh.
-  vtkGetObjectMacro(UniversalName, vtkMedString);
+  vtkGetStringMacro(UniversalName);
+  vtkSetStringMacro(UniversalName);
 
   // Description:
   // The name of the mesh in the med file.
-  vtkGetObjectMacro(Description, vtkMedString);
+  vtkGetStringMacro(Description);
+  vtkSetStringMacro(Description);
 
   // Description:
   // The unit of the time steps.
-  vtkGetObjectMacro(TimeUnit, vtkMedString);
+  vtkGetStringMacro(TimeUnit);
+  vtkSetStringMacro(TimeUnit);
 
   // Description:
   // The dimension of the space this mesh lives in
@@ -113,11 +119,11 @@ public:
 
   // Description:
   // This stores the name of each axis
-  vtkGetObjectVectorMacro(AxisName, vtkMedString);
+  vtkGetObjectMacro(AxisName, vtkStringArray);
 
   // Description:
   // This stores the unit of each axis
-  vtkGetObjectVectorMacro(AxisUnit, vtkMedString);
+  vtkGetObjectMacro(AxisUnit, vtkStringArray);
 
   // Description:
   // This sets the number of axis of this mesh, and also allocates
@@ -138,10 +144,10 @@ protected:
   vtkMedMesh();
   virtual ~vtkMedMesh();
 
-  vtkMedString* Name;
-  vtkMedString* UniversalName;
-  vtkMedString* Description;
-  vtkMedString* TimeUnit;
+  char* Name;
+  char* UniversalName;
+  char* Description;
+  char* TimeUnit;
   med_int MedIterator;
   med_int SpaceDimension;
   med_int MeshDimension;
@@ -158,13 +164,10 @@ protected:
   vtkObjectVector<vtkMedGroup>* PointGroup;
   vtkObjectVector<vtkMedGroup>* CellGroup;
 
-  vtkObjectVector<vtkMedString>* AxisName;
-  vtkObjectVector<vtkMedString>* AxisUnit;
+  vtkStringArray* AxisName;
+  vtkStringArray* AxisUnit;
 
   vtkMedComputeStepMap<vtkMedGrid>* GridStep;
-
-  vtkSetObjectVectorMacro(AxisName, vtkMedString);
-  vtkSetObjectVectorMacro(AxisUnit, vtkMedString);
 
 private:
   vtkMedMesh(const vtkMedMesh&); // Not implemented.

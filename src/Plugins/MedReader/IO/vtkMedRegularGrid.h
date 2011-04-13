@@ -39,9 +39,17 @@ public :
 
   virtual void  LoadCoordinates();
 
+  virtual double* GetCoordTuple(med_int index);
+
+  virtual int IsCoordinatesLoaded();
+
+  virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*);
+
 protected:
 	vtkMedRegularGrid();
   virtual ~vtkMedRegularGrid();
+
+  double CoordTuple[3];
 
   std::vector<med_int> AxisSize;
   //BTX

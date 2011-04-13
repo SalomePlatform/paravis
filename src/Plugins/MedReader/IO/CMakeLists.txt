@@ -26,7 +26,7 @@ set(MedReader_CLASSES
     vtkMedFieldOverEntity
     vtkMedFieldStep
     vtkMedUtilities
-    vtkMedString
+    #vtkMedString
     vtkMedIntArrayInternal
     vtkMedIntArray
     vtkMedFamilyOnEntity

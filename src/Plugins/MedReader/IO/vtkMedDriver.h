@@ -102,7 +102,7 @@ public:
 
   // Description:
   // load the field on this profile
-  virtual void LoadField(vtkMedFieldOnProfile* fop);
+  virtual void LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode);
 
   // Description:
   // Load the indices of the profile

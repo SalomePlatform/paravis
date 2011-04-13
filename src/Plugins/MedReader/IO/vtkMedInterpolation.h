@@ -17,7 +17,8 @@ public:
 
   // Description:
   // name of the interpolation function
-  vtkGetObjectMacro(Name, vtkMedString);
+  vtkGetStringMacro(Name);
+  vtkSetStringMacro(Name);
 
   // Description:
   // This is the iterator that should be used to read this interpolation
@@ -65,7 +66,7 @@ protected :
 	int MaximumNumberOfCoefficient;
 	int MaximumDegree;
 	int NumberOfVariable;
-	vtkMedString* Name;
+	char* Name;
 	vtkObjectVector<vtkMedFraction>* BasisFunction;
 };
 

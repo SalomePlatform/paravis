@@ -28,11 +28,13 @@ public:
 
 	// Description:
 	// This is the name of the profile used by this field.
-	vtkGetObjectMacro(ProfileName, vtkMedString);
+	vtkGetStringMacro(ProfileName);
+	vtkSetStringMacro(ProfileName);
 
 	// Description:
 	// This is the name of the localization used by this field on this profile.
-	vtkGetObjectMacro(LocalizationName, vtkMedString);
+	vtkGetStringMacro(LocalizationName);
+	vtkSetStringMacro(LocalizationName);
 
 	// Description:
 	// This stores the size of the profile.
@@ -69,7 +71,7 @@ public:
 
   // Description:
   // Load the actual data of this field
-  void  Load();
+  void  Load(med_storage_mode mode);
 
 protected:
 	vtkMedFieldOnProfile();
@@ -77,9 +79,9 @@ protected:
 
 	med_int MedIterator;
 	vtkMedFieldOverEntity *ParentFieldOverEntity;
-	vtkMedString* ProfileName;
+	char* ProfileName;
 	med_int ProfileSize;
-	vtkMedString* LocalizationName;
+	char* LocalizationName;
 	med_int NumberOfIntegrationPoint;
   med_int NumberOfValues;
   vtkDataArray* Data;

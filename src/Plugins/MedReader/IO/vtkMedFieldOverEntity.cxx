@@ -4,7 +4,6 @@
 #include "vtkSmartPointer.h"
 
 #include "vtkMedUtilities.h"
-#include "vtkMedString.h"
 #include "vtkMedMesh.h"
 #include "vtkDataArray.h"
 #include "vtkMedFieldOnProfile.h"

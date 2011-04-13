@@ -9,6 +9,8 @@
 
 #include <set>
 
+class vtkStringArray;
+
 class vtkMedInterpolation;
 class vtkMedFieldOverEntity;
 class vtkMedString;
@@ -37,25 +39,26 @@ public:
 
 	// Description:
 	// The name of this field
-	vtkGetObjectMacro(Name, vtkMedString);
+	vtkGetStringMacro(Name);
+	vtkSetStringMacro(Name);
 
 	// Description:
 	// The name of this mesh this field is on
-	vtkGetObjectMacro(MeshName, vtkMedString);
+	vtkGetStringMacro(MeshName);
+	vtkSetStringMacro(MeshName);
 
 	// Description:
 	// The name of this mesh this field is on
-	vtkGetObjectMacro(TimeUnit, vtkMedString);
+	vtkGetStringMacro(TimeUnit);
+	vtkSetStringMacro(TimeUnit);
 
 	// Description:
 	// The units of each component of this field
-	vtkGetObjectVectorMacro(Unit, vtkMedString);
-	vtkSetObjectVectorMacro(Unit, vtkMedString);
+	vtkGetObjectMacro(Unit, vtkStringArray);
 
 	// Description:
 	// The name of each component of this field
-	vtkGetObjectVectorMacro(ComponentName, vtkMedString);
-	vtkSetObjectVectorMacro(ComponentName, vtkMedString);
+	vtkGetObjectMacro(ComponentName, vtkStringArray);
 
 	// Description:
 	// add a cell type as support to this field
@@ -131,19 +134,19 @@ protected:
 	med_field_type DataType;
 	med_int MedIterator;
 	med_int Local;
-	vtkMedString* Name;
-	vtkMedString* MeshName;
-	vtkMedString* TimeUnit;
+	char* Name;
+	char* MeshName;
+	char* TimeUnit;
 	int FieldType;
 	vtkMedFile* ParentFile;
 
 	//BTX
 	vtkMedComputeStepMap<vtkMedFieldStep>* FieldStep;
-
-	vtkObjectVector<vtkMedString>* Unit;
-	vtkObjectVector<vtkMedString>* ComponentName;
 	vtkObjectVector<vtkMedInterpolation>* Interpolation;
 	//ETX
+
+	vtkStringArray* Unit;
+	vtkStringArray* ComponentName;
 
 private:
 	vtkMedField(const vtkMedField&); // Not implemented.

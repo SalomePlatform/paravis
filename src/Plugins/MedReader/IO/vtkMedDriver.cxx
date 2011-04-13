@@ -21,7 +21,6 @@
 #include "vtkMedFieldOverEntity.h"
 #include "vtkMedFieldStep.h"
 #include "vtkMedGroup.h"
-#include "vtkMedString.h"
 #include "vtkMedIntArray.h"
 #include "vtkMedLink.h"
 
@@ -272,7 +271,7 @@ void vtkMedDriver::LoadCellGlobalIds(vtkMedEntityArray* array)
   return;
 }
 
-void vtkMedDriver::LoadField(vtkMedFieldOnProfile* foe)
+void vtkMedDriver::LoadField(vtkMedFieldOnProfile* foe, med_storage_mode mode)
 {
   vtkErrorMacro("vtkMedDriver::LoadFieldOnProfile not Implemented !");
   return;

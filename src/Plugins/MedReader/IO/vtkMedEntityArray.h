@@ -117,12 +117,6 @@ public:
 
   virtual void  LoadConnectivity();
 
-  // Description:
-  // This flag is set to false when building the
-  // connectivity if it is not valid.
-  vtkGetMacro(Valid, int);
-  vtkSetMacro(Valid, int);
-
 protected:
   vtkMedEntityArray();
   virtual ~vtkMedEntityArray();

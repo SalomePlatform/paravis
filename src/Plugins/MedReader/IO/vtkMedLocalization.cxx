@@ -7,7 +7,6 @@
 
 #include "vtkMedUtilities.h"
 #include "vtkMedSetGet.h"
-#include "vtkMedString.h"
 #include "vtkMedFile.h"
 #include "vtkMedDriver.h"
 #include "vtkMedInterpolation.h"
@@ -365,23 +364,23 @@ vtkMedLocalization::vtkMedLocalization()
 	this->PointLocalCoordinates = vtkDoubleArray::New();
 	this->QuadraturePointLocalCoordinates = vtkDoubleArray::New();
 	this->ShapeFunction = vtkDoubleArray::New();
-	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_NAME_SIZE);
-	this->SectionName = vtkMedString::New();
-	this->SectionName->SetSize(MED_NAME_SIZE);
-	this->InterpolationName = vtkMedString::New();
-	this->InterpolationName->SetSize(MED_NAME_SIZE);
+	this->Name = NULL;
+	this->SectionName = NULL;
+	this->InterpolationName = NULL;
 	this->MedIterator = -1;
 	this->ParentFile = NULL;
 	this->SpaceDimension = 3;
 	this->NumberOfCellInSection = 0;
 	this->SectionGeometryType = MED_NONE;
 	this->Interpolation = NULL;
+	this->ShapeFunctionIsBuilt = 0;
 }
 
 vtkMedLocalization::~vtkMedLocalization()
 {
-	this->Name->Delete();
+	this->SetName(NULL);
+	this->SetSectionName(NULL);
+	this->SetInterpolationName(NULL);
 	this->Weights->Delete();
 	this->PointLocalCoordinates->Delete();
 	this->QuadraturePointLocalCoordinates->Delete();
@@ -415,6 +414,9 @@ int vtkMedLocalization::GetSizeOfShapeFunction()
 
 void vtkMedLocalization::BuildShapeFunction()
 {
+	if(this->ShapeFunctionIsBuilt)
+		return;
+
 	if(this->Interpolation == NULL)
 		{
 		// If there is no interpolation given for this localization,
@@ -544,6 +546,7 @@ void vtkMedLocalization::BuildShapeFunction()
 		{
 		this->BuildShapeFunctionFromInterpolation();
 		}
+	this->ShapeFunctionIsBuilt = 1;
 }
 
 void	vtkMedLocalization::BuildShapeFunctionFromInterpolation()
@@ -673,7 +676,6 @@ void vtkMedLocalization::BuildELNO(med_geometry_type geometry)
 void vtkMedLocalization::PrintSelf(ostream& os, vtkIndent indent)
 {
 	this->Superclass::PrintSelf(os, indent);
-	PRINT_MED_STRING(os, indent, Name);
 	PRINT_IVAR(os, indent, GeometryType);
 	PRINT_IVAR(os, indent, NumberOfQuadraturePoint);
 	PRINT_IVAR(os, indent, MedIterator);

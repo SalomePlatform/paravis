@@ -4,7 +4,6 @@
 #include "vtkObject.h"
 #include "vtkMedSetGet.h"
 
-class vtkMedString;
 class vtkMedMesh;
 class vtkMedField;
 class vtkMedProfile;
@@ -41,7 +40,7 @@ public:
   // Container of the meshes.
   vtkGetObjectVectorMacro(Mesh, vtkMedMesh);
   vtkSetObjectVectorMacro(Mesh, vtkMedMesh);
-  virtual vtkMedMesh* GetMesh(vtkMedString*);
+  virtual vtkMedMesh* GetMesh(const char*);
 
   // Description:
   // Container of the fields.
@@ -57,17 +56,18 @@ public:
   // Container of the profiles.
 	vtkGetObjectVectorMacro(Profile, vtkMedProfile);
 	vtkSetObjectVectorMacro(Profile, vtkMedProfile);
-	virtual vtkMedProfile*	GetProfile(vtkMedString*);
+	virtual vtkMedProfile*	GetProfile(const char*);
 
   // Description:
   // Container of the quadrature definitions.
   vtkGetObjectVectorMacro(Localization, vtkMedLocalization);
   vtkSetObjectVectorMacro(Localization, vtkMedLocalization);
-  virtual vtkMedLocalization*	GetLocalization(vtkMedString*);
+  virtual vtkMedLocalization*	GetLocalization(const char*);
 
   // Description:
   // This is the description of this file as stored in the med file.
-  vtkGetObjectMacro(Comment, vtkMedString);
+  vtkSetStringMacro(Comment);
+  vtkGetStringMacro(Comment);
 
   // Description:
   // Those 3 numbers describe the version of med used to create this file.
@@ -90,7 +90,7 @@ protected:
   int VersionMinor;
   int VersionRelease;
 
-  vtkMedString* Comment;
+  char* Comment;
   //BTX
   vtkObjectVector<vtkMedMesh>* Mesh;
   vtkObjectVector<vtkMedField>* Field;

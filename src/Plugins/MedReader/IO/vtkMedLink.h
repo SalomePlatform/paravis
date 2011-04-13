@@ -23,7 +23,8 @@ public:
 
   // Description:
   // Set the name of the mesh linked to.
-  vtkGetObjectMacro(MeshName, vtkMedString);
+  vtkSetStringMacro(MeshName);
+  vtkGetStringMacro(MeshName);
 
   // Description:
   // Set the name of the file this link points to.
@@ -48,7 +49,7 @@ protected:
   virtual ~vtkMedLink();
 
   med_int MedIterator;
-  vtkMedString* MeshName;
+  char* MeshName;
   char * Link;
 
   std::string FullLinkPath;

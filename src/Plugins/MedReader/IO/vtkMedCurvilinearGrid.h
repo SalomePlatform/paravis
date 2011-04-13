@@ -38,6 +38,11 @@ public :
   virtual med_int GetAxisSize(int axis);
 
   virtual void  LoadCoordinates();
+  virtual int IsCoordinatesLoaded();
+
+  virtual double* GetCoordTuple(med_int index);
+
+  virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*);
 
 protected:
   vtkMedCurvilinearGrid();

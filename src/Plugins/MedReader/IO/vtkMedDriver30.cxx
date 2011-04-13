@@ -22,7 +22,6 @@
 #include "vtkMedFieldOverEntity.h"
 #include "vtkMedFieldStep.h"
 #include "vtkMedGroup.h"
-#include "vtkMedString.h"
 #include "vtkMedIntArray.h"
 #include "vtkMedInterpolation.h"
 #include "vtkMedFieldOnProfile.h"
@@ -47,6 +46,8 @@ vtkMedDriver30::~vtkMedDriver30()
 // load all Information data associated with this cartesian grid.
 void vtkMedDriver30::ReadRegularGridInformation(vtkMedRegularGrid* grid)
 {
+  FileOpen open(this);
+
   grid->SetDimension(grid->GetParentMesh()->GetNumberOfAxis());
 
   for(int axis=0; axis < grid->GetDimension(); axis++)
@@ -56,7 +57,7 @@ void vtkMedDriver30::ReadRegularGridInformation(vtkMedRegularGrid* grid)
 
     if ((size = MEDmeshnEntity(
                   this->FileId,
-                  grid->GetParentMesh()->GetName()->GetString(),
+                  grid->GetParentMesh()->GetName(),
                   grid->GetComputeStep().TimeIt,
                   grid->GetComputeStep().IterationIt,
                   MED_NODE,
@@ -71,10 +72,54 @@ void vtkMedDriver30::ReadRegularGridInformation(vtkMedRegularGrid* grid)
 
     grid->SetAxisSize(axis, size);
     }
+
+  med_int ncell = 1;
+  if(grid->GetAxisSize(0) > 1)
+    ncell *= grid->GetAxisSize(0)-1;
+  if(grid->GetAxisSize(1) > 1)
+    ncell *= grid->GetAxisSize(1)-1;
+  if(grid->GetAxisSize(2) > 1)
+    ncell *= grid->GetAxisSize(2)-1;
+
+  vtkMedEntity entity;
+  entity.EntityType = MED_CELL;
+
+  switch(grid->GetDimension())
+    {
+    case 0 :
+      entity.GeometryType = MED_POINT1;
+      break;
+    case 1 :
+      entity.GeometryType = MED_SEG2;
+      break;
+    case 2 :
+      entity.GeometryType = MED_QUAD4;
+      break;
+    case 3 :
+      entity.GeometryType = MED_HEXA8;
+      break;
+    default :
+        vtkErrorMacro("Unsupported dimension for curvilinear grid : "
+                      << grid->GetDimension());
+    return;
+    }
+
+  vtkMedEntityArray* array = vtkMedEntityArray::New();
+  array->SetParentGrid(grid);
+  array->SetNumberOfEntity(ncell);
+  array->SetEntity(entity);
+  array->SetConnectivity(MED_NODAL);
+  grid->AppendEntityArray(array);
+  array->Delete();
+  // this triggers the creation of undefined families
+  this->LoadFamilyIds(array);
+
 }
 
 void  vtkMedDriver30::LoadRegularGridCoordinates(vtkMedRegularGrid* grid)
 {
+  FileOpen open(this);
+
   for(int axis=0; axis < grid->GetParentMesh()->GetNumberOfAxis(); axis++)
     {
 
@@ -82,45 +127,30 @@ void  vtkMedDriver30::LoadRegularGridCoordinates(vtkMedRegularGrid* grid)
     grid->SetAxisCoordinate(axis, coords);
     coords->Delete();
 
+    coords->SetNumberOfComponents(1);
     coords->SetNumberOfTuples(grid->GetAxisSize(axis));
 
     if (MEDmeshGridIndexCoordinateRd(
           this->FileId,
-          grid->GetParentMesh()->GetName()->GetString(),
+          grid->GetParentMesh()->GetName(),
           grid->GetComputeStep().TimeIt,
           grid->GetComputeStep().IterationIt,
           axis+1,
           (med_float*)coords->GetVoidPointer(0)) < 0)
       {
       vtkErrorMacro("ERROR : read axis " << axis << " coordinates ...");
+      grid->SetAxisCoordinate(axis, NULL);
       return;
       }
     }
-}
-
-void vtkMedDriver30::LoadCurvilinearGridCoordinates(vtkMedCurvilinearGrid* grid)
-{
-	vtkDataArray* coords = vtkMedUtilities::NewCoordArray();
-	grid->SetCoordinates(coords);
-	coords->Delete();
-
-	coords->SetNumberOfTuples(grid->GetNumberOfPoints());
-
-	if(MEDmeshNodeCoordinateRd(this->FileId,
-			grid->GetParentMesh()->GetName()->GetString(),
-			grid->GetComputeStep().TimeIt,
-			grid->GetComputeStep().IterationIt,
-			MED_FULL_INTERLACE,
-			(med_float *)coords->GetVoidPointer(0)) < 0)
-		{
-		vtkErrorMacro("Error reading node coordinates of curvilinear grid");
-		}
 }
 
 // Description:
 // load all Information data associated with this standard grid.
 void vtkMedDriver30::ReadCurvilinearGridInformation(vtkMedCurvilinearGrid* grid)
 {
+  FileOpen open(this);
+
   grid->SetDimension(grid->GetParentMesh()->GetNumberOfAxis());
 
   med_int size;
@@ -128,7 +158,7 @@ void vtkMedDriver30::ReadCurvilinearGridInformation(vtkMedCurvilinearGrid* grid)
 
   if ((size = MEDmeshnEntity(
                 this->FileId,
-                grid->GetParentMesh()->GetName()->GetString(),
+                grid->GetParentMesh()->GetName(),
                 grid->GetComputeStep().TimeIt,
                 grid->GetComputeStep().IterationIt,
                 MED_NODE,
@@ -146,7 +176,7 @@ void vtkMedDriver30::ReadCurvilinearGridInformation(vtkMedCurvilinearGrid* grid)
   med_int axissize[3];
   if(MEDmeshGridStructRd(
       this->FileId,
-      grid->GetParentMesh()->GetName()->GetString(),
+      grid->GetParentMesh()->GetName(),
       grid->GetComputeStep().TimeIt,
       grid->GetComputeStep().IterationIt,
       axissize) < 0)
@@ -165,6 +195,47 @@ void vtkMedDriver30::ReadCurvilinearGridInformation(vtkMedCurvilinearGrid* grid)
                   << "be the product of each axis size!");
     }
 
+  med_int ncell = 1;
+  if(grid->GetAxisSize(0) > 1)
+    ncell *= grid->GetAxisSize(0)-1;
+  if(grid->GetAxisSize(1) > 1)
+    ncell *= grid->GetAxisSize(1)-1;
+  if(grid->GetAxisSize(2) > 1)
+    ncell *= grid->GetAxisSize(2)-1;
+
+  vtkMedEntity entity;
+  entity.EntityType = MED_CELL;
+
+  switch(grid->GetDimension())
+    {
+    case 0 :
+      entity.GeometryType = MED_POINT1;
+      break;
+    case 1 :
+      entity.GeometryType = MED_SEG2;
+      break;
+    case 2 :
+      entity.GeometryType = MED_QUAD4;
+      break;
+    case 3 :
+      entity.GeometryType = MED_HEXA8;
+      break;
+    default :
+        vtkErrorMacro("Unsupported dimension for curvilinear grid : "
+                      << grid->GetDimension());
+    return;
+    }
+
+  vtkMedEntityArray* array = vtkMedEntityArray::New();
+  array->SetParentGrid(grid);
+  array->SetNumberOfEntity(ncell);
+  array->SetEntity(entity);
+  array->SetConnectivity(MED_NODAL);
+  grid->AppendEntityArray(array);
+  array->Delete();
+  // this triggers the creation of undefined families
+  this->LoadFamilyIds(array);
+
 }
 
 // Description : read the number of entity of all geometry type
@@ -174,9 +245,11 @@ void vtkMedDriver30::ReadNumberOfEntity(
     med_entity_type entityType,
     med_connectivity_mode connectivity)
 {
+  FileOpen open(this);
+
   med_bool changement, transformation;
 
-  const char* meshName = grid->GetParentMesh()->GetName()->GetString();
+  const char* meshName = grid->GetParentMesh()->GetName();
 
   const vtkMedComputeStep& cs = grid->GetComputeStep();
 
@@ -198,19 +271,22 @@ void vtkMedDriver30::ReadNumberOfEntity(
     vtkMedEntity entity;
     entity.EntityType = entityType;
 
+    char geometryName[MED_NAME_SIZE+1] = "";
+
     // this gives us the med_geometry_type
     if( MEDmeshEntityInfo( FileId, meshName,
                            cs.TimeIt,
                            cs.IterationIt,
                            entityType,
                            geotypeit,
-                           entity.GetGeometryName()->GetWritePointer(),
+                           geometryName,
                            &entity.GeometryType) < 0)
       {
       vtkErrorMacro("MEDmeshEntityInfo");
       continue;
       }
 
+    entity.GeometryName = geometryName;
     med_int ncell = 0;
 
     if(entity.GeometryType == MED_POLYGON)
@@ -279,7 +355,7 @@ void vtkMedDriver30::ReadUnstructuredGridInformation(
 
   vtkMedMesh *mesh = grid->GetParentMesh();
 
-  const char *meshName = mesh->GetName()->GetString();
+  const char *meshName = mesh->GetName();
   med_connectivity_mode connectivity;
 
   med_bool changement;
@@ -350,13 +426,17 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
   med_int familyid;
   med_int ngroup;
   char* groupNames = NULL;
-  const  char* meshName = mesh->GetName()->GetString();
+  const  char* meshName = mesh->GetName();
 
   ngroup = MEDnFamilyGroup(FileId, meshName, family->GetMedIterator());
 
   bool has_no_group = false;
-  if(ngroup == 0)
+  if(ngroup <= 0)
     {
+    if(ngroup < 0)
+      {
+      vtkErrorMacro("Error while reading the number of groups");
+      }
     ngroup = 1;
     has_no_group = true;
     }
@@ -390,10 +470,12 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
       memset(attributedes, '\0', nattr*MED_COMMENT_SIZE+1);
       }
 
+    char familyName[MED_NAME_SIZE+1] = "";
+
     if(MEDfamily23Info (this->FileId,
                         meshName,
                         family->GetMedIterator(),
-                        family->GetName()->GetWritePointer(),
+                        familyName,
                         attributenumber,
                         attributevalue,
                         attributedes,
@@ -402,6 +484,8 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
       {
       vtkDebugMacro("MEDfamily23Info");
       }
+
+    family->SetName(familyName);
 
     if(attributenumber != NULL)
       delete[] attributenumber;
@@ -412,11 +496,11 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
     }
   else
     {
-
+    char familyName[MED_NAME_SIZE+1] = "";
     if(MEDfamilyInfo( this->FileId,
                       meshName,
                       family->GetMedIterator(),
-                      family->GetName()->GetWritePointer(),
+                      familyName,
                       &familyid,
                       groupNames ) < 0)
       {
@@ -425,6 +509,7 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
           << " cannot read family informations.");
       return;
       }
+    family->SetName(familyName);
     }
 
   family->SetId(familyid);
@@ -468,7 +553,7 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
     mesh->AppendPointFamily(famzero);
     famzero->Delete();
 
-    famzero->GetName()->SetString(family->GetName()->GetString());
+    famzero->SetName(family->GetName());
     famzero->SetMedIterator(family->GetMedIterator());
     famzero->SetId(family->GetId());
     famzero->SetPointOrCell(vtkMedUtilities::OnPoint);
@@ -477,7 +562,7 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
       {
       vtkMedGroup* group = mesh->GetOrCreateGroup(
           vtkMedUtilities::OnPoint,
-          family->GetGroup(gid)->GetName()->GetString());
+          family->GetGroup(gid)->GetName());
       famzero->SetGroup(gid, group);
       mesh->AppendPointGroup(group);
       }
@@ -487,20 +572,22 @@ void vtkMedDriver30::ReadFamilyInformation(vtkMedMesh* mesh, vtkMedFamily* famil
 void  vtkMedDriver30::ReadLinkInformation(vtkMedLink* link)
 {
   med_int size;
+  char linkMeshName[MED_NAME_SIZE+1] = "";
   if(MEDlinkInfo(this->FileId,
                  link->GetMedIterator(),
-                 link->GetMeshName()->GetWritePointer(),
+                 linkMeshName,
                  &size) < 0)
     {
     vtkErrorMacro("MEDlinkInfo");
     return;
     }
+  link->SetMeshName(linkMeshName);
   if(size <= 0)
     return;
 
   char* path = new char[size + 1];
   memset(path, '\0', size+1);
-  if(MEDlinkRd(this->FileId, link->GetMeshName()->GetString(), path) < 0)
+  if(MEDlinkRd(this->FileId, link->GetMeshName(), path) < 0)
     {
     vtkErrorMacro("MEDlinkRd");
     memset(path, '\0', size+1);
@@ -515,8 +602,12 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
 {
   FileOpen open(this);
 
+  char comment[MED_COMMENT_SIZE+1] = "";
+
   MEDfileCommentRd(this->FileId,
-                  file->GetComment()->GetWritePointer());
+                  comment);
+
+  file->SetComment(comment);
 
   med_int major, minor, release;
   MEDfileNumVersionRd(this->FileId, &major, &minor, &release);
@@ -588,18 +679,18 @@ void vtkMedDriver30::ReadProfileInformation(vtkMedProfile* profile)
 {
   FileOpen open(this);
 
-  char profileName[MED_NAME_SIZE + 1];
-  profileName[MED_NAME_SIZE] = '\0';
   med_int nelem;
+  char profileName[MED_NAME_SIZE+1] = "";
 
   if(MEDprofileInfo(this->FileId,
                     profile->GetMedIterator(),
-                    profile->GetName()->GetWritePointer(),
+                    profileName,
                     &nelem) < 0)
     {
     vtkErrorMacro("cannot read information on profile"
         << profile->GetMedIterator());
     }
+  profile->SetName(profileName);
   profile->SetNumberOfElement(nelem);
 }
 
@@ -632,15 +723,19 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
   med_int nstep;
   med_bool localmesh;
 
+  char name[MED_NAME_SIZE+1] = "";
+  char meshName[MED_NAME_SIZE+1] = "";
+  char unit[MED_SNAME_SIZE+1] = "";
+
   if( MEDfieldInfo( FileId,
                     field->GetMedIterator(),
-                    field->GetName()->GetWritePointer(),
-                    field->GetMeshName()->GetWritePointer(),
+                    name,
+                    meshName,
                     &localmesh,
                     &dataType,
                     componentNames,
                     units,
-                    field->GetTimeUnit()->GetWritePointer(),
+                    unit,
                     &nstep) < 0)
     {
     vtkErrorMacro("cannot read the informations on field "
@@ -648,6 +743,9 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
     return;
     }
 
+  field->SetName(name);
+  field->SetMeshName(meshName);
+  field->SetTimeUnit(unit);
   field->SetDataType(dataType);
   field->SetLocal(localmesh);
 
@@ -655,18 +753,18 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
     {
     char unit[MED_NAME_SIZE + 1] = "";
     memcpy(unit, units + MED_SNAME_SIZE * comp, MED_SNAME_SIZE * sizeof(char));
-    field->GetUnit(comp)->SetString(unit);
+    field->GetUnit()->SetValue(comp, unit);
 
     char compName[MED_SNAME_SIZE + 1] = "";
     memcpy(compName, componentNames + MED_SNAME_SIZE * comp, MED_SNAME_SIZE
         * sizeof(char));
-    field->GetComponentName(comp)->SetString(compName);
+    field->GetComponentName()->SetValue(comp, compName);
     }
 
   delete[] units;
   delete[] componentNames;
 
-  med_int ninterp = MEDfieldnInterp(FileId, field->GetName()->GetString());
+  med_int ninterp = MEDfieldnInterp(FileId, field->GetName());
   if(ninterp < 0)
     {
     vtkErrorMacro("Error in MEDfieldnInterp");
@@ -705,7 +803,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
 
   if( MEDfieldComputingStepMeshInfo(
         FileId,
-        field->GetName()->GetString(),
+        field->GetName(),
         step->GetMedIterator(),
         &cs.TimeIt,
         &cs.IterationIt,
@@ -732,6 +830,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
     for (int geoid=1; geoid<=MED_N_CELL_FIXED_GEO; geoid++)
       {
       entity.GeometryType = MED_GET_CELL_GEOMETRY_TYPE[geoid];
+      entity.GeometryName = MED_GET_CELL_GEOMETRY_TYPENAME[geoid];
       // only point or cell fields are supported on polygons and polyhedrons
       // (no elno nor elga field)
       if((entity.GeometryType == MED_POLYGON ||
@@ -754,7 +853,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
       char localizationname[MED_NAME_SIZE+1] = "";
 
       nprofile = MEDfieldnProfile(
-          this->FileId, field->GetName()->GetString(),
+          this->FileId, field->GetName(),
           step->GetComputeStep().TimeIt,
           step->GetComputeStep().IterationIt,
           entity.EntityType,
@@ -779,7 +878,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
         {
         med_int medid = (hasprofile ? pid+1 : -1);
         nvalues = MEDfieldnValueWithProfile(
-                    this->FileId, field->GetName()->GetString(),
+                    this->FileId, field->GetName(),
                     step->GetComputeStep().TimeIt,
                     step->GetComputeStep().IterationIt,
                     entity.EntityType,
@@ -825,7 +924,7 @@ void vtkMedDriver30::ReadFieldOverEntityInformation(vtkMedFieldOverEntity* field
   vtkMedField* field = step->GetParentField();
   vtkMedEntity entity = fieldOverEntity->GetEntity();
 
-  const char* fieldName = field->GetName()->GetString();
+  const char* fieldName = field->GetName();
   const vtkMedComputeStep& cs = step->GetComputeStep();
 
   char profilename[MED_NAME_SIZE+1] = "";
@@ -875,17 +974,20 @@ void vtkMedDriver30::ReadFieldOnProfileInformation(vtkMedFieldOnProfile* fop)
 	med_int profilesize;
 	med_int nbofintegrationpoint;
 
+	char profileName[MED_NAME_SIZE+1] = "";
+	char localizationName[MED_NAME_SIZE+1] = "";
+
 	med_int nvalue = MEDfieldnValueWithProfile(FileId,
-										field->GetName()->GetString(),
+										field->GetName(),
 										cs.TimeIt,
 										cs.IterationIt,
 										fieldOverEntity->GetEntity().EntityType,
 										fieldOverEntity->GetEntity().GeometryType,
 										fop->GetMedIterator(),
-										MED_COMPACT_PFLMODE,
-										fop->GetProfileName()->GetWritePointer(),
+										MED_COMPACT_STMODE,
+										profileName,
 										&profilesize,
-										fop->GetLocalizationName()->GetWritePointer(),
+										localizationName,
 										&nbofintegrationpoint);
 
 	if(nvalue < 0)
@@ -893,6 +995,8 @@ void vtkMedDriver30::ReadFieldOnProfileInformation(vtkMedFieldOnProfile* fop)
 		vtkErrorMacro("Error while reading MEDfieldnValueWithProfile");
 		}
 
+	fop->SetProfileName(profileName);
+	fop->SetLocalizationName(localizationName);
 	fop->SetNumberOfValues(nvalue);
 	fop->SetNumberOfIntegrationPoint(nbofintegrationpoint);
 	fop->SetProfileSize(profilesize);
@@ -906,7 +1010,6 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
   med_int sdim = 0;
   med_mesh_type meshtype;
 
-  char dtunit[MED_SNAME_SIZE+1];
   med_sorting_type sortingtype;
   med_int nstep = 0;
   med_axis_type axistype;
@@ -917,17 +1020,23 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
     vtkDebugMacro("Error reading mesh axis number");
     }
 
+  if(naxis == 0)
+    naxis=MEDmeshnAxis(this->FileId, mesh->GetMedIterator());
+
   char axisname[3*MED_SNAME_SIZE+1] = "";
   char axisunit[3*MED_SNAME_SIZE+1] = "";
+  char name[MED_NAME_SIZE+1] = "";
+  char description[MED_COMMENT_SIZE+1] = "";
+  char timeUnit[MED_SNAME_SIZE+1] = "";
 
   if( MEDmeshInfo( this->FileId,
         mesh->GetMedIterator(),
-        mesh->GetName()->GetWritePointer(),
+        name,
         &sdim,
         &mdim,
         &meshtype,
-        mesh->GetDescription()->GetWritePointer(),
-        mesh->GetTimeUnit()->GetWritePointer(),
+        description,
+        timeUnit,
         &sortingtype,
         &nstep,
         &axistype,
@@ -937,6 +1046,9 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
     vtkErrorMacro("Error reading mesh");
     }
 
+  mesh->SetName(name);
+  mesh->SetDescription(description);
+  mesh->SetTimeUnit(timeUnit);
   mesh->SetSpaceDimension(sdim);
   mesh->SetMeshDimension(mdim);
   mesh->SetMeshType(meshtype);
@@ -946,24 +1058,28 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
 
   for(int axis = 0; axis < naxis; axis++)
     {
-    mesh->GetAxisName(axis)->SetString(axisname + axis*MED_SNAME_SIZE);
-    mesh->GetAxisUnit(axis)->SetString(axisunit + axis*MED_SNAME_SIZE);
+    char theaxisname[MED_SNAME_SIZE+1] = "";
+    char theaxisunit[MED_SNAME_SIZE+1] = "";
+    strncpy(theaxisname, axisname + axis*MED_SNAME_SIZE, MED_SNAME_SIZE);
+    strncpy(theaxisunit, axisunit + axis*MED_SNAME_SIZE, MED_SNAME_SIZE);
+    mesh->GetAxisName()->SetValue(axis, theaxisname);
+    mesh->GetAxisUnit()->SetValue(axis, theaxisunit);
     }
 
-  const char* meshName = mesh->GetName()->GetString();
+  char universalName[MED_LNAME_SIZE+1] = "";
 
-  if(MEDmeshUniversalNameRd(this->FileId, meshName,
-      mesh->GetUniversalName()->GetWritePointer()) < 0)
+  if(MEDmeshUniversalNameRd(this->FileId, name,
+      universalName) < 0)
     {
     vtkDebugMacro("MEDmeshUniversalNameRd < 0");
-    mesh->GetUniversalName()->SetString(NULL);
     }
+  mesh->SetUniversalName(universalName);
 
   // read the Information data of all families.
   // writing the family 0 is optional,
   // but I need it, so add it if it is not here.
 
-  med_int nfam = MEDnFamily(this->FileId, meshName);
+  med_int nfam = MEDnFamily(this->FileId, name);
 
   for(int index = 0; index < nfam; index++)
     {
@@ -982,7 +1098,7 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
     {
     // Do it for structured data
     med_grid_type mtg;
-    if(MEDmeshGridTypeRd(FileId, meshName, &mtg) < 0)
+    if(MEDmeshGridTypeRd(FileId, name, &mtg) < 0)
       {
       vtkErrorMacro("Error during structured grid Information loading.");
       return;
@@ -995,7 +1111,7 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
     {
     vtkMedComputeStep cs;
     if(MEDmeshComputationStepInfo(FileId,
-                                  meshName,
+                                  name,
                                   gid,
                                   &cs.TimeIt,
                                   &cs.IterationIt,
@@ -1037,7 +1153,6 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
     }
 }
 
-// MIGRATED
 void vtkMedDriver30::ReadLocalizationInformation(vtkMedLocalization* loc)
 {
   FileOpen open(this);
@@ -1048,15 +1163,19 @@ void vtkMedDriver30::ReadLocalizationInformation(vtkMedLocalization* loc)
   med_geometry_type sectiongeotype;
   med_int nsectionmeshcell;
 
+  char name[MED_NAME_SIZE+1] = "";
+  char interpolationName[MED_NAME_SIZE+1] = "";
+  char sectionName[MED_NAME_SIZE+1] = "";
+
   if(MEDlocalizationInfo(
       this->FileId,
       loc->GetMedIterator(),
-      loc->GetName()->GetWritePointer(),
+      name,
       &type_geo,
       &spaceDimension,
       &ngp,
-      loc->GetInterpolationName()->GetWritePointer(),
-      loc->GetSectionName()->GetWritePointer(),
+      interpolationName,
+      sectionName,
       &nsectionmeshcell,
       &sectiongeotype ) < 0)
     {
@@ -1064,6 +1183,9 @@ void vtkMedDriver30::ReadLocalizationInformation(vtkMedLocalization* loc)
         << loc->GetMedIterator());
     }
 
+  loc->SetName(name);
+  loc->SetInterpolationName(interpolationName);
+  loc->SetSectionName(sectionName);
   loc->SetNumberOfQuadraturePoint(ngp);
   loc->SetGeometryType(type_geo);
   loc->SetSpaceDimension(spaceDimension);
@@ -1075,7 +1197,7 @@ void vtkMedDriver30::ReadLocalizationInformation(vtkMedLocalization* loc)
   med_float *weights = new med_float[loc->GetSizeOfWeights()];
 
   if(MEDlocalizationRd(FileId,
-      loc->GetName()->GetString(),
+      loc->GetName(),
       MED_FULL_INTERLACE,
       localCoordinates,
       pqLocalCoordinates,
@@ -1117,9 +1239,11 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
   med_int maxdegree;
   med_int nmaxcoef;
 
+  char name[MED_NAME_SIZE+1] = "";
+
   if(MEDinterpInfo (this->FileId,
                     interp->GetMedIterator(),
-                    interp->GetName()->GetWritePointer(),
+                    name,
                     &geotype, &cellnode, &nbofbasisfunc,
                     &nbofvariable, &maxdegree, &nmaxcoef) < 0)
     {
@@ -1127,6 +1251,7 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
     return;
     }
 
+  interp->SetName(name);
   interp->SetGeometryType(geotype);
   interp->SetIsCellNode(cellnode);
   interp->SetNumberOfVariable(nbofvariable);
@@ -1141,7 +1266,7 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
 
     med_int ncoef = MEDinterpBaseFunctionCoefSize (
         this->FileId,
-        interp->GetName()->GetString(),
+        interp->GetName(),
         basisid+1);
     func->SetNumberOfCoefficients(ncoef);
 
@@ -1153,7 +1278,7 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
 
 		if(MEDinterpBaseFunctionRd 	(
 				this->FileId,
-				interp->GetName()->GetString(),
+				interp->GetName(),
 				basisid+1,
 				&ncoef,
 				power,
@@ -1193,7 +1318,7 @@ void vtkMedDriver30::LoadFamilyIds(vtkMedEntityArray* array)
   med_bool changement, transformation;
 
   med_int nfamid = MEDmeshnEntity(this->FileId,
-                      grid->GetParentMesh()->GetName()->GetString(),
+                      grid->GetParentMesh()->GetName(),
                       cs.TimeIt,
                       cs.IterationIt,
                       array->GetEntity().EntityType,
@@ -1214,7 +1339,7 @@ void vtkMedDriver30::LoadFamilyIds(vtkMedEntityArray* array)
 
     if ( MEDmeshEntityFamilyNumberRd(
             this->FileId,
-            grid->GetParentMesh()->GetName()->GetString(),
+            grid->GetParentMesh()->GetName(),
             cs.TimeIt,
             cs.IterationIt,
             array->GetEntity().EntityType,
@@ -1252,7 +1377,7 @@ void vtkMedDriver30::LoadPointGlobalIds(vtkMedGrid* grid)
 
   if( MEDmeshEntityNumberRd (
         this->FileId,
-        grid->GetParentMesh()->GetName()->GetString(),
+        grid->GetParentMesh()->GetName(),
         grid->GetComputeStep().TimeIt,
         grid->GetComputeStep().IterationIt,
         MED_NODE,
@@ -1265,20 +1390,28 @@ void vtkMedDriver30::LoadPointGlobalIds(vtkMedGrid* grid)
 
 void vtkMedDriver30::LoadCoordinates(vtkMedGrid* grid)
 {
-  vtkMedUnstructuredGrid* ugrid = vtkMedUnstructuredGrid::SafeDownCast(grid);
-  if(ugrid == NULL)
+  if(grid->IsCoordinatesLoaded())
+    return;
+
+  vtkMedRegularGrid* rgrid = vtkMedRegularGrid::SafeDownCast(grid);
+  if(rgrid != NULL)
     {
-    //TODO : deal with structured grids
+    this->LoadRegularGridCoordinates(rgrid);
     return;
     }
 
-  if(ugrid->IsCoordinatesLoaded())
-    return;
-
-  if(ugrid->GetUsePreviousCoordinates())
+  vtkMedUnstructuredGrid* ugrid = vtkMedUnstructuredGrid::SafeDownCast(grid);
+  vtkMedCurvilinearGrid* cgrid = vtkMedCurvilinearGrid::SafeDownCast(grid);
+  if(ugrid == NULL && cgrid == NULL)
     {
-    vtkMedUnstructuredGrid* previousgrid =
-        vtkMedUnstructuredGrid::SafeDownCast(grid->GetPreviousGrid());
+    //TODO : deal with structured grids
+    vtkWarningMacro("this kind of grid is not yet supported");
+    return;
+    }
+
+  if(grid->GetUsePreviousCoordinates())
+    {
+    vtkMedGrid* previousgrid = grid->GetPreviousGrid();
     if(previousgrid == NULL)
       {
       vtkErrorMacro("coordiantes have not changed, "
@@ -1287,7 +1420,12 @@ void vtkMedDriver30::LoadCoordinates(vtkMedGrid* grid)
       }
 
     this->LoadCoordinates(previousgrid);
-    ugrid->SetCoordinates(previousgrid->GetCoordinates());
+    if(ugrid != NULL)
+      ugrid->SetCoordinates(vtkMedUnstructuredGrid::SafeDownCast(previousgrid)
+                            ->GetCoordinates());
+    if(cgrid != NULL)
+      cgrid->SetCoordinates(vtkMedCurvilinearGrid::SafeDownCast(previousgrid)
+                            ->GetCoordinates());
     }
   else
     {
@@ -1295,7 +1433,10 @@ void vtkMedDriver30::LoadCoordinates(vtkMedGrid* grid)
     FileOpen open(this);
 
     vtkDataArray* coords = vtkMedUtilities::NewCoordArray();
-    ugrid->SetCoordinates(coords);
+    if(ugrid != NULL)
+      ugrid->SetCoordinates(coords);
+    if(cgrid != NULL)
+      cgrid->SetCoordinates(coords);
     coords->Delete();
 
     vtkMedComputeStep cs = grid->GetComputeStep();
@@ -1304,14 +1445,14 @@ void vtkMedDriver30::LoadCoordinates(vtkMedGrid* grid)
     coords->SetNumberOfTuples(grid->GetNumberOfPoints());
 
     if ( MEDmeshNodeCoordinateRd( this->FileId,
-                                  grid->GetParentMesh()->GetName()->GetString(),
+                                  grid->GetParentMesh()->GetName(),
                                   cs.TimeIt,
                                   cs.IterationIt,
                                   MED_FULL_INTERLACE,
                                   (med_float*) coords->GetVoidPointer(0) ) < 0)
       {
       vtkErrorMacro("Load Coordinates for mesh "
-          << grid->GetParentMesh()->GetName()->GetString());
+          << grid->GetParentMesh()->GetName());
       }
     }
 }
@@ -1329,12 +1470,13 @@ void vtkMedDriver30::LoadProfile(vtkMedProfile* profile)
 
   indices->SetNumberOfTuples(profile->GetNumberOfElement());
 
+  char name[MED_NAME_SIZE+1] = "";
+
   if( MEDprofileRd(this->FileId,
-                   profile->GetName()->GetWritePointer(),
+                   profile->GetName(),
                    indices->GetPointer(0) ) < 0)
     {
-    vtkErrorMacro("Reading profile indices "
-        << profile->GetName()->GetString());
+    vtkErrorMacro("Reading profile indices ");
     }
 }
 
@@ -1349,7 +1491,7 @@ void vtkMedDriver30::LoadConnectivity(vtkMedEntityArray* array)
 
   grid = array->GetParentGrid();
 
-  const char* meshName = grid->GetParentMesh()->GetName()->GetString();
+  const char* meshName = grid->GetParentMesh()->GetName();
 
   vtkMedIntArray* conn = vtkMedIntArray::New();
   array->SetConnectivityArray(conn);
@@ -1537,7 +1679,7 @@ void vtkMedDriver30::LoadCellGlobalIds(vtkMedEntityArray* array)
 
   if( MEDmeshEntityNumberRd (
         this->FileId,
-        grid->GetParentMesh()->GetName()->GetString(),
+        grid->GetParentMesh()->GetName(),
         cs.TimeIt,
         cs.IterationIt,
         array->GetEntity().EntityType,
@@ -1548,20 +1690,45 @@ void vtkMedDriver30::LoadCellGlobalIds(vtkMedEntityArray* array)
     }
 }
 
-void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop)
+void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode)
 {
   FileOpen open(this);
 
-  vtkMedFieldOverEntity* foe = fop->GetParentFieldOverEntity();
-  vtkMedFieldStep *step = foe->GetParentStep();
+  vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
+  vtkMedFieldStep *step = fieldOverEntity->GetParentStep();
   vtkMedField* field = step->GetParentField();
+  const vtkMedComputeStep& cs = step->GetComputeStep();
 
   vtkDataArray* data = vtkMedUtilities::NewArray(field->GetDataType());
   fop->SetData(data);
   data->Delete();
 
-  vtkIdType size = fop->GetNumberOfValues();
-  if(fop->GetNumberOfIntegrationPoint() > 0)
+  med_int size;
+  if(mode == MED_COMPACT_STMODE)
+    {
+    size = fop->GetNumberOfValues();
+    }
+  else
+    {
+    med_int profilesize;
+    med_int nbofintegrationpoint;
+    char profileName[MED_NAME_SIZE+1] = "";
+    char localizationName[MED_NAME_SIZE+1] = "";
+    size = MEDfieldnValueWithProfile(this->FileId,
+                field->GetName(),
+                cs.TimeIt,
+                cs.IterationIt,
+                fieldOverEntity->GetEntity().EntityType,
+                fieldOverEntity->GetEntity().GeometryType,
+                fop->GetMedIterator(),
+                MED_GLOBAL_STMODE,
+                profileName,
+                &profilesize,
+                localizationName,
+                &nbofintegrationpoint);
+    }
+
+  if(fop->GetNumberOfIntegrationPoint() > 1)
     {
     size *= fop->GetNumberOfIntegrationPoint();
     }
@@ -1569,17 +1736,15 @@ void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop)
   data->SetNumberOfComponents(field->GetNumberOfComponent());
   data->SetNumberOfTuples(size);
 
-  vtkMedComputeStep cs = step->GetComputeStep();
-
   if ( MEDfieldValueWithProfileRd(
           this->FileId,
-          field->GetName()->GetString(),
+          field->GetName(),
           cs.TimeIt,
           cs.IterationIt,
-          foe->GetEntity().EntityType,
-          foe->GetEntity().GeometryType,
-          MED_COMPACT_PFLMODE,
-          fop->GetProfileName()->GetString(),
+          fieldOverEntity->GetEntity().EntityType,
+          fieldOverEntity->GetEntity().GeometryType,
+          mode,
+          fop->GetProfileName(),
           MED_FULL_INTERLACE,
           MED_ALL_CONSTITUENT,
           (unsigned char*) data->GetVoidPointer(0) ) < 0)

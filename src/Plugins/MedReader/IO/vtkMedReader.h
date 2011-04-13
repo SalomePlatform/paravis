@@ -22,7 +22,6 @@ class vtkMedComputeStep;
 class vtkMedGrid;
 class vtkMedFieldOnProfile;
 class vtkMedListOfFieldSteps;
-class vtkMedString;
 
 class vtkUnstructuredGrid;
 class vtkUnsignedCharArray;
@@ -31,6 +30,7 @@ class vtkDoubleArray;
 class vtkFieldData;
 class vtkInformationDataObjectKey;
 class vtkMutableDirectedGraph;
+class vtkDataSet;
 
 class VTK_EXPORT vtkMedReader: public vtkMultiBlockDataSetAlgorithm
 {
@@ -241,10 +241,6 @@ protected:
 
   virtual void AddQuadratureSchemeDefinition(vtkInformation*,
       vtkMedLocalization*);
-  virtual void BuildUnstructuredGridForCellSupport(
-      vtkMedFamilyOnEntityOnProfile*, vtkUnstructuredGrid*);
-  virtual void BuildUnstructuredGridForPointSupport(
-      vtkMedFamilyOnEntityOnProfile*, vtkUnstructuredGrid*);
 
   //BTX
   enum
@@ -281,9 +277,9 @@ protected:
   // to link mesh and field.
   virtual void  LinkMedInfo();
 
-  virtual vtkMedProfile* GetProfile(vtkMedString*);
+  virtual vtkMedProfile* GetProfile(const char*);
 
-  virtual vtkMedLocalization* GetLocalization(vtkMedString*);
+  virtual vtkMedLocalization* GetLocalization(const char*);
 
   virtual int GetLocalizationKey(vtkMedFieldOnProfile*);
 
@@ -331,10 +327,10 @@ protected:
   virtual void SelectFamiliesFromGroups();
 
   // Description:
-  // Format the id list so that it respects the VTK format for polyhedrons :
-  // numfaces, npts_face0, pt0, ... npts_face1, pt1 ....
-  void  FormatPolyhedronForVTK(vtkMedFamilyOnEntityOnProfile*,
-                               vtkIdType, vtkIdList*);
+  // Instanciate a new vtkDataSet and initialize it to the points
+  // of this support.
+  vtkDataSet* CreateUnstructuredGridForPointSupport(
+      vtkMedFamilyOnEntityOnProfile* foep);
 
   // Field selections
   vtkMedSelection* PointFields;

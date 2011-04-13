@@ -34,6 +34,7 @@ vtkMedFamilyOnEntityOnProfile::vtkMedFamilyOnEntityOnProfile()
   this->IntersectionStatus = vtkMedFamilyOnEntityOnProfile::NotComputed;
   this->UseAllPoints = false;
   this->MatchComputed = false;
+  this->Valid = true;
 }
 
 vtkMedFamilyOnEntityOnProfile::~vtkMedFamilyOnEntityOnProfile()
@@ -88,7 +89,7 @@ int vtkMedFamilyOnEntityOnProfile::CanMapField(vtkMedFieldOnProfile* fop)
      fop->GetProfile() != this->Profile)
     return false;
 
-  if(this->FamilyOnEntity->GetEntityArray()->GetValid() == 0)
+  if(this->GetValid() == 0)
     return false;
 
   this->ComputeIntersection(fop);
@@ -294,7 +295,7 @@ void  vtkMedFamilyOnEntityOnProfile::ComputeUsedPoints()
         if(subid < 0 || subid >= flag->GetNumberOfTuples())
           {
           vtkDebugMacro("invalid sub id : " << subid);
-          array->SetValid(0);
+          this->SetValid(0);
           break;
           }
         flag->SetValue(subid, 1);

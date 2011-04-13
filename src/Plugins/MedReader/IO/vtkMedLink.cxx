@@ -3,7 +3,6 @@
 #include "vtkObjectFactory.h"
 
 #include "vtkMedUtilities.h"
-#include "vtkMedString.h"
 
 #include <string>
 using namespace std;
@@ -14,14 +13,13 @@ vtkStandardNewMacro(vtkMedLink)
 vtkMedLink::vtkMedLink()
 {
 	this->MedIterator = -1;
-	this->MeshName = vtkMedString::New();
-	this->MeshName->SetSize(MED_NAME_SIZE);
+	this->MeshName = NULL;
 	this->Link = NULL;
 }
 
 vtkMedLink::~vtkMedLink()
 {
-	this->MeshName->Delete();
+	this->SetMeshName(NULL);
 	this->SetLink(NULL);
 }
 

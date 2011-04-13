@@ -14,7 +14,8 @@ public :
 
   // Description:
   // This is the description of this file as stored in the med file.
-	vtkGetObjectMacro(Name, vtkMedString);
+  vtkGetStringMacro(Name);
+  vtkSetStringMacro(Name);
 
 	// Description:
 	// This ivar says if this group contains point or cell families
@@ -26,7 +27,7 @@ protected:
 	vtkMedGroup();
   virtual ~vtkMedGroup();
 
-  vtkMedString* Name;
+  char* Name;
 
 private:
 	vtkMedGroup(const vtkMedGroup&); // Not implemented.

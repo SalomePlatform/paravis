@@ -84,7 +84,7 @@ public:
 
   // Description:
   // load the field on this profile
-  virtual void LoadField(vtkMedFieldOnProfile*);
+  virtual void LoadField(vtkMedFieldOnProfile*, med_storage_mode mode);
 
   // Description:
   // Load the indices of the profile
@@ -107,8 +107,6 @@ public:
   virtual void LoadCellGlobalIds(vtkMedEntityArray*);
 
   virtual void LoadRegularGridCoordinates(vtkMedRegularGrid*);
-
-  virtual void LoadCurvilinearGridCoordinates(vtkMedCurvilinearGrid*);
 
 protected:
   vtkMedDriver30();

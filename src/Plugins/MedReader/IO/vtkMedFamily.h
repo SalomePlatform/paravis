@@ -18,7 +18,8 @@ public:
 
   // Description:
   // Set the name of this family.
-  vtkGetObjectMacro(Name, vtkMedString);
+  vtkSetStringMacro(Name);
+  vtkGetStringMacro(Name);
 
   // Description:
   // The id of this family.
@@ -47,7 +48,7 @@ protected:
 
   med_int Id;
   med_int MedIterator;
-  vtkMedString* Name;
+  char* Name;
   int PointOrCell;
 
   //BTX

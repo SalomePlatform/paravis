@@ -83,6 +83,12 @@ public :
   // not at the profile)
   bool KeepCell(med_int index);
 
+  // Description:
+  // This flag is set to false when building the
+  // connectivity if it is not valid.
+  vtkGetMacro(Valid, int);
+  vtkSetMacro(Valid, int);
+
 protected:
   vtkMedFamilyOnEntityOnProfile();
   virtual ~vtkMedFamilyOnEntityOnProfile();
@@ -110,6 +116,7 @@ protected:
   std::map<vtkMedProfile*, ePointProfileVsSupportMatch> PointProfileMatch;
 
   bool MatchComputed;
+  int Valid;
 
 private:
   vtkMedFamilyOnEntityOnProfile(const vtkMedFamilyOnEntityOnProfile&);

@@ -13,7 +13,7 @@ class VTK_EXPORT vtkMedUnstructuredGrid : public vtkMedGrid
 {
 public :
   static vtkMedUnstructuredGrid* New();
-  vtkTypeRevisionMacro(vtkMedUnstructuredGrid, vtkMedGrid)
+  vtkTypeRevisionMacro(vtkMedUnstructuredGrid, vtkMedGrid);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -42,6 +42,10 @@ public :
   vtkGetMacro(NumberOfPoints, med_int);
 
   virtual void  LoadCoordinates();
+
+  virtual double* GetCoordTuple(med_int index);
+
+  virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*);
 
 protected:
   vtkMedUnstructuredGrid();

@@ -2,7 +2,6 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkMedIntArray.h"
-#include "vtkMedString.h"
 #include "vtkMedSetGet.h"
 #include "vtkMedUtilities.h"
 #include "vtkMedFile.h"
@@ -18,8 +17,7 @@ vtkMedProfile::vtkMedProfile()
 {
 	this->NumberOfElement = 0;
 	this->Ids = NULL;
-	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_NAME_SIZE);
+	this->Name = NULL;
 	this->MedIterator = -1;
 	this->GeometryType = MED_NO_GEOTYPE;
 	this->ParentFile = NULL;
@@ -27,7 +25,7 @@ vtkMedProfile::vtkMedProfile()
 
 vtkMedProfile::~vtkMedProfile()
 {
-	this->Name->Delete();
+	this->SetName(NULL);
 	this->SetIds(NULL);
 }
 
@@ -46,7 +44,6 @@ void	vtkMedProfile::Load()
 void vtkMedProfile::PrintSelf(ostream& os, vtkIndent indent)
 {
 	this->Superclass::PrintSelf(os, indent);
-	PRINT_MED_STRING(os, indent, Name);
 	PRINT_IVAR(os, indent, NumberOfElement);
 	PRINT_IVAR(os, indent, MedIterator);
 	PRINT_OBJECT(os, indent, Ids);

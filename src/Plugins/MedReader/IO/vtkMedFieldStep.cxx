@@ -5,6 +5,8 @@
 #include "vtkMedUtilities.h"
 #include "vtkMedFieldOverEntity.h"
 #include "vtkMedField.h"
+#include "vtkMedFile.h"
+#include "vtkMedDriver.h"
 
 vtkCxxGetObjectVectorMacro(vtkMedFieldStep, FieldOverEntity, vtkMedFieldOverEntity);
 vtkCxxSetObjectVectorMacro(vtkMedFieldStep, FieldOverEntity, vtkMedFieldOverEntity);
@@ -20,6 +22,7 @@ vtkMedFieldStep::vtkMedFieldStep()
 	this->FieldOverEntity = new vtkObjectVector<vtkMedFieldOverEntity>();
 	this->PreviousStep = NULL;
 	this->ParentField = NULL;
+	this->MedIterator = -1;
 }
 
 vtkMedFieldStep::~vtkMedFieldStep()
@@ -39,6 +42,12 @@ vtkMedFieldOverEntity* vtkMedFieldStep::GetFieldOverEntity(
 			return fieldOverEntity;
 		}
 	return NULL;
+}
+
+void	vtkMedFieldStep::LoadInformation()
+{
+	this->GetParentField()->GetParentFile()->GetMedDriver()->
+			ReadFieldStepInformation(this);
 }
 
 void vtkMedFieldStep::PrintSelf(ostream& os, vtkIndent indent)

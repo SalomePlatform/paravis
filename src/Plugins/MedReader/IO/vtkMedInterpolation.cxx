@@ -3,7 +3,6 @@
 #include "vtkObjectFactory.h"
 
 #include "vtkMedUtilities.h"
-#include "vtkMedString.h"
 #include "vtkMedFraction.h"
 
 vtkCxxRevisionMacro(vtkMedInterpolation, "$Revision$")
@@ -21,15 +20,14 @@ vtkMedInterpolation::vtkMedInterpolation()
 	this->MaximumNumberOfCoefficient = 0;
 	this->MaximumDegree = 0;
 	this->NumberOfVariable = 0;
-	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_NAME_SIZE);
+	this->Name = NULL;
 	this->BasisFunction = new vtkObjectVector<vtkMedFraction>();
 }
 
 vtkMedInterpolation::~vtkMedInterpolation()
 {
 	delete this->BasisFunction;
-	this->Name->Delete();
+	this->SetName(NULL);
 }
 
 void vtkMedInterpolation::PrintSelf(ostream& os, vtkIndent indent)

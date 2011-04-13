@@ -10,8 +10,6 @@ public :
   vtkTypeRevisionMacro(vtkMedPolarGrid, vtkMedRegularGrid);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  virtual void  LoadCoordinates();
-
 protected:
 	vtkMedPolarGrid();
   virtual ~vtkMedPolarGrid();

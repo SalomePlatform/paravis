@@ -8,6 +8,8 @@
 #include "vtkMedMesh.h"
 #include "vtkMedGrid.h"
 #include "vtkMedUnstructuredGrid.h"
+#include "vtkMedRegularGrid.h"
+#include "vtkMedCurvilinearGrid.h"
 #include "vtkMedFile.h"
 #include "vtkMedDriver.h"
 
@@ -42,7 +44,7 @@ vtkMedEntityArray::vtkMedEntityArray()
   this->FamilyOnEntity = new vtkObjectVector<vtkMedFamilyOnEntity> ();
   this->FamilyIdStatus = vtkMedEntityArray::FAMILY_ID_NOT_LOADED;
   this->ParentGrid = NULL;
-  this->Valid = true;
+
 }
 
 vtkMedEntityArray::~vtkMedEntityArray()
@@ -145,6 +147,9 @@ int vtkMedEntityArray::IsConnectivityLoaded()
   // Entity Arrays representing something else than cells
   // have no connectivity
 
+  if(vtkMedUnstructuredGrid::SafeDownCast(this->GetParentGrid()) == NULL)
+    return 1;
+
   if( this->Entity.EntityType != MED_CELL &&
       this->Entity.EntityType != MED_DESCENDING_FACE &&
       this->Entity.EntityType != MED_DESCENDING_EDGE )
@@ -195,6 +200,89 @@ void vtkMedEntityArray::GetCellVertices(vtkIdType index, vtkIdList* ids)
       this->Entity.EntityType != MED_DESCENDING_EDGE )
     {
     vtkErrorMacro("This reader is not compatible with those entities (yet)...");
+    return;
+    }
+
+  if(vtkMedUnstructuredGrid::SafeDownCast(this->ParentGrid) == NULL)
+    {
+    // this is a structured grid, connectivity is implicit...
+
+    if(this->Entity.GeometryType == MED_POINT1)
+      {
+      // degenerate case if there is only one point
+      ids->InsertNextId(0);
+      return;
+      }
+    if(this->Entity.GeometryType == MED_SEG2)
+      {
+      // line
+      ids->InsertNextId(index);
+      ids->InsertNextId(index+1);
+      return;
+      }
+    vtkMedRegularGrid* vtkrgrid = vtkMedRegularGrid::SafeDownCast(
+        this->GetParentGrid());
+    vtkMedCurvilinearGrid* vtkcgrid = vtkMedCurvilinearGrid::SafeDownCast(
+        this->GetParentGrid());
+    vtkIdType xncell = 0;
+    vtkIdType yncell = 0;
+    vtkIdType zncell = 0;
+    vtkIdType xnpts = 1;
+    vtkIdType ynpts = 1;
+    vtkIdType znpts = 1;
+    if(vtkrgrid!=NULL)
+      {
+      xncell = vtkrgrid->GetAxisSize(0)-1;
+      yncell = vtkrgrid->GetAxisSize(1)-1;
+      zncell = vtkrgrid->GetAxisSize(2)-1;
+      xnpts = vtkrgrid->GetAxisSize(0);
+      ynpts = vtkrgrid->GetAxisSize(1);
+      znpts = vtkrgrid->GetAxisSize(2);
+      }
+    if(vtkcgrid != NULL)
+      {
+      xncell = vtkcgrid->GetAxisSize(0)-1;
+      yncell = vtkcgrid->GetAxisSize(1)-1;
+      zncell = vtkcgrid->GetAxisSize(2)-1;
+      xnpts = vtkcgrid->GetAxisSize(0);
+      ynpts = vtkcgrid->GetAxisSize(1);
+      znpts = vtkcgrid->GetAxisSize(2);
+      }
+    vtkIdType xindex = index % xncell;
+    if(xncell <= 0)
+      return;
+
+    vtkIdType yindex = index / xncell;
+
+    if(this->Entity.GeometryType == MED_QUAD4)
+      {
+      // plane
+
+      ids->InsertNextId(xindex + yindex*xnpts);
+      ids->InsertNextId(xindex + 1 + yindex*xnpts);
+      ids->InsertNextId(xindex + yindex*xnpts);
+      ids->InsertNextId(xindex + 1 + (yindex + 1)*xnpts);
+      return;
+      }
+
+    if(yncell <= 0)
+      return;
+
+    vtkIdType zindex = index / (xncell*yncell);
+
+    if(this->Entity.GeometryType == MED_HEXA8)
+      {
+      // volume
+      ids->InsertNextId(xindex   + (yindex  )*xnpts + (zindex  )*xnpts*ynpts);
+      ids->InsertNextId(xindex+1 + (yindex  )*xnpts + (zindex  )*xnpts*ynpts);
+      ids->InsertNextId(xindex   + (yindex+1)*xnpts + (zindex  )*xnpts*ynpts);
+      ids->InsertNextId(xindex+1 + (yindex+1)*xnpts + (zindex  )*xnpts*ynpts);
+      ids->InsertNextId(xindex   + (yindex  )*xnpts + (zindex+1)*xnpts*ynpts);
+      ids->InsertNextId(xindex+1 + (yindex  )*xnpts + (zindex+1)*xnpts*ynpts);
+      ids->InsertNextId(xindex   + (yindex+1)*xnpts + (zindex+1)*xnpts*ynpts);
+      ids->InsertNextId(xindex+1 + (yindex+1)*xnpts + (zindex+1)*xnpts*ynpts);
+      return;
+      }
     return;
     }
 

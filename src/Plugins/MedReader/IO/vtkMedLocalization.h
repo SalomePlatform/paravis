@@ -19,15 +19,18 @@ public:
 
 	// Description:
 	// This is the name of this definition
-	vtkGetObjectMacro(Name, vtkMedString);
+	vtkSetStringMacro(Name);
+	vtkGetStringMacro(Name);
 
 	// Description:
 	// This is the name of this definition
-	vtkGetObjectMacro(SectionName, vtkMedString);
+	vtkSetStringMacro(SectionName);
+	vtkGetStringMacro(SectionName);
 
 	// Description:
 	// This is the name of this definition
-	vtkGetObjectMacro(InterpolationName, vtkMedString);
+	vtkSetStringMacro(InterpolationName);
+	vtkGetStringMacro(InterpolationName);
 
 	// Description:
 	// This is the type of cell geometry this definition is for.
@@ -102,13 +105,15 @@ protected:
 	vtkDoubleArray* QuadraturePointLocalCoordinates;
 	vtkDoubleArray* ShapeFunction;
 
-	vtkMedString* Name;
-	vtkMedString* SectionName;
-	vtkMedString* InterpolationName;
+	char* Name;
+	char* SectionName;
+	char* InterpolationName;
 
 	vtkMedFile* ParentFile;
 
 	vtkMedInterpolation* Interpolation;
+
+	int ShapeFunctionIsBuilt;
 
 	virtual void	BuildAsterShapeFunction(int dim,
 																	 int nnodes,

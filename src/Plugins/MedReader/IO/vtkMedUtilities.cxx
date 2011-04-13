@@ -3,7 +3,11 @@
 #include "vtkMedMesh.h"
 #include "vtkMedFamily.h"
 #include "vtkMedGroup.h"
-#include "vtkMedString.h"
+#include "vtkMedFamilyOnEntityOnProfile.h"
+#include "vtkMedFamilyOnEntity.h"
+#include "vtkMedEntityArray.h"
+#include "vtkMedIntArray.h"
+#include "vtkMedGrid.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkInformation.h"
@@ -206,11 +210,6 @@ const char* vtkMedUtilities::ConnectivityName(med_connectivity_mode conn)
   }
 }
 
-const std::string vtkMedUtilities::SimplifyName(const vtkMedString* medString)
-{
-  return vtkMedUtilities::SimplifyName(medString->GetString());
-}
-
 const std::string vtkMedUtilities::SimplifyName(const char* medName)
 {
   ostringstream sstr;
@@ -241,14 +240,6 @@ const std::string vtkMedUtilities::SimplifyName(const char* medName)
   return sstr.str();
 }
 
-const std::string vtkMedUtilities::FamilyKey(vtkMedString* meshName,
-    int pointOrCell, vtkMedString* familyName)
-{
-  return vtkMedUtilities::FamilyKey(meshName->GetString(),
-                                   pointOrCell,
-                                   familyName->GetString());
-}
-
 const std::string vtkMedUtilities::FamilyKey(const char* meshName,
     int pointOrCell, const char* familyName)
 {
@@ -260,14 +251,6 @@ const std::string vtkMedUtilities::FamilyKey(const char* meshName,
     sstr<<vtkMedUtilities::OnPointName;
   sstr<<Separator<<SimplifyName(familyName);
   return sstr.str();
-}
-
-const std::string vtkMedUtilities::GroupKey(vtkMedString* meshName,
-    int pointOrCell, vtkMedString* groupName)
-{
-  return vtkMedUtilities::GroupKey(meshName->GetString(),
-                                   pointOrCell,
-                                   groupName->GetString());
 }
 
 const std::string vtkMedUtilities::GroupKey(const char* meshName,
@@ -523,6 +506,78 @@ med_geometry_type vtkMedUtilities::GetSubGeometry(
   }
 }
 
+int vtkMedUtilities::FormatPolyhedronForVTK(
+    vtkMedFamilyOnEntityOnProfile* foep, vtkIdType index,
+    vtkIdList* ids )
+{
+  vtkMedEntityArray* array = foep->GetFamilyOnEntity()->GetEntityArray();
+  vtkMedIntArray* conn = array->GetConnectivityArray();
+  vtkMedIntArray* faceIndex = array->GetFaceIndex();
+  vtkMedIntArray* nodeIndex = array->GetNodeIndex();
+  med_int start = faceIndex->GetValue(index)-1;
+  med_int end = faceIndex->GetValue(index+1)-1;
+
+  // The format for the Polyhedrons is:
+  //(numCellFaces, numFace0Pts, id1, id2, id3, numFace1Pts,id1, id2, id3, ...)
+  ids->Reset();
+
+  if (array->GetConnectivity()==MED_NODAL)
+    {
+    ids->InsertNextId(end-start-1);
+    for (int ff = start; ff<end; ff++)
+      {
+      med_int fstart = nodeIndex->GetValue(ff)-1;
+      med_int fend = nodeIndex->GetValue(ff+1)-1;
+      ids->InsertNextId(fend-fstart);
+      for (med_int pt = fstart; pt<fend; pt++)
+        {
+        vtkIdType realIndex = foep->GetVTKPointIndex(conn->GetValue(pt)-1);
+        if(realIndex < 0)
+          {
+          vtkGenericWarningMacro("this polyhedron is not on this profile");
+          foep->SetValid(0);
+          return 0;
+          }
+        ids->InsertNextId(realIndex);
+        }
+      }
+    }
+
+  if (array->GetConnectivity()==MED_DESCENDING)
+    {
+    ids->InsertNextId(end-start);
+    vtkSmartPointer<vtkIdList> subIds = vtkSmartPointer<vtkIdList>::New();
+
+    for (int i = 0 ; i<nodeIndex->GetSize(); i++)
+      {
+      int numPoints =
+          vtkMedUtilities::GetNumberOfSubEntity(nodeIndex->GetValue(i));
+      ids->InsertNextId(numPoints);
+
+      vtkMedEntity entity;
+      entity.EntityType = MED_DESCENDING_FACE;
+      entity.GeometryType = nodeIndex->GetValue(i);
+
+      vtkMedEntityArray* theFaces =
+          array->GetParentGrid()->GetEntityArray(entity);
+
+      theFaces->GetCellVertices(conn->GetValue(i)-1, subIds);
+
+      for (int j = 0 ; j< numPoints; j++)
+        {
+        vtkIdType realIndex = foep->GetVTKPointIndex(subIds->GetId(j));
+        if(realIndex < 0)
+          {
+          vtkGenericWarningMacro("this polyhedron is not on this profile");
+          return 0;
+          }
+        ids->InsertNextId(realIndex);
+        }
+      }
+    }
+  return 1;
+}
+
 void vtkMedUtilities::SplitGroupKey(const char* name, vtkstd::string& mesh,
     vtkstd::string& entity, vtkstd::string& group)
 {
@@ -604,10 +659,25 @@ void vtkMedUtilities::ProjectConnectivity(med_geometry_type parentGeometry,
     }
 }
 
-std::string vtkMedUtilities::GetModeKey(int index, double frequency)
+std::string vtkMedUtilities::GetModeKey(int index, double frequency, int maxindex)
 {
   std::ostringstream key;
-  key<<"["<<index<<"] "<<frequency;
+  key<<"[";
+  if(maxindex > 0)
+    {
+    int maxdecim = floor(log(maxindex)/log(10));
+    int decim = 0;
+    if(index > 0)
+      {
+      decim = floor(log(index)/log(10));
+      }
+    for(int i=decim; i<maxdecim; i++)
+      {
+      key << "0";
+      }
+    }
+
+  key<<index<<"] "<<frequency;
   return key.str();
 }
 

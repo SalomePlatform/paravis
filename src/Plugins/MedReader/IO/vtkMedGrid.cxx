@@ -4,7 +4,6 @@
 
 #include "vtkMedUtilities.h"
 #include "vtkMedMesh.h"
-#include "vtkMedString.h"
 #include "vtkMedIntArray.h"
 #include "vtkMedFamilyOnEntity.h"
 #include "vtkMedFamily.h"

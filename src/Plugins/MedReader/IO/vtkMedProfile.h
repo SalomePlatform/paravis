@@ -22,7 +22,8 @@ public :
 
   // Description:
   // The name of the profile in the file
-	vtkGetObjectMacro(Name, vtkMedString);
+  vtkGetStringMacro(Name);
+  vtkSetStringMacro(Name);
 
   // Description:
   // Allocate and clear memory of this profil.
@@ -54,7 +55,7 @@ protected:
   med_int MedIterator;
   vtkIdType NumberOfElement;
   vtkMedIntArray* Ids;
-  vtkMedString* Name;
+  char* Name;
   med_geometry_type GeometryType;
   vtkMedFile* ParentFile;
 

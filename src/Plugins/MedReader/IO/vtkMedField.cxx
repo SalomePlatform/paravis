@@ -5,7 +5,6 @@
 #include "vtkStringArray.h"
 #include "vtkMedFieldOverEntity.h"
 #include "vtkMedFieldStep.h"
-#include "vtkMedString.h"
 #include "vtkMedUtilities.h"
 #include "vtkMedFieldOnProfile.h"
 #include "vtkMedInterpolation.h"
@@ -18,12 +17,6 @@ using namespace std;
 vtkCxxGetObjectVectorMacro(vtkMedField, Interpolation, vtkMedInterpolation);
 vtkCxxSetObjectVectorMacro(vtkMedField, Interpolation, vtkMedInterpolation);
 
-vtkCxxGetObjectVectorMacro(vtkMedField, Unit, vtkMedString);
-vtkCxxSetObjectVectorMacro(vtkMedField, Unit, vtkMedString);
-
-vtkCxxGetObjectVectorMacro(vtkMedField, ComponentName, vtkMedString);
-vtkCxxSetObjectVectorMacro(vtkMedField, ComponentName, vtkMedString);
-
 vtkCxxSetObjectMacro(vtkMedField, ParentFile, vtkMedFile);
 
 vtkCxxRevisionMacro(vtkMedField, "$Revision$")
@@ -33,27 +26,27 @@ vtkMedField::vtkMedField()
 {
 	this->NumberOfComponent = -1;
 	this->DataType = MED_FLOAT64;
-	this->Name = vtkMedString::New();
-	this->Name->SetSize(MED_NAME_SIZE);
-	this->MeshName = vtkMedString::New();
-	this->MeshName->SetSize(MED_NAME_SIZE);
-	this->TimeUnit = vtkMedString::New();
-	this->TimeUnit->SetSize(MED_LNAME_SIZE);
+	this->Name = NULL;
+	this->MeshName = NULL;
+	this->TimeUnit = NULL;
 	this->FieldStep = new vtkMedComputeStepMap<vtkMedFieldStep> ();
-	this->Unit = new vtkObjectVector<vtkMedString> ();
-	this->ComponentName = new vtkObjectVector<vtkMedString> ();
+	this->Unit = vtkStringArray::New();
+	this->ComponentName = vtkStringArray::New();
 	this->Interpolation = new vtkObjectVector<vtkMedInterpolation> ();
 	this->MedIterator = -1;
 	this->FieldType = UnknownFieldType;
 	this->ParentFile = NULL;
+	this->Local = 1;
 }
 
 vtkMedField::~vtkMedField()
 {
-	this->Name->Delete();
+	this->SetName(NULL);
+	this->SetMeshName(NULL);
+	this->SetTimeUnit(NULL);
 	delete this->FieldStep;
-	delete this->Unit;
-	delete this->ComponentName;
+	this->Unit->Delete();
+	this->ComponentName->Delete();
 }
 
 void vtkMedField::ComputeFieldType()
@@ -87,7 +80,7 @@ void vtkMedField::ComputeFieldType()
 				for(int pid=0; pid<fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
 					{
 					vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
-					const char* locname = fop->GetLocalizationName()->GetString();
+					const char* locname = fop->GetLocalizationName();
 					if(strcmp(locname, MED_NO_LOCALIZATION) != 0 )
 						{
 						this->FieldType |= QuadratureField;
@@ -130,18 +123,19 @@ int vtkMedField::GetFirstType()
 
 void	vtkMedField::ExtractFieldType(vtkMedField* otherfield, int type)
 {
-	this->GetName()->SetString(otherfield->GetName()->GetString());
+	this->SetName(otherfield->GetName());
 	this->SetLocal(otherfield->GetLocal());
 	this->SetMedIterator(otherfield->GetMedIterator());
 	this->SetDataType(otherfield->GetDataType());
-	this->GetMeshName()->SetString(otherfield->GetMeshName()->GetString());
-	this->GetTimeUnit()->SetString(otherfield->GetTimeUnit()->GetString());
+	this->SetMeshName(otherfield->GetMeshName());
+	this->SetTimeUnit(otherfield->GetTimeUnit());
 	this->SetParentFile(otherfield->GetParentFile());
 
 	this->SetNumberOfComponent(otherfield->GetNumberOfComponent());
 	for(int i=0; i< this->GetNumberOfComponent(); i++)
 		{
-		this->SetComponentName(i, otherfield->GetComponentName(i));
+		this->GetComponentName()->SetValue(i, otherfield->
+																			 GetComponentName()->GetValue(i));
 		}
 
 	this->AllocateNumberOfInterpolation(otherfield->GetNumberOfInterpolation());
@@ -150,10 +144,11 @@ void	vtkMedField::ExtractFieldType(vtkMedField* otherfield, int type)
 		this->SetInterpolation(i, otherfield->GetInterpolation(i));
 		}
 
-	this->AllocateNumberOfUnit(otherfield->GetNumberOfUnit());
-	for(int i=0; i<this->GetNumberOfUnit(); i++)
+	this->GetUnit()->SetNumberOfValues(
+			otherfield->GetUnit()->GetNumberOfValues());
+	for(int i=0; i<this->GetUnit()->GetNumberOfValues(); i++)
 		{
-		this->SetUnit(i, otherfield->GetUnit(i));
+		this->GetUnit()->SetValue(i, otherfield->GetUnit()->GetValue(i));
 		}
 
 	int nstep = otherfield->GetNumberOfFieldStep();
@@ -218,7 +213,7 @@ void	vtkMedField::ExtractFieldType(vtkMedField* otherfield, int type)
 				for(int pid=0; pid<fieldOverEntity->GetNumberOfFieldOnProfile(); pid++)
 					{
 					vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(pid);
-					const char* locname = fop->GetLocalizationName()->GetString();
+					const char* locname = fop->GetLocalizationName();
 					if((type == vtkMedField::QuadratureField
 						 && strcmp(locname, MED_NO_LOCALIZATION) != 0) ||
 						 (type == vtkMedField::CellField
@@ -249,13 +244,8 @@ void vtkMedField::SetNumberOfComponent(int ncomp)
 		return;
 
 	this->NumberOfComponent = ncomp;
-	this->AllocateNumberOfUnit(this->NumberOfComponent);
-	this->AllocateNumberOfComponentName(this->NumberOfComponent);
-	for (int comp = 0; comp < this->NumberOfComponent; comp++)
-		{
-		this->Unit->at(comp)->SetSize(MED_SNAME_SIZE);
-		this->ComponentName->at(comp)->SetSize(MED_SNAME_SIZE);
-		}
+	this->GetUnit()->SetNumberOfValues(this->NumberOfComponent);
+	this->GetComponentName()->SetNumberOfValues(this->NumberOfComponent);
 
 	this->Modified();
 }
@@ -306,7 +296,6 @@ void vtkMedField::PrintSelf(ostream& os, vtkIndent indent)
 {
 	this->Superclass::PrintSelf(os, indent);
 	PRINT_IVAR(os, indent, MedIterator);
-	PRINT_MED_STRING(os, indent, Name);
 	PRINT_IVAR(os, indent, NumberOfComponent);
 	PRINT_IVAR(os, indent, FieldType);
 	PRINT_IVAR(os, indent, DataType);
