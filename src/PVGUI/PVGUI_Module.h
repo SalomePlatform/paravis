@@ -200,6 +200,9 @@ private:
   //! Load selected state
   void loadSelectedState(bool toClear);
 
+  //! update macros state
+  void updateMacros();
+
 private slots:
 
   void showHelpForProxy( const QString& proxy );

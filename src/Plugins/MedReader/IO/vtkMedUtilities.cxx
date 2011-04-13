@@ -665,11 +665,11 @@ std::string vtkMedUtilities::GetModeKey(int index, double frequency, int maxinde
   key<<"[";
   if(maxindex > 0)
     {
-    int maxdecim = floor(log(maxindex)/log(10));
+      int maxdecim = (int)floor(log(maxindex)/log(10));
     int decim = 0;
     if(index > 0)
       {
-      decim = floor(log(index)/log(10));
+        decim = (int)floor(log(index)/log(10));
       }
     for(int i=decim; i<maxdecim; i++)
       {

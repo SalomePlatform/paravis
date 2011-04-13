@@ -239,6 +239,19 @@ PVGUI_Module::PVGUI_Module()
     myStateCounter(0)
 {
   ParavisModule = this;
+
+  // Clear old macros
+  QString aHomeDir = getenv("HOME");
+  QString aDestPath = aHomeDir + "/.config/SALOME/Macros";
+
+  QStringList aFilter;
+  aFilter << "*.py";
+
+  QDir aDestDir(aDestPath);
+  QStringList aDestFiles = aDestDir.entryList(aFilter, QDir::Files);
+  foreach (QString aStr, aDestFiles) {
+    aDestDir.remove(aStr);
+  }
 }
 
 /*!
@@ -354,6 +367,8 @@ void PVGUI_Module::initialize( CAM_Application* app )
     }
   }
 
+  updateMacros();
+ 
   pqServerManagerObserver* aObserver = pqImplementation::Core->getServerManagerObserver();
   connect(aObserver, SIGNAL(connectionCreated(vtkIdType)), this, SLOT(onConnectionCreated(vtkIdType)));
 
@@ -425,7 +440,27 @@ void PVGUI_Module::activateTrace()
     }
   }
 }
+  
+void PVGUI_Module::updateMacros()
+{
+  pqPythonManager* aPythonManager = pqPVApplicationCore::instance()->pythonManager();
+  if(!aPythonManager)  {
+    return;
+  }
+  
+  QString aRootDir = getenv("PARAVIS_ROOT_DIR");
 
+  QString aSourcePath = aRootDir + "/bin/salome/Macro";
+
+  QStringList aFilter;
+  aFilter << "*.py";
+
+  QDir aSourceDir(aSourcePath);
+  QStringList aSourceFiles = aSourceDir.entryList(aFilter, QDir::Files);
+  foreach (QString aStr, aSourceFiles) {
+    aPythonManager->addMacro(aSourcePath + "/" + aStr);
+  }
+}
 
 
 /*!

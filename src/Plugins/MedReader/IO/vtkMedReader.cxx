@@ -1111,7 +1111,7 @@ void vtkMedReader::AdvertiseTime(vtkInformation* info)
        this->AvailableTimes->GetNumberOfTuples())
       {
       time = this->AvailableTimes->
-                     GetValue(this->TimeIndexForIterations);
+        GetValue((vtkIdType)this->TimeIndexForIterations);
       }
 
     std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
@@ -1651,9 +1651,9 @@ vtkMedGrid* vtkMedReader::FindGridStep(vtkMedMesh* mesh)
     vtkMedComputeStep cs;
     // the time is set by choosing its index in the global
     // array giving the available times : this->TimeIndexForIterations
-    cs.TimeOrFrequency = this->AvailableTimes->GetValue(this->TimeIndexForIterations);
+    cs.TimeOrFrequency = this->AvailableTimes->GetValue((vtkIdType)this->TimeIndexForIterations);
     // the iteration is asked by the pipeline
-    cs.IterationIt = this->Internal->UpdateTimeStep;
+    cs.IterationIt = (med_int)this->Internal->UpdateTimeStep;
     return mesh->FindGridStep(cs, vtkMedReader::Iteration);
     }
   return NULL;
@@ -1951,8 +1951,8 @@ void vtkMedReader::GatherFieldSteps(vtkMedField* field,
   else if(this->Internal->RealAnimationMode == vtkMedReader::Iteration)
     {
     vtkMedComputeStep cs;
-    cs.IterationIt = this->Internal->UpdateTimeStep;
-    cs.TimeOrFrequency = this->AvailableTimes->GetValue(this->TimeIndexForIterations);
+    cs.IterationIt = (med_int)this->Internal->UpdateTimeStep;
+    cs.TimeOrFrequency = this->AvailableTimes->GetValue((vtkIdType)this->TimeIndexForIterations);
     vtkMedFieldStep* fs =
         field->FindFieldStep(cs, vtkMedReader::Iteration);
     if(fs != NULL)
