@@ -1111,7 +1111,7 @@ void vtkMedReader::AdvertiseTime(vtkInformation* info)
        this->AvailableTimes->GetNumberOfTuples())
       {
       time = this->AvailableTimes->
-        GetValue((vtkIdType)this->TimeIndexForIterations);
+                     GetValue((vtkIdType)this->TimeIndexForIterations);
       }
 
     std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
@@ -1651,7 +1651,8 @@ vtkMedGrid* vtkMedReader::FindGridStep(vtkMedMesh* mesh)
     vtkMedComputeStep cs;
     // the time is set by choosing its index in the global
     // array giving the available times : this->TimeIndexForIterations
-    cs.TimeOrFrequency = this->AvailableTimes->GetValue((vtkIdType)this->TimeIndexForIterations);
+    cs.TimeOrFrequency = (med_int)this->AvailableTimes->GetValue(
+        (vtkIdType)this->TimeIndexForIterations);
     // the iteration is asked by the pipeline
     cs.IterationIt = (med_int)this->Internal->UpdateTimeStep;
     return mesh->FindGridStep(cs, vtkMedReader::Iteration);
@@ -1906,6 +1907,11 @@ void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
       {
       vtkMedField* field=file->GetField(fieldId);
 
+      if(strcmp(foep->GetFamilyOnEntity()->
+                GetParentGrid()->GetParentMesh()->GetName(),
+                field->GetMeshName()) != 0)
+        continue;
+
       if (!this->IsFieldSelected(field))
         continue;
 
@@ -1952,7 +1958,8 @@ void vtkMedReader::GatherFieldSteps(vtkMedField* field,
     {
     vtkMedComputeStep cs;
     cs.IterationIt = (med_int)this->Internal->UpdateTimeStep;
-    cs.TimeOrFrequency = this->AvailableTimes->GetValue((vtkIdType)this->TimeIndexForIterations);
+    cs.TimeOrFrequency = (med_int)this->AvailableTimes->GetValue(
+        (vtkIdType)this->TimeIndexForIterations);
     vtkMedFieldStep* fs =
         field->FindFieldStep(cs, vtkMedReader::Iteration);
     if(fs != NULL)
