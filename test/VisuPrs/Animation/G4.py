@@ -14,7 +14,7 @@ myParavis = paravis.myParavis
 # Directory for saving snapshots
 picturedir = get_picture_dir(sys.argv[1], "Animation/G3")
 
-theFileName = datadir +  "TimeStamps_236.med"
+theFileName = datadir +  "TimeStamps.med"
 print " --------------------------------- "
 print "file ", theFileName
 print " --------------------------------- "
