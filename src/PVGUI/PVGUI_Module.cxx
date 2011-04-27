@@ -82,6 +82,7 @@
 #include <QToolBar>
 #include <QTextStream>
 #include <QShortcut>
+#include <QDockWidget>
 
 #include <pqApplicationCore.h>
 #include <pqActiveView.h>
@@ -728,6 +729,12 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
 */
 bool PVGUI_Module::deactivateModule( SUIT_Study* study )
 {
+  QList<QDockWidget*> aStreamingViews = application()->desktop()->findChildren<QDockWidget*>("pqStreamingControls");
+  foreach(QDockWidget* aView, aStreamingViews) {
+    if (!myDockWidgets.contains(aView))
+      myDockWidgets.append(aView);
+  }
+
   if (pqImplementation::helpWindow) {
     pqImplementation::helpWindow->hide();
   }
