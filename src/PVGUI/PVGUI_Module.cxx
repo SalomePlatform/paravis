@@ -878,6 +878,7 @@ void PVGUI_Module::executeScript(const char *script)
   \brief Returns trace string
 */
 static const QString MYReplaceStr("paraview.simple");
+static const QString MYReplaceImportStr("except: from pvsimple import *");
 QString PVGUI_Module::getTraceString()
 {
   QString traceString;
@@ -905,6 +906,11 @@ QString PVGUI_Module::getTraceString()
       traceString = traceString.replace(aPos, MYReplaceStr.length(), "pvsimple");
       aPos = traceString.indexOf(MYReplaceStr, aPos);
     }
+    int aImportPos = traceString.indexOf(MYReplaceImportStr);
+    if(aImportPos != -1)
+      {
+      traceString = traceString.replace(aImportPos, MYReplaceImportStr.length(), "except:\n  import pvsimple\n  from pvsimple import *");
+      }
   }
   return traceString;
 }
