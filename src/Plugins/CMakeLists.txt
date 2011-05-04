@@ -15,4 +15,6 @@ SUBDIRS(
   TableReader 
   NavigationMode 
   IntegrationPoints
+  vtkEDFOverloads
+  ElevationSurface
 )
