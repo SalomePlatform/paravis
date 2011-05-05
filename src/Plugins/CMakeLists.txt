@@ -17,4 +17,5 @@ SUBDIRS(
   IntegrationPoints
   vtkEDFOverloads
   ElevationSurface
+  ScaleVector
 )
