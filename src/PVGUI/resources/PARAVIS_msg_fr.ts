@@ -21,7 +21,7 @@
     </message>
     <message>
         <source>MEN_LIGHT</source>
-        <translation>LEGER</translation>
+        <translation>LIGHT</translation>
     </message>
     <message>
         <source>MEN_LOAD_FILE</source>
@@ -93,11 +93,11 @@
     </message>
     <message>
         <source>LIGHT_ROOT_TOOLTIP</source>
-        <translation>Objet racine du module LEGER</translation>
+        <translation>Objet racine du module LIGHT</translation>
     </message>
     <message>
         <source>LIGHT_LIGHT</source>
-        <translation>LEGER</translation>
+        <translation>LIGHT</translation>
     </message>
     <message>
         <source>MEN_SAVE_FILE</source>
