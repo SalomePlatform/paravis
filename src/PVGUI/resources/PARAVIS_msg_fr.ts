@@ -37,7 +37,7 @@
     </message>
     <message>
         <source>WRN_ADD_FAILED</source>
-        <translation>Impossible d&apos;insérer la ligne !</translation>
+        <translation>Impossible d&apos;insÃ©rer la ligne !</translation>
     </message>
     <message>
         <source>STB_DISPLAY_LINE</source>
@@ -69,7 +69,7 @@
     </message>
     <message>
         <source>WRN_EDIT_FAILED</source>
-        <translation>Impossible d&apos;éditer la ligne !</translation>
+        <translation>Impossible d&apos;Ã©diter la ligne !</translation>
     </message>
     <message>
         <source>WRN_DUMP_FAILED</source>
@@ -113,7 +113,7 @@
     </message>
     <message>
         <source>WRN_SELECT_LINE</source>
-        <translation>Sélection incorrecte !</translation>
+        <translation>SÃ©lection incorrecte !</translation>
     </message>
     <message>
         <source>TOP_LOAD_FILE</source>
@@ -133,7 +133,7 @@
     </message>
     <message>
         <source>STB_ADD_LINE</source>
-        <translation>Insérer une nouvelle ligne avant la ligne choisie</translation>
+        <translation>InsÃ©rer une nouvelle ligne avant la ligne choisie</translation>
     </message>
     <message>
         <source>LIGHT_PARAGRAPH</source>
@@ -145,7 +145,7 @@
     </message>
     <message>
         <source>MEN_ADD_LINE</source>
-        <translation>Insérer une nouvelle ligne de texte</translation>
+        <translation>InsÃ©rer une nouvelle ligne de texte</translation>
     </message>
     <message>
         <source>LIGHT_LINE</source>
@@ -176,7 +176,7 @@
     <name>PVGUI_ViewManager</name>
     <message>
         <source>PARAVIEW_VIEW_TITLE</source>
-        <translation>Scène ParaView:%M - visualisateur:%V</translation>
+        <translation>ScÃ¨ne ParaView:%M - visualisateur:%V</translation>
     </message>
 </context>
 <context>
@@ -215,7 +215,7 @@
     </message>
     <message>
         <source>TTL_SELECTION_INSPECTOR</source>
-        <translation>Navigateur de sélection</translation>
+        <translation>Navigateur de sÃ©lection</translation>
     </message>
     <message>
         <source>TOP_OPEN_FILE</source>
@@ -235,19 +235,19 @@
     </message>
     <message>
         <source>MEN_RECENT_FILES</source>
-        <translation>Fichiers récents de ParaView</translation>
+        <translation>Fichiers rÃ©cents de ParaView</translation>
     </message>
     <message>
         <source>TOP_LOAD_STATE</source>
-        <translation>Ouvrir l&apos;état</translation>
+        <translation>Ouvrir l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>MEN_LOAD_STATE</source>
-        <translation>&amp;Ouvrir l&apos;état...</translation>
+        <translation>&amp;Ouvrir l&apos;Ã©tat...</translation>
     </message>
     <message>
         <source>STB_LOAD_STATE</source>
-        <translation>Ouvrir l&apos;état</translation>
+        <translation>Ouvrir l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>TOP_SAVE_STATE</source>
@@ -255,35 +255,35 @@
     </message>
     <message>
         <source>MEN_SAVE_STATE</source>
-        <translation>&amp;Enregistrer l&apos;état...</translation>
+        <translation>&amp;Enregistrer l&apos;Ã©tat...</translation>
     </message>
     <message>
         <source>STB_SAVE_STATE</source>
-        <translation>Enregistrer l&apos;état</translation>
+        <translation>Enregistrer l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>TOP_SAVE_DATA</source>
-        <translation>Enregistrer les données</translation>
+        <translation>Enregistrer les donnÃ©es</translation>
     </message>
     <message>
         <source>MEN_SAVE_DATA</source>
-        <translation>Enregistrer les données...</translation>
+        <translation>Enregistrer les donnÃ©es...</translation>
     </message>
     <message>
         <source>STB_SAVE_DATA</source>
-        <translation>Enregistrer les données</translation>
+        <translation>Enregistrer les donnÃ©es</translation>
     </message>
     <message>
         <source>TOP_SAVE_SCREENSHOT</source>
-        <translation>Enregistrer l&apos;Instantané</translation>
+        <translation>Enregistrer l&apos;InstantanÃ©</translation>
     </message>
     <message>
         <source>MEN_SAVE_SCREENSHOT</source>
-        <translation>Enregistrer l&apos;Instantané...</translation>
+        <translation>Enregistrer l&apos;InstantanÃ©...</translation>
     </message>
     <message>
         <source>STB_SAVE_SCREENSHOT</source>
-        <translation>Enregistrer l&apos;Instantané</translation>
+        <translation>Enregistrer l&apos;InstantanÃ©</translation>
     </message>
     <message>
         <source>TOP_EXPORT</source>
@@ -311,15 +311,15 @@
     </message>
     <message>
         <source>TOP_SAVE_GEOMETRY</source>
-        <translation>Enregistrer la Géométrie</translation>
+        <translation>Enregistrer la GÃ©omÃ©trie</translation>
     </message>
     <message>
         <source>MEN_SAVE_GEOMETRY</source>
-        <translation>Enregistrer la &amp;Géométrie.</translation>
+        <translation>Enregistrer la &amp;GÃ©omÃ©trie.</translation>
     </message>
     <message>
         <source>STB_SAVE_GEOMETRY</source>
-        <translation>Enregistrer la Géométrie</translation>
+        <translation>Enregistrer la GÃ©omÃ©trie</translation>
     </message>
     <message>
         <source>TOP_CONNECT</source>
@@ -335,15 +335,15 @@
     </message>
     <message>
         <source>TOP_DISCONNECT</source>
-        <translation>Déconnecter</translation>
+        <translation>DÃ©connecter</translation>
     </message>
     <message>
         <source>MEN_DISCONNECT</source>
-        <translation>&amp;Déconnecter</translation>
+        <translation>&amp;DÃ©connecter</translation>
     </message>
     <message>
         <source>STB_DISCONNECT</source>
-        <translation>Déconnecter du serveur</translation>
+        <translation>DÃ©connecter du serveur</translation>
     </message>
     <message>
         <source>TOP_UNDO</source>
@@ -367,7 +367,7 @@
     </message>
     <message>
         <source>STB_UNDO</source>
-        <translation>Annuler la dernière opération</translation>
+        <translation>Annuler la derniÃ¨re opÃ©ration</translation>
     </message>
     <message>
         <source>INF_APP_UNDOACTIONS</source>
@@ -375,43 +375,43 @@
     </message>
     <message>
         <source>TOP_REDO</source>
-        <translation>Rétablir</translation>
+        <translation>RÃ©tablir</translation>
     </message>
     <message>
         <source>MEN_REDO</source>
-        <translation>&amp;Rétablir</translation>
+        <translation>&amp;RÃ©tablir</translation>
     </message>
     <message>
         <source>MEN_CANTREDO</source>
-        <translation>Impossible de rétablir</translation>
+        <translation>Impossible de rÃ©tablir</translation>
     </message>
     <message>
         <source>MEN_REDO_ACTION</source>
-        <translation>&amp;Rétablir %1</translation>
+        <translation>&amp;RÃ©tablir %1</translation>
     </message>
     <message>
         <source>MEN_REDO_ACTION_TIP</source>
-        <translation>Rétablir %1</translation>
+        <translation>RÃ©tablir %1</translation>
     </message>
     <message>
         <source>STB_REDO</source>
-        <translation>Rétablir la dernière opération</translation>
+        <translation>RÃ©tablir la derniÃ¨re opÃ©ration</translation>
     </message>
     <message>
         <source>INF_APP_REDOACTIONS</source>
-        <translation>Rétablit %1 action(s) </translation>
+        <translation>RÃ©tablit %1 action(s) </translation>
     </message>
     <message>
         <source>TOP_CAMERA_UNDO</source>
-        <translation>Annuler le Caméra</translation>
+        <translation>Annuler le CamÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CAMERA_UNDO</source>
-        <translation>Annuler le Caméra</translation>
+        <translation>Annuler le CamÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CANT_CAMERA_UNDO</source>
-        <translation>Impossible d&apos;Annuler le Caméra</translation>
+        <translation>Impossible d&apos;Annuler le CamÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CAMERA_UNDO_ACTION</source>
@@ -423,71 +423,71 @@
     </message>
     <message>
         <source>STB_CAMERA_UNDO</source>
-        <translation>Annuler la dernière opération de caméra</translation>
+        <translation>Annuler la derniÃ¨re opÃ©ration de camÃ©ra</translation>
     </message>
     <message>
         <source>INF_APP_CAMERA_UNDOACTIONS</source>
-        <translation>Annule %1 action(s) de caméra</translation>
+        <translation>Annule %1 action(s) de camÃ©ra</translation>
     </message>
     <message>
         <source>TOP_CAMERA_REDO</source>
-        <translation>Rétablir la caméra</translation>
+        <translation>RÃ©tablir la camÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CAMERA_REDO</source>
-        <translation>Rétablir la caméra</translation>
+        <translation>RÃ©tablir la camÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CANT_CAMERA_REDO</source>
-        <translation>Impossible de rétablir la caméra</translation>
+        <translation>Impossible de rÃ©tablir la camÃ©ra</translation>
     </message>
     <message>
         <source>MEN_CAMERA_REDO_ACTION</source>
-        <translation>&amp;Rétablir %1</translation>
+        <translation>&amp;RÃ©tablir %1</translation>
     </message>
     <message>
         <source>MEN_CAMERA_REDO_ACTION_TIP</source>
-        <translation>Rétablir %1</translation>
+        <translation>RÃ©tablir %1</translation>
     </message>
     <message>
         <source>STB_CAMERA_REDO</source>
-        <translation>Rétablir la dernière opération du caméra</translation>
+        <translation>RÃ©tablir la derniÃ¨re opÃ©ration du camÃ©ra</translation>
     </message>
     <message>
         <source>INF_APP_CAMERA_REDOACTIONS</source>
-        <translation>Rétablir %1 action(s) du caméra</translation>
+        <translation>RÃ©tablir %1 action(s) du camÃ©ra</translation>
     </message>
     <message>
         <source>TOP_CHANGE_INPUT</source>
-        <translation>Changer les entrées...</translation>
+        <translation>Changer les entrÃ©es...</translation>
     </message>
     <message>
         <source>MEN_FIND_DATA</source>
-        <translation>Trouver les données...</translation>
+        <translation>Trouver les donnÃ©es...</translation>
     </message>
     <message>
         <source>MEN_CHANGE_INPUT</source>
-        <translation>Changer les &amp;entrées...</translation>
+        <translation>Changer les &amp;entrÃ©es...</translation>
     </message>
     <message>
         <source>STB_CHANGE_INPUT</source>
-        <translation>Changer les entrées du filtre</translation>
+        <translation>Changer les entrÃ©es du filtre</translation>
     </message>
     <message>
         <source>INF_APP_CHANGE_INPUTACTIONS</source>
-        <translation>Changer les entrées du filtre...</translation>
+        <translation>Changer les entrÃ©es du filtre...</translation>
     </message>
     <message>
         <source>MEN_IGNORE_TIME</source>
-        <translation>Négliger le Temps</translation>
+        <translation>NÃ©gliger le Temps</translation>
     </message>
     <message>
         <source>TOP_IGNORE_TIME</source>
-        <translation>Négliger le temps</translation>
+        <translation>NÃ©gliger le temps</translation>
     </message>
     <message>
         <source>STB_IGNORE_TIME</source>
-        <translation>Négliger cette source/temps d&apos;animation du filtre</translation>
+        <translation>NÃ©gliger cette source/temps d&apos;animation du filtre</translation>
     </message>
     <message>
         <source>TOP_DELETE</source>
@@ -611,23 +611,23 @@
     </message>
     <message>
         <source>MEN_CAMERA</source>
-        <translation>Caméra</translation>
+        <translation>CamÃ©ra</translation>
     </message>
     <message>
         <source>TOP_RESET_CAMERA</source>
-        <translation>Réinitialiser la caméra</translation>
+        <translation>RÃ©initialiser la camÃ©ra</translation>
     </message>
     <message>
         <source>MEN_RESET_CAMERA</source>
-        <translation>&amp;Réinitialiser</translation>
+        <translation>&amp;RÃ©initialiser</translation>
     </message>
     <message>
         <source>STB_RESET_CAMERA</source>
-        <translation>Réinitialiser la caméra</translation>
+        <translation>RÃ©initialiser la camÃ©ra</translation>
     </message>
     <message>
         <source>TOP_+X</source>
-        <translation>Initialiser la direction de vue à +X</translation>
+        <translation>Initialiser la direction de vue Ã  +X</translation>
     </message>
     <message>
         <source>MEN_+X</source>
@@ -635,11 +635,11 @@
     </message>
     <message>
         <source>STB_+X</source>
-        <translation>Initialiser la direction de vue à +X</translation>
+        <translation>Initialiser la direction de vue Ã  +X</translation>
     </message>
     <message>
         <source>TOP_-X</source>
-        <translation>Initialiser la direction de vue à -X</translation>
+        <translation>Initialiser la direction de vue Ã  -X</translation>
     </message>
     <message>
         <source>MEN_-X</source>
@@ -647,11 +647,11 @@
     </message>
     <message>
         <source>STB_-X</source>
-        <translation>Initialiser la direction de vue à -X</translation>
+        <translation>Initialiser la direction de vue Ã  -X</translation>
     </message>
     <message>
         <source>TOP_+Y</source>
-        <translation>Initialiser la direction de vue à +Y</translation>
+        <translation>Initialiser la direction de vue Ã  +Y</translation>
     </message>
     <message>
         <source>MEN_+Y</source>
@@ -659,11 +659,11 @@
     </message>
     <message>
         <source>STB_+Y</source>
-        <translation>Initialiser la direction de vue à +Y</translation>
+        <translation>Initialiser la direction de vue Ã  +Y</translation>
     </message>
     <message>
         <source>TOP_-Y</source>
-        <translation>Initialiser la direction de vue à -Y</translation>
+        <translation>Initialiser la direction de vue Ã  -Y</translation>
     </message>
     <message>
         <source>MEN_-Y</source>
@@ -671,11 +671,11 @@
     </message>
     <message>
         <source>STB_-Y</source>
-        <translation>Initialiser la direction de vue à -Y</translation>
+        <translation>Initialiser la direction de vue Ã  -Y</translation>
     </message>
     <message>
         <source>TOP_+Z</source>
-        <translation>Initialiser la direction de vue à +Z</translation>
+        <translation>Initialiser la direction de vue Ã  +Z</translation>
     </message>
     <message>
         <source>MEN_+Z</source>
@@ -683,11 +683,11 @@
     </message>
     <message>
         <source>STB_+Z</source>
-        <translation>Initialiser la direction de vue à +Z</translation>
+        <translation>Initialiser la direction de vue Ã  +Z</translation>
     </message>
     <message>
         <source>TOP_-Z</source>
-        <translation>Initialiser la direction de vue à -Z</translation>
+        <translation>Initialiser la direction de vue Ã  -Z</translation>
     </message>
     <message>
         <source>MEN_-Z</source>
@@ -695,7 +695,7 @@
     </message>
     <message>
         <source>STB_-Z</source>
-        <translation>Initialiser la direction de vue à -Z</translation>
+        <translation>Initialiser la direction de vue Ã  -Z</translation>
     </message>
     <message>
         <source>TOP_SHOW_CENTER</source>
@@ -711,15 +711,15 @@
     </message>
     <message>
         <source>TOP_RESET_CENTER</source>
-        <translation>Réinitialiser le centre</translation>
+        <translation>RÃ©initialiser le centre</translation>
     </message>
     <message>
         <source>MEN_RESET_CENTER</source>
-        <translation>Réinitialiser le centre</translation>
+        <translation>RÃ©initialiser le centre</translation>
     </message>
     <message>
         <source>STB_RESET_CENTER</source>
-        <translation>Réinitialiser le centre de rotation</translation>
+        <translation>RÃ©initialiser le centre de rotation</translation>
     </message>
     <message>
         <source>TOP_PICK_CENTER</source>
@@ -735,15 +735,15 @@
     </message>
     <message>
         <source>TOP_SHOW_COLOR_LEGEND</source>
-        <translation>Visualiser la légende des couleurs</translation>
+        <translation>Visualiser la lÃ©gende des couleurs</translation>
     </message>
     <message>
         <source>MEN_SHOW_COLOR_LEGEND</source>
-        <translation>Visualiser la légende des couleurs</translation>
+        <translation>Visualiser la lÃ©gende des couleurs</translation>
     </message>
     <message>
         <source>PRP_APP_SHOW_COLOR_LEGEND</source>
-        <translation>Visualiser la légende des couleurs</translation>
+        <translation>Visualiser la lÃ©gende des couleurs</translation>
     </message>
     <message>
         <source>TOP_EDIT_COLOR_MAP</source>
@@ -759,15 +759,15 @@
     </message>
     <message>
         <source>TOP_RESET_RANGE</source>
-        <translation>Remettre à l&apos;éventail de données</translation>
+        <translation>Remettre Ã  l&apos;Ã©ventail de donnÃ©es</translation>
     </message>
     <message>
         <source>MEN_RESET_RANGE</source>
-        <translation>Réinitialiser l&apos;éventail</translation>
+        <translation>RÃ©initialiser l&apos;Ã©ventail</translation>
     </message>
     <message>
         <source>PRP_APP_RESET_RANGE</source>
-        <translation>Remettre à l&apos;éventail de données</translation>
+        <translation>Remettre Ã  l&apos;Ã©ventail de donnÃ©es</translation>
     </message>
     <message>
         <source>MEN_DESK_SOURCES</source>
@@ -795,15 +795,15 @@
     </message>
     <message>
         <source>TOP_PREVIOUS_FRAME</source>
-        <translation>Cadre précédent</translation>
+        <translation>Cadre prÃ©cÃ©dent</translation>
     </message>
     <message>
         <source>MEN_PREVIOUS_FRAME</source>
-        <translation>Cadre &amp;précédent</translation>
+        <translation>Cadre &amp;prÃ©cÃ©dent</translation>
     </message>
     <message>
         <source>STB_PREVIOUS_FRAME</source>
-        <translation>Cadre précédent</translation>
+        <translation>Cadre prÃ©cÃ©dent</translation>
     </message>
     <message>
         <source>TOP_PLAY</source>
@@ -859,91 +859,91 @@
     </message>
     <message>
         <source>TOP_CREATE_CUSTOM_FILTER</source>
-        <translation>Créer un filtre personnalisé</translation>
+        <translation>CrÃ©er un filtre personnalisÃ©</translation>
     </message>
     <message>
         <source>MEN_CREATE_CUSTOM_FILTER</source>
-        <translation>&amp;Créer un filtre personnalisé...</translation>
+        <translation>&amp;CrÃ©er un filtre personnalisÃ©...</translation>
     </message>
     <message>
         <source>STB_CREATE_CUSTOM_FILTER</source>
-        <translation>Créer un filtre pPersonnalisé</translation>
+        <translation>CrÃ©er un filtre pPersonnalisÃ©</translation>
     </message>
     <message>
         <source>TOP_MANAGE_CUSTOM_FILTERS</source>
-        <translation>Gérer les filtres personnalisés</translation>
+        <translation>GÃ©rer les filtres personnalisÃ©s</translation>
     </message>
     <message>
         <source>MEN_MANAGE_CUSTOM_FILTERS</source>
-        <translation>Gérer les filtres personnalisés...</translation>
+        <translation>GÃ©rer les filtres personnalisÃ©s...</translation>
     </message>
     <message>
         <source>STB_MANAGE_CUSTOM_FILTERS</source>
-        <translation>Gérer les filtres personnalisés</translation>
+        <translation>GÃ©rer les filtres personnalisÃ©s</translation>
     </message>
     <message>
         <source>TOP_CREATE_LOOKMARK</source>
-        <translation>Créer un signet visuel</translation>
+        <translation>CrÃ©er un signet visuel</translation>
     </message>
     <message>
         <source>MEN_CREATE_LOOKMARK</source>
-        <translation>Créer un signet visuel</translation>
+        <translation>CrÃ©er un signet visuel</translation>
     </message>
     <message>
         <source>STB_CREATE_LOOKMARK</source>
-        <translation>Créer un signet visuel</translation>
+        <translation>CrÃ©er un signet visuel</translation>
     </message>
     <message>
         <source>TOP_MANAGE_LINKS</source>
-        <translation>Gérer les Liens</translation>
+        <translation>GÃ©rer les Liens</translation>
     </message>
     <message>
         <source>MEN_MANAGE_LINKS</source>
-        <translation>Gérer les liens...</translation>
+        <translation>GÃ©rer les liens...</translation>
     </message>
     <message>
         <source>STB_MANAGE_LINKS</source>
-        <translation>Gérer les liens</translation>
+        <translation>GÃ©rer les liens</translation>
     </message>
     <message>
         <source>TOP_ADD_CAMERA_LINK</source>
-        <translation>Ajouter un lien de caméra</translation>
+        <translation>Ajouter un lien de camÃ©ra</translation>
     </message>
     <message>
         <source>MEN_ADD_CAMERA_LINK</source>
-        <translation>Ajouter un lien de caméra...</translation>
+        <translation>Ajouter un lien de camÃ©ra...</translation>
     </message>
     <message>
         <source>STB_ADD_CAMERA_LINK</source>
-        <translation>Ajouter un lien de caméra</translation>
+        <translation>Ajouter un lien de camÃ©ra</translation>
     </message>
     <message>
         <source>WRN_ADD_CAMERA_LINK</source>
-        <translation>Ajouter un lien de caméra... : Aucune module de rendu n&apos;est actif</translation>
+        <translation>Ajouter un lien de camÃ©ra... : Aucune module de rendu n&apos;est actif</translation>
     </message>
     <message>
         <source>TOP_MANAGE_PLUGINS</source>
-        <translation>Gérer les plugins/extensions</translation>
+        <translation>GÃ©rer les plugins/extensions</translation>
     </message>
     <message>
         <source>MEN_MANAGE_PLUGINS</source>
-        <translation>Gérer les plugins...</translation>
+        <translation>GÃ©rer les plugins...</translation>
     </message>
     <message>
         <source>STB_MANAGE_PLUGINS</source>
-        <translation>Gérer les plugins/extensions</translation>
+        <translation>GÃ©rer les plugins/extensions</translation>
     </message>
     <message>
         <source>TOP_DUMP_WIDGET_NAMES</source>
-        <translation>Mémoriser les noms des fenêtres</translation>
+        <translation>MÃ©moriser les noms des fenÃªtres</translation>
     </message>
     <message>
         <source>MEN_DUMP_WIDGET_NAMES</source>
-        <translation>&amp;Mémoriser les noms des fenêtres</translation>
+        <translation>&amp;MÃ©moriser les noms des fenÃªtres</translation>
     </message>
     <message>
         <source>STB_DUMP_WIDGET_NAMES</source>
-        <translation>Mémoriser les noms des fenêtres</translation>
+        <translation>MÃ©moriser les noms des fenÃªtres</translation>
     </message>
     <message>
         <source>TOP_RECORD_TEST</source>
@@ -959,15 +959,15 @@
     </message>
     <message>
         <source>TOP_RECORD_TEST_SCREENSHOT</source>
-        <translation>Enregistrer un instantané de test</translation>
+        <translation>Enregistrer un instantanÃ© de test</translation>
     </message>
     <message>
         <source>MEN_RECORD_TEST_SCREENSHOT</source>
-        <translation>Enregistrer un &amp;instantané de test</translation>
+        <translation>Enregistrer un &amp;instantanÃ© de test</translation>
     </message>
     <message>
         <source>STB_RECORD_TEST_SCREENSHOT</source>
-        <translation>Enregistrer un instantané de test</translation>
+        <translation>Enregistrer un instantanÃ© de test</translation>
     </message>
     <message>
         <source>TOP_PLAY_TEST</source>
@@ -991,7 +991,7 @@
     </message>
     <message>
         <source>MEN_CUSTOM_WINDOW_SIZE</source>
-        <translation>Verrouiller la taille de la vue personnalisée</translation>
+        <translation>Verrouiller la taille de la vue personnalisÃ©e</translation>
     </message>
     <message>
         <source>PRP_APP_MAX_WINDOW_SIZE</source>
@@ -1011,15 +1011,15 @@
     </message>
     <message>
         <source>TOP_OUTPUT_WINDOW</source>
-        <translation>Fenêtre de sortie</translation>
+        <translation>FenÃªtre de sortie</translation>
     </message>
     <message>
         <source>MEN_OUTPUT_WINDOW</source>
-        <translation>&amp;Fenêtre de sortie</translation>
+        <translation>&amp;FenÃªtre de sortie</translation>
     </message>
     <message>
         <source>STB_OUTPUT_WINDOW</source>
-        <translation>Fenêtre de sortie</translation>
+        <translation>FenÃªtre de sortie</translation>
     </message>
     <message>
         <source>TOP_PYTHON_SHELL</source>
@@ -1055,7 +1055,7 @@
     </message>
     <message>
         <source>STB_PARAVIEW_HELP</source>
-        <translation>Documentation de référence de ParaView</translation>
+        <translation>Documentation de rÃ©fÃ©rence de ParaView</translation>
     </message>
     <message>
         <source>TOP_ENABLE_TOOLTIPS</source>
@@ -1071,23 +1071,23 @@
     </message>
     <message>
         <source>STB_PREACCEPT</source>
-        <translation>Mise à jour...</translation>
+        <translation>Mise Ã  jour...</translation>
     </message>
     <message>
         <source>STB_POSTACCEPT</source>
-        <translation>Prêt</translation>
+        <translation>PrÃªt</translation>
     </message>
     <message>
         <source>TOOL_ACTIVE_VARIABLE_CONTROLS</source>
-        <translation>Activer les contrôles des variables</translation>
+        <translation>Activer les contrÃ´les des variables</translation>
     </message>
     <message>
         <source>TOOL_CAMERA_CONTROLS</source>
-        <translation>Contrôles de la caméra</translation>
+        <translation>ContrÃ´les de la camÃ©ra</translation>
     </message>
     <message>
         <source>TOOL_CENTER_AXES_CONTROLS</source>
-        <translation>Contrôles de centrage des axes</translation>
+        <translation>ContrÃ´les de centrage des axes</translation>
     </message>
     <message>
         <source>TOOL_COMMON_FILTERS</source>
@@ -1095,7 +1095,7 @@
     </message>
     <message>
         <source>TOOL_CURRENT_TIME_CONTROLS</source>
-        <translation>Contrôles du temps actuel</translation>
+        <translation>ContrÃ´les du temps actuel</translation>
     </message>
     <message>
         <source>TOOL_LOOKMARKS</source>
@@ -1103,27 +1103,27 @@
     </message>
     <message>
         <source>TOOL_MAIN_CONTROLS</source>
-        <translation>Contrôles principaux</translation>
+        <translation>ContrÃ´les principaux</translation>
     </message>
     <message>
         <source>TOOL_REPRESENTATION</source>
-        <translation>Représentation</translation>
+        <translation>ReprÃ©sentation</translation>
     </message>
     <message>
         <source>TOOL_SELECTION_CONTROLS</source>
-        <translation>Contrôles de Sélection</translation>
+        <translation>ContrÃ´les de SÃ©lection</translation>
     </message>
     <message>
         <source>TOOL_UNDOREDO_CONTROLS</source>
-        <translation>Contrôles annuler/rétablir</translation>
+        <translation>ContrÃ´les annuler/rÃ©tablir</translation>
     </message>
     <message>
         <source>TOOL_VCR_CONTROLS</source>
-        <translation>Contrôles VCR</translation>
+        <translation>ContrÃ´les VCR</translation>
     </message>
     <message>
         <source>PREF_STOP_TRACE</source>
-        <translation>Déactiver la trace (seulement pour la session suivante)</translation>
+        <translation>DÃ©activer la trace (seulement pour la session suivante)</translation>
     </message>
     <message>
         <source>TIT_PVISSETTINGS</source>
@@ -1139,19 +1139,19 @@
     </message>
     <message>
         <source>PREF_SAVE_TYPE_LBL</source>
-        <translation>Type d&apos;enregistrement d&apos;état de Paraview</translation>
+        <translation>Type d&apos;enregistrement d&apos;Ã©tat de Paraview</translation>
     </message>
     <message>
         <source>PREF_SAVE_TYPE_0</source>
-        <translation>N&apos;enregistrer les fichiers de référence qu&apos;au serveur de babillard</translation>
+        <translation>N&apos;enregistrer les fichiers de rÃ©fÃ©rence qu&apos;au serveur de babillard</translation>
     </message>
     <message>
         <source>PREF_SAVE_TYPE_1</source>
-        <translation>Toujours enregistrer les fichiers de référence s&apos;ils sont accessibles</translation>
+        <translation>Toujours enregistrer les fichiers de rÃ©fÃ©rence s&apos;ils sont accessibles</translation>
     </message>
     <message>
         <source>PREF_SAVE_TYPE_2</source>
-        <translation>Ne pas enregistrer les fichiers de référence</translation>
+        <translation>Ne pas enregistrer les fichiers de rÃ©fÃ©rence</translation>
     </message>
     <message>
         <source>MEN_NEW_PV_VIEW</source>
@@ -1159,15 +1159,15 @@
     </message>
     <message>
         <source>MEN_SAVE_MULTI_STATE</source>
-        <translation>Enregistrer l&apos;état</translation>
+        <translation>Enregistrer l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>MEN_ADD_STATE</source>
-        <translation>Ajouter l&apos;état</translation>
+        <translation>Ajouter l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>MEN_CLEAN_ADD_STATE</source>
-        <translation>Effacer et ajouter l&apos;état</translation>
+        <translation>Effacer et ajouter l&apos;Ã©tat</translation>
     </message>
     <message>
         <source>MEN_PARAVIS_RENAME</source>
@@ -1187,7 +1187,7 @@
     </message>
     <message>
         <source>ERR_STATE_CANNOT_BE_RESTORED</source>
-        <translation>Impossible de restaurer l&apos;état.</translation>
+        <translation>Impossible de restaurer l&apos;Ã©tat.</translation>
     </message>
 </context>
 </TS>
