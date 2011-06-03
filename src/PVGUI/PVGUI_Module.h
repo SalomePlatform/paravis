@@ -185,6 +185,9 @@ private:
 
   //! Returns QMenu object for a given menu id
   QMenu*                 getMenu( const int );
+  
+  //! Discover help project files from the resources.
+  QString getHelpFileName();
 
   void                   deleteTemporaryFiles();
   

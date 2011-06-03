@@ -24,9 +24,35 @@
 #include <LightApp_Application.h>
 #include <LogWindow.h>
 #include <SUIT_Session.h>
+#include <SALOME_Event.h>
 
 vtkStandardNewMacro(PVGUI_OutputWindowAdapter);
 vtkCxxRevisionMacro(PVGUI_OutputWindowAdapter, "$Revision$");
+
+
+
+/*!
+ * Put the message in the log window. 
+ */
+class TEvent: public SALOME_Event {
+  LogWindow* myWindow;
+  QString    myMsg;
+  QColor     myColor;
+  int        myFlags;
+  public:
+  TEvent( LogWindow* theWindow,  const QString theMsg, const QColor theColor, const int flags) :
+    myWindow ( theWindow ),
+    myMsg ( theMsg ),
+    myColor ( theColor ),
+    myFlags (flags)
+  {}
+
+  virtual void Execute() {
+    if(myWindow)
+      myWindow->putMessage(myMsg, myColor, myFlags);
+  }
+};
+
 
 PVGUI_OutputWindowAdapter::PVGUI_OutputWindowAdapter() :
   TextCount(0),
@@ -72,31 +98,23 @@ static LogWindow* getLogWindow()
 void PVGUI_OutputWindowAdapter::DisplayText(const char* text)
 {
   ++this->TextCount;
-  LogWindow* wnd = getLogWindow();
-  if ( wnd )
-    wnd->putMessage( text, Qt::darkGreen, LogWindow::DisplayNormal );
+  ProcessVoidEvent( new TEvent( getLogWindow(), text, Qt::darkGreen, LogWindow::DisplayNormal ));
 }
 
 void PVGUI_OutputWindowAdapter::DisplayErrorText(const char* text)
 {
   ++this->ErrorCount;
-  LogWindow* wnd = getLogWindow();
-  if ( wnd )
-    wnd->putMessage( text, Qt::darkRed, LogWindow::DisplayNormal );
+  ProcessVoidEvent( new TEvent( getLogWindow(), text, Qt::darkRed, LogWindow::DisplayNormal ));
 }
 
 void PVGUI_OutputWindowAdapter::DisplayWarningText(const char* text)
 {
   ++this->WarningCount;
-  LogWindow* wnd = getLogWindow();
-  if ( wnd )
-    wnd->putMessage( text, Qt::black, LogWindow::DisplayNormal );
+  ProcessVoidEvent( new TEvent( getLogWindow(), text, Qt::black, LogWindow::DisplayNormal ));
 }
 
 void PVGUI_OutputWindowAdapter::DisplayGenericWarningText(const char* text)
 {
   ++this->GenericWarningCount;
-  LogWindow* wnd = getLogWindow();
-  if ( wnd )
-    wnd->putMessage( text, Qt::black, LogWindow::DisplayNormal );
+  ProcessVoidEvent( new TEvent( getLogWindow() , text, Qt::black, LogWindow::DisplayNormal ));
 }

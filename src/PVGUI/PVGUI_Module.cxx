@@ -109,6 +109,8 @@
 #include <vtkEventQtSlotConnect.h>
 #include <pqPythonScriptEditor.h>
 
+#include <vtkPVConfig.h>
+
 /*
  * Make sure all the kits register their classes with vtkInstantiator.
  * Since ParaView uses Tcl wrapping, all of VTK is already compiled in
@@ -588,17 +590,10 @@ void PVGUI_Module::showHelp(const QString& url)
     return;
   }
 
- // * Discover help project files from the resources.
-  QString aPVHome(getenv("PVHOME"));
-  if (aPVHome.isNull()) {
-    qWarning("Wariable PVHOME is not defined");
-    return;
-  }
-  QChar aSep = QDir::separator();
-  QString aFile =  aPVHome + aSep + "doc" + aSep + "paraview.qch";
+  QString aFile = getHelpFileName();
 
   if (!QFile::exists(aFile)) {
-    qWarning("Help file do not found");
+    qWarning("Help file not found");
     return;
   }
   
@@ -1333,6 +1328,23 @@ void PVGUI_Module::onDelete()
     updateObjBrowser();
   }
 }
+
+/*!
+  \brief Discover help project files from the resources.
+  \return name of the help file. 
+*/
+QString PVGUI_Module::getHelpFileName() {
+  QString aPVHome(getenv("PVHOME"));
+  if (aPVHome.isNull()) {
+    qWarning("Wariable PVHOME is not defined");
+    return QString();
+  }
+  QChar aSep = QDir::separator();
+  //PARAVIEW_VERSION from the vtkPVConfig.h file
+  QString aFileName =  aPVHome + aSep + "share" + aSep + "doc" + aSep + "paraview-"+ PARAVIEW_VERSION + aSep + "paraview.qch";
+  return aFileName;
+}
+
 
 /*!
   \brief Load selected paraview state

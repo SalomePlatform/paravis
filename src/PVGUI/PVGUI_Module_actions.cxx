@@ -36,6 +36,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QToolBar>
+#include <QFile>
 
 #include <pqApplicationCore.h>
 #include <pqColorScaleToolbar.h>
@@ -377,13 +378,16 @@ void PVGUI_Module::pvCreateActions()
   new pqAboutDialogReaction(anAction << pqSetName("actionAbout"));
 
   // Native ParaView user documentation
-  aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
-  anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
-  anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
-  anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
-  anAction->setShortcut(QKeySequence::HelpContents);
-  connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
-  registerAction(ParaViewHelpId, anAction);
+  QString aFile = getHelpFileName();
+  if (QFile::exists(aFile)) {
+    aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
+    anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
+    anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
+    anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
+    anAction->setShortcut(QKeySequence::HelpContents);
+    connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
+    registerAction(ParaViewHelpId, anAction);
+  }
 }
 
 /*!
