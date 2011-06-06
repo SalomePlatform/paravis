@@ -1,7 +1,6 @@
 // PARAVIS : ParaView wrapper SALOME module
 //
-// Copyright (C) 2003  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
-// CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
+// Copyright (C) 2010-2011  CEA/DEN, EDF R&D
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -186,6 +185,9 @@ private:
 
   //! Returns QMenu object for a given menu id
   QMenu*                 getMenu( const int );
+  
+  //! Discover help project files from the resources.
+  QString getHelpFileName();
 
   void                   deleteTemporaryFiles();
   

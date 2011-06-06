@@ -1,7 +1,6 @@
 // PARAVIS : ParaView wrapper SALOME module
 //
-// Copyright (C) 2003  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
-// CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
+// Copyright (C) 2010-2011  CEA/DEN, EDF R&D
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -82,6 +81,7 @@
 #include <QToolBar>
 #include <QTextStream>
 #include <QShortcut>
+#include <QDockWidget>
 
 #include <pqApplicationCore.h>
 #include <pqActiveView.h>
@@ -108,6 +108,8 @@
 #include <pqLoadDataReaction.h>
 #include <vtkEventQtSlotConnect.h>
 #include <pqPythonScriptEditor.h>
+
+#include <vtkPVConfig.h>
 
 /*
  * Make sure all the kits register their classes with vtkInstantiator.
@@ -588,17 +590,10 @@ void PVGUI_Module::showHelp(const QString& url)
     return;
   }
 
- // * Discover help project files from the resources.
-  QString aPVHome(getenv("PVHOME"));
-  if (aPVHome.isNull()) {
-    qWarning("Wariable PVHOME is not defined");
-    return;
-  }
-  QChar aSep = QDir::separator();
-  QString aFile =  aPVHome + aSep + "doc" + aSep + "paraview.qch";
+  QString aFile = getHelpFileName();
 
   if (!QFile::exists(aFile)) {
-    qWarning("Help file do not found");
+    qWarning("Help file not found");
     return;
   }
   
@@ -728,6 +723,12 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
 */
 bool PVGUI_Module::deactivateModule( SUIT_Study* study )
 {
+  QList<QDockWidget*> aStreamingViews = application()->desktop()->findChildren<QDockWidget*>("pqStreamingControls");
+  foreach(QDockWidget* aView, aStreamingViews) {
+    if (!myDockWidgets.contains(aView))
+      myDockWidgets.append(aView);
+  }
+
   if (pqImplementation::helpWindow) {
     pqImplementation::helpWindow->hide();
   }
@@ -871,6 +872,7 @@ void PVGUI_Module::executeScript(const char *script)
   \brief Returns trace string
 */
 static const QString MYReplaceStr("paraview.simple");
+static const QString MYReplaceImportStr("except: from pvsimple import *");
 QString PVGUI_Module::getTraceString()
 {
   QString traceString;
@@ -898,6 +900,11 @@ QString PVGUI_Module::getTraceString()
       traceString = traceString.replace(aPos, MYReplaceStr.length(), "pvsimple");
       aPos = traceString.indexOf(MYReplaceStr, aPos);
     }
+    int aImportPos = traceString.indexOf(MYReplaceImportStr);
+    if(aImportPos != -1)
+      {
+      traceString = traceString.replace(aImportPos, MYReplaceImportStr.length(), "except:\n  import pvsimple\n  from pvsimple import *");
+      }
   }
   return traceString;
 }
@@ -1321,6 +1328,23 @@ void PVGUI_Module::onDelete()
     updateObjBrowser();
   }
 }
+
+/*!
+  \brief Discover help project files from the resources.
+  \return name of the help file. 
+*/
+QString PVGUI_Module::getHelpFileName() {
+  QString aPVHome(getenv("PVHOME"));
+  if (aPVHome.isNull()) {
+    qWarning("Wariable PVHOME is not defined");
+    return QString();
+  }
+  QChar aSep = QDir::separator();
+  //PARAVIEW_VERSION from the vtkPVConfig.h file
+  QString aFileName =  aPVHome + aSep + "share" + aSep + "doc" + aSep + "paraview-"+ PARAVIEW_VERSION + aSep + "paraview.qch";
+  return aFileName;
+}
+
 
 /*!
   \brief Load selected paraview state

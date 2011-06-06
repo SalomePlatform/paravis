@@ -1,7 +1,6 @@
 // PARAVIS : ParaView wrapper SALOME module
 //
-// Copyright (C) 2003  OPEN CASCADE, EADS/CCR, LIP6, CEA/DEN,
-// CEDRAT, EDF R&D, LEG, PRINCIPIA R&D, BUREAU VERITAS
+// Copyright (C) 2010-2011  CEA/DEN, EDF R&D
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -37,6 +36,7 @@
 #include <QAction>
 #include <QMenu>
 #include <QToolBar>
+#include <QFile>
 
 #include <pqApplicationCore.h>
 #include <pqColorScaleToolbar.h>
@@ -378,13 +378,16 @@ void PVGUI_Module::pvCreateActions()
   new pqAboutDialogReaction(anAction << pqSetName("actionAbout"));
 
   // Native ParaView user documentation
-  aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
-  anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
-  anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
-  anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
-  anAction->setShortcut(QKeySequence::HelpContents);
-  connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
-  registerAction(ParaViewHelpId, anAction);
+  QString aFile = getHelpFileName();
+  if (QFile::exists(aFile)) {
+    aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
+    anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
+    anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
+    anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
+    anAction->setShortcut(QKeySequence::HelpContents);
+    connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
+    registerAction(ParaViewHelpId, anAction);
+  }
 }
 
 /*!
