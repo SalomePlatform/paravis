@@ -161,11 +161,24 @@ void PVGUI_Module::saveDockWidgetsState()
 {
   SUIT_Desktop* desk = application()->desktop();
 
+  // VSR: 19/06/2011: do not use Paraview's methods, since it conflicts with SALOME GUI architecture
+  // ... the following code is commented...
   // Save the state of the window ...
-  pqApplicationCore::instance()->settings()->saveState(*desk, "MainWindow");
-
-  for (int i = 0; i < myDockWidgets.size(); ++i)
-    myDockWidgets.at(i)->setParent(0);
+  // pqApplicationCore::instance()->settings()->saveState(*desk, "MainWindow");
+  //
+  //for (int i = 0; i < myDockWidgets.size(); ++i)
+  //  myDockWidgets.at(i)->setParent(0);
+  // ... and replaced - manually hide dock windows
+  foreach( QDockWidget* dw, myDockWidgets ) {
+    dw->setVisible( false );
+    dw->toggleViewAction()->setVisible( false );
+  }
+  QMapIterator<QToolBar*, bool> it( myToolbarState );
+  while( it.hasNext() ) {
+    it.next();
+    it.key()->setVisible( false );
+    it.key()->toggleViewAction()->setVisible( false );
+  }
 }
 
 /*!
@@ -175,9 +188,22 @@ void PVGUI_Module::restoreDockWidgetsState()
 {
   SUIT_Desktop* desk = application()->desktop();
 
-  for (int i = 0; i < myDockWidgets.size(); ++i)
-    myDockWidgets.at(i)->setParent(desk);
-
+  // VSR: 19/06/2011: do not use Paraview's methods, since it conflicts with SALOME GUI architecture
+  // ... the following code is commented...
+  //for (int i = 0; i < myDockWidgets.size(); ++i)
+  //  myDockWidgets.at(i)->setParent(desk);
+  //
   // Restore the state of the window ...
-  pqApplicationCore::instance()->settings()->restoreState("MainWindow", *desk);
+  //pqApplicationCore::instance()->settings()->restoreState("MainWindow", *desk);
+  // ... and replaced - manually hide dock windows
+  foreach( QDockWidget* dw, myDockWidgets ) {
+    dw->setVisible( true );
+    dw->toggleViewAction()->setVisible( true );
+  }
+  QMapIterator<QToolBar*, bool> it( myToolbarState );
+  while( it.hasNext() ) {
+    it.next();
+    it.key()->setVisible( true );
+    it.key()->toggleViewAction()->setVisible( true );
+  }
 }
