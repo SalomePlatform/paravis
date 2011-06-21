@@ -567,6 +567,7 @@ void PVGUI_Module::showView( bool toShow )
   }
 
   pvWnd->setShown( toShow );
+  if ( toShow ) pvWnd->setFocus();
 }
 
 /*!
