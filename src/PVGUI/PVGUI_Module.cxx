@@ -366,7 +366,7 @@ void PVGUI_Module::initialize( CAM_Application* app )
     QList<QToolBar*> allToolbars = aDesktop->findChildren<QToolBar*>();
     foreach(QToolBar* aBar, allToolbars) {
       if (!foreignToolbars.contains(aBar)) {
-        myToolbarState[aBar] = true;
+        myToolbarState[aBar] = false;
 	aBar->setVisible(false);
 	aBar->toggleViewAction()->setVisible(false);
       }

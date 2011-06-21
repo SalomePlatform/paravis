@@ -176,8 +176,12 @@ void PVGUI_Module::saveDockWidgetsState()
   QMapIterator<QToolBar*, bool> it( myToolbarState );
   while( it.hasNext() ) {
     it.next();
-    it.key()->setVisible( false );
-    it.key()->toggleViewAction()->setVisible( false );
+    QToolBar* aBar = it.key();
+    aBar->setVisible( false );
+    aBar->toggleViewAction()->setVisible( false );
+    myToolbarState[aBar] = desk->toolBarBreak( aBar );
+    if ( myToolbarState[aBar] )
+      desk->removeToolBarBreak( aBar );
   }
 }
 
@@ -203,7 +207,10 @@ void PVGUI_Module::restoreDockWidgetsState()
   QMapIterator<QToolBar*, bool> it( myToolbarState );
   while( it.hasNext() ) {
     it.next();
-    it.key()->setVisible( true );
-    it.key()->toggleViewAction()->setVisible( true );
+    QToolBar* aBar = it.key();
+    aBar->setVisible( true );
+    aBar->toggleViewAction()->setVisible( true );
+    if ( myToolbarState[aBar] )
+      desk->insertToolBarBreak( aBar );
   }
 }
