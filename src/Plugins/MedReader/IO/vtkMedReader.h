@@ -74,7 +74,7 @@ public:
   virtual const char*
   GetFileExtensions()
   {
-    return ".med";
+    return ".med .rmed";
   }
 
   // Description:
