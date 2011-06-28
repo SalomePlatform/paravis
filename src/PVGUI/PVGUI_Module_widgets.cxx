@@ -82,7 +82,7 @@ void PVGUI_Module::setupDockWidgets()
   pqPipelineBrowserWidget* browser = new pqPipelineBrowserWidget(pipelineBrowserDock);
   pqParaViewMenuBuilders::buildPipelineBrowserContextMenu(*browser);
   pipelineBrowserDock->setWidget(browser);
-  myDockWidgets.append(pipelineBrowserDock);
+  myDockWidgets[pipelineBrowserDock] = true;
 
   //Object inspector
   QDockWidget* objectInspectorDock = new QDockWidget( tr( "TTL_OBJECT_INSPECTOR" ), desk );
@@ -94,7 +94,7 @@ void PVGUI_Module::setupDockWidgets()
   objectInspectorDock->setWidget(proxyTab);
   connect( proxyTab->getObjectInspector(), SIGNAL( helpRequested(QString) ),
           this, SLOT( showHelpForProxy(QString) ) );
-  myDockWidgets.append(objectInspectorDock);
+  myDockWidgets[objectInspectorDock] = true;
 
   // Statistic View
   QDockWidget* statisticsViewDock  = new QDockWidget( tr( "TTL_STATISTICS_VIEW" ), desk );
@@ -104,7 +104,7 @@ void PVGUI_Module::setupDockWidgets()
   desk->addDockWidget( Qt::BottomDockWidgetArea, statisticsViewDock );
   pqDataInformationWidget* aStatWidget = new pqDataInformationWidget(statisticsViewDock);
   statisticsViewDock->setWidget(aStatWidget);
-  myDockWidgets.append(statisticsViewDock);
+  myDockWidgets[statisticsViewDock] = false; // hidden by default
 
   //Animation view
   QDockWidget* animationViewDock     = new QDockWidget( tr( "TTL_ANIMATION_VIEW" ), desk );
@@ -112,7 +112,7 @@ void PVGUI_Module::setupDockWidgets()
   desk->addDockWidget( Qt::BottomDockWidgetArea, animationViewDock );
   pqPVAnimationWidget* animation_panel = new pqPVAnimationWidget(animationViewDock);
   animationViewDock->setWidget(animation_panel);
-  myDockWidgets.append(animationViewDock);
+  myDockWidgets[animationViewDock] = false; // hidden by default
 
   // Selection view
   QDockWidget* selectionInspectorDock = new QDockWidget( tr( "TTL_SELECTION_INSPECTOR" ), desk );
@@ -121,7 +121,7 @@ void PVGUI_Module::setupDockWidgets()
   desk->addDockWidget( Qt::LeftDockWidgetArea, selectionInspectorDock );
   pqSelectionInspectorPanel* aSelInspector = new pqSelectionInspectorWidget(selectionInspectorDock);
   selectionInspectorDock->setWidget(aSelInspector);
-  myDockWidgets.append(selectionInspectorDock);
+  myDockWidgets[selectionInspectorDock] = false; // hidden by default
 
   // Comparative View
   QDockWidget* comparativePanelDock  = new QDockWidget( tr( "TTL_COMPARATIVE_VIEW_INSPECTOR" ), desk );
@@ -129,7 +129,7 @@ void PVGUI_Module::setupDockWidgets()
   desk->addDockWidget( Qt::LeftDockWidgetArea, comparativePanelDock );
   pqComparativeVisPanel* cv_panel = new pqComparativeVisPanel( comparativePanelDock );
   comparativePanelDock->setWidget(cv_panel);
-  myDockWidgets.append(comparativePanelDock);
+  myDockWidgets[comparativePanelDock] = false; // hidden by default
 
   // Setup the statusbar ...
   pqProgressWidget* aProgress = new pqProgressWidget(desk->statusBar());
@@ -169,19 +169,33 @@ void PVGUI_Module::saveDockWidgetsState()
   //for (int i = 0; i < myDockWidgets.size(); ++i)
   //  myDockWidgets.at(i)->setParent(0);
   // ... and replaced - manually hide dock windows
-  foreach( QDockWidget* dw, myDockWidgets ) {
+
+  // store dock widgets visibility state and hide'em all
+  QMapIterator<QWidget*, bool> it1( myDockWidgets );
+  while( it1.hasNext() ) {
+    it1.next();
+    QDockWidget* dw = qobject_cast<QDockWidget*>( it1.key() );
+    myDockWidgets[dw] = dw->isVisible();
     dw->setVisible( false );
     dw->toggleViewAction()->setVisible( false );
   }
-  QMapIterator<QToolBar*, bool> it( myToolbarState );
-  while( it.hasNext() ) {
-    it.next();
-    QToolBar* aBar = it.key();
-    aBar->setVisible( false );
-    aBar->toggleViewAction()->setVisible( false );
-    myToolbarState[aBar] = desk->toolBarBreak( aBar );
-    if ( myToolbarState[aBar] )
-      desk->removeToolBarBreak( aBar );
+  // store toolbar breaks state and remove all tollbar breaks 
+  QMapIterator<QWidget*, bool> it2( myToolbarBreaks );
+  while( it2.hasNext() ) {
+    it2.next();
+    QToolBar* tb = qobject_cast<QToolBar*>( it2.key() );
+    myToolbarBreaks[tb] = desk->toolBarBreak( tb );
+    if ( myToolbarBreaks[tb] )
+      desk->removeToolBarBreak( tb );
+  }
+  // store toolbars visibility state and hide'em all
+  QMapIterator<QWidget*, bool> it3( myToolbars );
+  while( it3.hasNext() ) {
+    it3.next();
+    QToolBar* tb = qobject_cast<QToolBar*>( it3.key() );
+    myToolbars[tb] = tb->isVisible();
+    tb->setVisible( false );
+    tb->toggleViewAction()->setVisible( false );
   }
 }
 
@@ -200,17 +214,29 @@ void PVGUI_Module::restoreDockWidgetsState()
   // Restore the state of the window ...
   //pqApplicationCore::instance()->settings()->restoreState("MainWindow", *desk);
   // ... and replaced - manually hide dock windows
-  foreach( QDockWidget* dw, myDockWidgets ) {
-    dw->setVisible( true );
+
+  // restore dock widgets visibility state
+  QMapIterator<QWidget*, bool> it1( myDockWidgets );
+  while( it1.hasNext() ) {
+    it1.next();
+    QDockWidget* dw = qobject_cast<QDockWidget*>( it1.key() );
+    dw->setVisible( it1.value() );
     dw->toggleViewAction()->setVisible( true );
   }
-  QMapIterator<QToolBar*, bool> it( myToolbarState );
-  while( it.hasNext() ) {
-    it.next();
-    QToolBar* aBar = it.key();
-    aBar->setVisible( true );
-    aBar->toggleViewAction()->setVisible( true );
-    if ( myToolbarState[aBar] )
-      desk->insertToolBarBreak( aBar );
+  // restore toolbar breaks state
+  QMapIterator<QWidget*, bool> it2( myToolbarBreaks );
+  while( it2.hasNext() ) {
+    it2.next();
+    QToolBar* tb = qobject_cast<QToolBar*>( it2.key() );
+    if ( myToolbarBreaks[tb] )
+      desk->insertToolBarBreak( tb );
+  }
+  // restore toolbar visibility state
+  QMapIterator<QWidget*, bool> it3( myToolbars );
+  while( it3.hasNext() ) {
+    it3.next();
+    QToolBar* tb = qobject_cast<QToolBar*>( it3.key() );
+    tb->setVisible( it3.value() );
+    tb->toggleViewAction()->setVisible( true );
   }
 }

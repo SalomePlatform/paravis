@@ -253,12 +253,13 @@ private:
   int                    myFiltersMenuId;
   int                    myToolbarsMenuId;
   int                    myMacrosMenuId;
-
-  QList<QDockWidget*>    myDockWidgets;
+  
+  typedef QMap<QWidget*, bool> WgMap;
+  WgMap                  myDockWidgets;
+  WgMap                  myToolbars;
+  WgMap                  myToolbarBreaks;
 
   QStringList            myTemporaryFiles;
-
-  QMap<QToolBar*, bool>  myToolbarState;
 
   QtMsgHandler           myOldMsgHandler;
   QTimer* myTraceTimer;

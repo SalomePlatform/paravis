@@ -366,7 +366,8 @@ void PVGUI_Module::initialize( CAM_Application* app )
     QList<QToolBar*> allToolbars = aDesktop->findChildren<QToolBar*>();
     foreach(QToolBar* aBar, allToolbars) {
       if (!foreignToolbars.contains(aBar)) {
-        myToolbarState[aBar] = false;
+        myToolbars[aBar] = true;
+        myToolbarBreaks[aBar] = false;
 	aBar->setVisible(false);
 	aBar->toggleViewAction()->setVisible(false);
       }
@@ -709,7 +710,7 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
   QList<QDockWidget*> aStreamingViews = application()->desktop()->findChildren<QDockWidget*>("pqStreamingControls");
   foreach(QDockWidget* aView, aStreamingViews) {
     if (!myDockWidgets.contains(aView))
-      myDockWidgets.append(aView);
+      myDockWidgets[aView] = aView->isVisible();
   }
 
   if (pqImplementation::helpWindow) {
