@@ -806,7 +806,7 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
     vtkMedFieldStep* step = vtkMedFieldStep::New();
     step->SetMedIterator(csit + 1);
     step->SetParentField(field);
-    this->ReadFieldStepInformation(step);
+    this->ReadFieldStepInformation(step, csit == 0);
     field->AddFieldStep(step);
     step->SetPreviousStep(previousStep);
     previousStep = step;
@@ -814,11 +814,13 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
     }
 }
 
-void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
+void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAllEntityInfo)
 {
   vtkMedComputeStep cs;
   vtkMedComputeStep meshcs;
   vtkMedField* field = step->GetParentField();
+
+  FileOpen open(this);
 
   if( MEDfieldComputingStepMeshInfo(
         FileId,
@@ -836,6 +838,11 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step)
 
   step->SetComputeStep(cs);
   step->SetMeshComputeStep(meshcs);
+
+  if(!readAllEntityInfo || step->GetEntityInfoLoaded())
+    return;
+
+  step->SetEntityInfoLoaded(1);
 
   for(int entityid = 1; entityid <= MED_N_ENTITY_TYPES; entityid++)
     {

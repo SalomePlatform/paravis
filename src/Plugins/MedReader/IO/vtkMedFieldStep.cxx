@@ -42,6 +42,7 @@ vtkMedFieldStep::vtkMedFieldStep()
 	this->PreviousStep = NULL;
 	this->ParentField = NULL;
 	this->MedIterator = -1;
+  this->EntityInfoLoaded = 0;
 }
 
 vtkMedFieldStep::~vtkMedFieldStep()
@@ -66,7 +67,7 @@ vtkMedFieldOverEntity* vtkMedFieldStep::GetFieldOverEntity(
 void	vtkMedFieldStep::LoadInformation()
 {
 	this->GetParentField()->GetParentFile()->GetMedDriver()->
-			ReadFieldStepInformation(this);
+      ReadFieldStepInformation(this, true);
 }
 
 void vtkMedFieldStep::PrintSelf(ostream& os, vtkIndent indent)

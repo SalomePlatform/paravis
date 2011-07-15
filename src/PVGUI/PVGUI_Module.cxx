@@ -293,11 +293,13 @@ void PVGUI_Module::initialize( CAM_Application* app )
   // Create GUI elements (menus, toolbars, dock widgets)
   if ( !Implementation ){
     SalomeApp_Application* anApp = getApp();
+    SUIT_Desktop* aDesktop = anApp->desktop();
+
     // Remember current state of desktop toolbars
-    QList<QToolBar*> aOther_toolbars = anApp->desktop()->findChildren<QToolBar*>();
+    QList<QToolBar*> foreignToolbars = aDesktop->findChildren<QToolBar*>();
 
     // Simulate ParaView client main window
-    Implementation = new pqImplementation( anApp->desktop() );
+    Implementation = new pqImplementation( aDesktop );
 
     setupDockWidgets();
     
@@ -328,18 +330,16 @@ void PVGUI_Module::initialize( CAM_Application* app )
     new pqUndoRedoBehavior(this);
     new pqCrashRecoveryBehavior(this);
     new pqAutoLoadPluginXMLBehavior(this);
-    new pqPluginDockWidgetsBehavior(getApp()->desktop());
-    new pqPluginActionGroupBehavior(getApp()->desktop());
+    new pqPluginDockWidgetsBehavior(aDesktop);
+    new pqPluginActionGroupBehavior(aDesktop);
     new pqCommandLineOptionsBehavior(this);
-    new pqPersistentMainWindowStateBehavior(getApp()->desktop());
+    new pqPersistentMainWindowStateBehavior(aDesktop);
 
     // Setup quick-launch shortcuts.
-    QShortcut *ctrlSpace = new QShortcut(Qt::CTRL + Qt::Key_Space,
-      getApp()->desktop());
+    QShortcut *ctrlSpace = new QShortcut(Qt::CTRL + Qt::Key_Space, aDesktop);
     QObject::connect(ctrlSpace, SIGNAL(activated()),
       pqApplicationCore::instance(), SLOT(quickLaunch()));
-    QShortcut *altSpace = new QShortcut(Qt::ALT + Qt::Key_Space,
-      getApp()->desktop());
+    QShortcut *altSpace = new QShortcut(Qt::ALT + Qt::Key_Space, aDesktop);
     QObject::connect(altSpace, SIGNAL(activated()),
       pqApplicationCore::instance(), SLOT(quickLaunch()));
     //  End pqParaViewBehaviors
@@ -362,10 +362,15 @@ void PVGUI_Module::initialize( CAM_Application* app )
 
     // Find created toolbars
     QCoreApplication::processEvents();
-    QList<QToolBar*> aAll_toolbars = application()->desktop()->findChildren<QToolBar*>();
-    foreach(QToolBar* aBar, aAll_toolbars) {
-      if (!aOther_toolbars.contains(aBar))
-        myToolbarState[aBar] = true;
+
+    QList<QToolBar*> allToolbars = aDesktop->findChildren<QToolBar*>();
+    foreach(QToolBar* aBar, allToolbars) {
+      if (!foreignToolbars.contains(aBar)) {
+        myToolbars[aBar] = true;
+        myToolbarBreaks[aBar] = false;
+	aBar->setVisible(false);
+	aBar->toggleViewAction()->setVisible(false);
+      }
     }
   }
 
@@ -563,6 +568,7 @@ void PVGUI_Module::showView( bool toShow )
   }
 
   pvWnd->setShown( toShow );
+  if ( toShow ) pvWnd->setFocus();
 }
 
 /*!
@@ -687,29 +693,7 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
   setMenuShown( true );
   setToolShown( true );
 
-  if (myToolbarState.size() > 0) {
-    SUIT_Desktop* desk = application()->desktop();
-    QList<QToolBar*> aToolbars = myToolbarState.keys();
-    foreach(QToolBar* aBar, aToolbars) {
-      aBar->setParent(desk);
-      aBar->setVisible(myToolbarState[aBar]);
-    }
-  }
-
-  QList<QToolBar*> allToolbars = application()->desktop()->findChildren<QToolBar*>();
-  QMap<QToolBar*, bool> foreign;
-  foreach(QToolBar* aBar, allToolbars) {
-    if ( !myToolbarState.contains( aBar ) && aBar->parent() == application()->desktop() ) {
-      foreign[aBar] = aBar->isVisible();
-    }
-  }
-
   restoreDockWidgetsState();
-
-  QMap<QToolBar*, bool>::const_iterator it;
-  for ( it = foreign.constBegin(); it != foreign.constEnd(); ++it ) {
-    it.key()->setVisible( it.value() );
-  }
 
   return isDone;
 }
@@ -726,7 +710,7 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
   QList<QDockWidget*> aStreamingViews = application()->desktop()->findChildren<QDockWidget*>("pqStreamingControls");
   foreach(QDockWidget* aView, aStreamingViews) {
     if (!myDockWidgets.contains(aView))
-      myDockWidgets.append(aView);
+      myDockWidgets[aView] = aView->isVisible();
   }
 
   if (pqImplementation::helpWindow) {
@@ -742,29 +726,9 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
   setMenuShown( false );
   setToolShown( false );
 
-  QList<QToolBar*> allToolbars = application()->desktop()->findChildren<QToolBar*>();
-  QMap<QToolBar*, bool> foreign;
-  foreach(QToolBar* aBar, allToolbars) {
-    if ( !myToolbarState.contains( aBar ) && aBar->parent() == application()->desktop() ) {
-      foreign[aBar] = aBar->isVisible();
-    }
-  }
 
   saveDockWidgetsState();
 
-  QMap<QToolBar*, bool>::const_iterator it;
-  for ( it = foreign.constBegin(); it != foreign.constEnd(); ++it ) {
-    it.key()->setVisible( it.value() );
-  }
-
-  // hide toolbars
-  QList<QToolBar*> aToolbars = myToolbarState.keys();
-  foreach(QToolBar* aBar, aToolbars) {
-    myToolbarState[aBar] = aBar->isVisible();
-    aBar->hide();
-    aBar->setParent(0);
-  }
-  
   if (myOldMsgHandler)
     qInstallMsgHandler(myOldMsgHandler);
 

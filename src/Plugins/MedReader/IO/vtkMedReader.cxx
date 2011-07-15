@@ -1739,6 +1739,7 @@ void vtkMedReader::CreateMedSupports()
               while(it!=steps.end())
                 {
                 vtkMedFieldStep *step = *it;
+                step->LoadInformation();
                 it++;
 
                 for(int eid=0; eid<step->GetNumberOfFieldOverEntity(); eid++)
@@ -1938,6 +1939,7 @@ void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
       while(it!=steps.end())
         {
         vtkMedFieldStep *step = *it;
+        step->LoadInformation();
         it++;
 
         for(int eid=0; eid<step->GetNumberOfFieldOverEntity(); eid++)

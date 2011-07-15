@@ -242,7 +242,7 @@ void vtkMedDriver::ReadInterpolationInformation(vtkMedInterpolation* interp)
   return;
 }
 
-void vtkMedDriver::ReadFieldStepInformation(vtkMedFieldStep* step)
+void vtkMedDriver::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAllEntityInfo)
 {
   vtkErrorMacro("vtkMedDriver::ReadFieldStepInformation not Implemented !");
   return;

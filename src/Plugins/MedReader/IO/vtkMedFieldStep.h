@@ -87,10 +87,16 @@ public:
 
 	virtual void	LoadInformation();
 
+  // Description:
+  // This flag is used to delay loading information on all entity as long as possible
+  vtkSetMacro(EntityInfoLoaded, med_int);
+  vtkGetMacro(EntityInfoLoaded, med_int);
+
 protected:
 	vtkMedFieldStep();
 	virtual ~vtkMedFieldStep();
 
+  int EntityInfoLoaded;
 	med_int MedIterator;
 	vtkMedComputeStep ComputeStep;
 	vtkMedComputeStep MeshComputeStep;

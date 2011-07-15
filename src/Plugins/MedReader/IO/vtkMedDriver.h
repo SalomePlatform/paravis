@@ -109,7 +109,7 @@ public:
 
   // Description:
   // load all information associated witht this field step
-  virtual void ReadFieldStepInformation(vtkMedFieldStep*);
+  virtual void ReadFieldStepInformation(vtkMedFieldStep*, bool readAllEntityInfo);
 
   // Description:
   // load all information related to this interpolation function
