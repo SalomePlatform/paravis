@@ -139,7 +139,9 @@
 #include <pqDataTimeStepBehavior.h>
 #include <pqDefaultViewBehavior.h>
 #include <pqDeleteBehavior.h>
+#include <pqObjectPickingBehavior.h>
 #include <pqPersistentMainWindowStateBehavior.h>
+#include <pqPipelineContextMenuBehavior.h>
 #include <pqPluginActionGroupBehavior.h>
 #include <pqPluginDockWidgetsBehavior.h>
 #include <pqPluginManager.h>
@@ -320,9 +322,11 @@ void PVGUI_Module::initialize( CAM_Application* app )
     pqApplicationCore::instance()->loadDistributedPlugins();
 
     // Define application behaviors.
+    //new pqQtMessageHandlerBehavior(this);
     new pqDataTimeStepBehavior(this);
     new pqViewFrameActionsBehavior(this);
     new pqSpreadSheetVisibilityBehavior(this);
+    new pqPipelineContextMenuBehavior(this);
     new pqDefaultViewBehavior(this);
     new pqAlwaysConnectedBehavior(this);
     new pqPVNewSourceBehavior(this);
@@ -331,9 +335,12 @@ void PVGUI_Module::initialize( CAM_Application* app )
     new pqCrashRecoveryBehavior(this);
     new pqAutoLoadPluginXMLBehavior(this);
     new pqPluginDockWidgetsBehavior(aDesktop);
+    //new pqVerifyRequiredPluginBehavior(this);
     new pqPluginActionGroupBehavior(aDesktop);
+    //new pqFixPathsInStateFilesBehavior(this);
     new pqCommandLineOptionsBehavior(this);
     new pqPersistentMainWindowStateBehavior(aDesktop);
+    new pqObjectPickingBehavior(aDesktop);
 
     // Setup quick-launch shortcuts.
     QShortcut *ctrlSpace = new QShortcut(Qt::CTRL + Qt::Key_Space, aDesktop);
