@@ -19,7 +19,6 @@
 
 SET(dist_salomeres_DATA
   LightApp.xml
-  SalomeApp.xml
   pqAppIcon22.png
   pqAppIcon16.png
   ParaViewFilters.xml
@@ -30,6 +29,14 @@ SET(dist_salomeres_DATA
 
 SET(input ${CMAKE_CURRENT_SOURCE_DIR}/PARAVISCatalog.xml.in)
 SET(output ${CMAKE_CURRENT_BINARY_DIR}/PARAVISCatalog.xml)
+
+MESSAGE(STATUS "Creation of ${output}")
+CONFIGURE_FILE(${input} ${output})
+
+INSTALL(FILES ${output} DESTINATION share/salome/resources/paravis)
+
+SET(input ${CMAKE_CURRENT_SOURCE_DIR}/SalomeApp.xml.in)
+SET(output ${CMAKE_CURRENT_BINARY_DIR}/SalomeApp.xml)
 
 MESSAGE(STATUS "Creation of ${output}")
 CONFIGURE_FILE(${input} ${output})

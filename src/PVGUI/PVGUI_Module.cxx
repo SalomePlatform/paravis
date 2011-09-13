@@ -109,6 +109,8 @@
 #include <vtkEventQtSlotConnect.h>
 #include <pqPythonScriptEditor.h>
 
+#include <PARAVIS_version.h>
+
 #include <vtkPVConfig.h>
 
 /*
@@ -1391,4 +1393,9 @@ extern "C" {
   PVGUI_EXPORT CAM_Module* createModule() {
     return new PVGUI_Module();
   }
+  
+  PVGUI_EXPORT char* getModuleVersion() {
+    return PARAVIS_VERSION_STR;
+  }
+	  
 }
