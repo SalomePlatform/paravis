@@ -1395,7 +1395,7 @@ extern "C" {
   }
   
   PVGUI_EXPORT char* getModuleVersion() {
-    return PARAVIS_VERSION_STR;
+    return (char*)PARAVIS_VERSION_STR;
   }
 	  
 }
