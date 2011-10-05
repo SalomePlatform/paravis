@@ -263,13 +263,17 @@ void PVGUI_Module::pvCreateActions()
   // --- Menu "View"
   pqViewManager* viewManager = qobject_cast<pqViewManager*>(
                                pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
-  if (viewManager) {
-    anAction = new QAction("Full Screen", this);
-    anAction->setObjectName("actionFullScreen");
-    anAction->setShortcut(QKeySequence("F11"));
-    connect(anAction, SIGNAL(triggered()), viewManager, SLOT(toggleFullScreen()));
-    registerAction(FullScreenId, anAction);
-  }
+
+  //rnv: Commented to implement issue 
+  //21318: EDF 1615 ALL: Display in full screen mode
+  //Switching to the "Full screen" mode added in the SALOME GUI module.
+  //if (viewManager) {
+  //anAction = new QAction("Full Screen", this);
+  //anAction->setObjectName("actionFullScreen");
+  //anAction->setShortcut(QKeySequence("F11"));
+  //connect(anAction, SIGNAL(triggered()), viewManager, SLOT(toggleFullScreen()));
+  //registerAction(FullScreenId, anAction);
+  //}
 
   // --- Menu "Tools"
   // Create Custom Filter
