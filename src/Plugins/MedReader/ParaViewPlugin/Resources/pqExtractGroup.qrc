@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/ParaViewResources" >
-        <file>ExtractGroupClient.xml</file>
-    </qresource>
-</RCC>
