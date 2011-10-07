@@ -85,6 +85,10 @@ protected :
 	vtkDoubleArray* DenominatorCoefficients;
 
 	int NumberOfVariable;
+
+private :
+    vtkMedFraction(const vtkMedFraction&); // Not implemented.
+    void operator=(const vtkMedFraction&); // Not implemented.
 };
 
 #endif //__vtkMedFraction_h_

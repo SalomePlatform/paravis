@@ -42,6 +42,7 @@ class vtkMedGroup;
 class vtkIdList;
 class vtkMutableDirectedGraph;
 class vtkInformationIntegerKey;
+class vtkInformationObjectBaseKey;
 
 //BTX
 class vtkMedComputeStep
@@ -112,6 +113,8 @@ public:
   static vtkInformationIntegerKey* ELNO();
   static vtkInformationIntegerKey* ELGA();
   static vtkInformationStringVectorKey* BLOCK_NAME();
+  static vtkInformationObjectBaseKey* STRUCT_ELEMENT();
+  static vtkInformationIntegerKey* STRUCT_ELEMENT_INDEX();
 
   // Description:
   // return an array to store the coordinates of nodes.
@@ -122,6 +125,7 @@ public:
   // returns an array to store data of a given type.
   // the type corresponds to med types.
   static vtkDataArray* NewArray(med_field_type type);
+  static vtkAbstractArray* NewArray(med_attribute_type type);
 
   //BTX
   enum
@@ -133,7 +137,7 @@ public:
   //BTX
   // Description:
   // returns a name for the given med_geometry_type
-  static const char* GeometryName(med_geometry_type geometry);
+  //static const char* GeometryName(med_geometry_type geometry);
 
   // Description:
   // returns a name for the given med_geometry_type
@@ -203,6 +207,8 @@ public:
   // numfaces, npts_face0, pt0, ... npts_face1, pt1 ....
   static int  FormatPolyhedronForVTK(vtkMedFamilyOnEntityOnProfile*,
                                vtkIdType, vtkIdList*);
+
+  static int SizeOf(med_attribute_type type);
   //ETX
 };
 

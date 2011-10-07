@@ -25,6 +25,7 @@
 #include "vtkIdTypeArray.h"
 #include "vtkDoubleArray.h"
 #include "vtkIntArray.h"
+#include "vtkCharArray.h"
 
 #include "vtkMedFile.h"
 #include "vtkMedCartesianGrid.h"
@@ -46,6 +47,9 @@
 #include "vtkMedFieldOnProfile.h"
 #include "vtkMedFraction.h"
 #include "vtkMedLink.h"
+#include "vtkMedStructElement.h"
+#include "vtkMedConstantAttribute.h"
+#include "vtkMedVariableAttribute.h"
 
 #include <string>
 using namespace std;
@@ -423,6 +427,8 @@ void vtkMedDriver30::ReadUnstructuredGridInformation(
   this->ReadNumberOfEntity(grid, MED_DESCENDING_FACE, MED_DESCENDING);
   this->ReadNumberOfEntity(grid, MED_DESCENDING_EDGE, MED_NODAL);
   this->ReadNumberOfEntity(grid, MED_DESCENDING_EDGE, MED_DESCENDING);
+  this->ReadNumberOfEntity(grid, MED_STRUCT_ELEMENT, MED_NODAL);
+  this->ReadNumberOfEntity(grid, MED_STRUCT_ELEMENT, MED_DESCENDING);
 
   // create the point vtkMedEntityArray support
   vtkMedEntity entity;
@@ -663,6 +669,16 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
     this->ReadLocalizationInformation(loc);
     }
 
+  int nsupportmesh = MEDnSupportMesh(this->FileId);
+  file->AllocateNumberOfSupportMesh(nsupportmesh);
+  for(int i = 0; i < nsupportmesh; i++)
+    {
+    vtkMedMesh* supportmesh = file->GetSupportMesh(i);
+    supportmesh->SetMedIterator(i + 1);
+    supportmesh->SetParentFile(file);
+    this->ReadSupportMeshInformation(supportmesh);
+    }
+
   int nfields = MEDnField(this->FileId);
   file->AllocateNumberOfField(nfields);
   for(int i = 0; i < nfields; i++)
@@ -692,6 +708,204 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
     mesh->SetParentFile(file);
     this->ReadMeshInformation(mesh);
     }
+
+  int nstruct = MEDnStructElement(this->FileId);
+
+  file->AllocateNumberOfStructElement(nstruct);
+  for(int i = 0; i < nstruct; i++)
+    {
+    vtkMedStructElement* structelem = file->GetStructElement(i);
+    structelem->SetMedIterator(i+1);
+    structelem->SetParentFile(file);
+    this->ReadStructElementInformation(structelem);
+    }
+}
+
+void  vtkMedDriver30::ReadStructElementInformation(
+    vtkMedStructElement* structelem)
+{
+
+  FileOpen open(this);
+
+  char modelname[MED_NAME_SIZE+1] = "";
+  med_geometry_type mgeotype;
+  med_int modeldim;
+  char supportmeshname[MED_NAME_SIZE+1] = "";
+  med_entity_type sentitytype;
+  med_int snbofnode;
+  med_int snbofcell;
+  med_geometry_type sgeotype;
+  med_int nbofconstantattribute;
+  med_bool anyprofile;
+  med_int nbofvariableattribute;
+
+  if(MEDstructElementInfo (this->FileId,
+                           structelem->GetMedIterator(),
+                           modelname,
+                           &mgeotype,
+                           &modeldim,
+                           supportmeshname,
+                           &sentitytype,
+                           &snbofnode,
+                           &snbofcell,
+                           &sgeotype,
+                           &nbofconstantattribute,
+                           &anyprofile,
+                           &nbofvariableattribute) < 0)
+    {
+    vtkErrorMacro("Error in MEDstructElementInfo");
+    return;
+    }
+  structelem->SetName(modelname);
+  structelem->SetGeometryType(mgeotype);
+  structelem->SetModelDimension(modeldim);
+  structelem->SetSupportMeshName(supportmeshname);
+  structelem->SetSupportEntityType(sentitytype);
+  structelem->SetSupportNumberOfNode(snbofnode);
+  structelem->SetSupportNumberOfCell(snbofcell);
+  structelem->SetSupportGeometryType(sgeotype);
+  structelem->AllocateNumberOfConstantAttribute(nbofconstantattribute);
+  structelem->AllocateNumberOfVariableAttribute(nbofvariableattribute);
+  structelem->SetAnyProfile(anyprofile);
+
+  for(int attit = 0; attit < nbofconstantattribute; attit ++)
+    {
+    vtkMedConstantAttribute* constatt = structelem->GetConstantAttribute(attit);
+    constatt->SetMedIterator(attit+1);
+    constatt->SetParentStructElement(structelem);
+    this->ReadConstantAttributeInformation(constatt);
+    }
+
+  for(int attit = 0; attit < nbofvariableattribute; attit ++)
+    {
+    vtkMedVariableAttribute* varatt = structelem->GetVariableAttribute(attit);
+    varatt->SetMedIterator(attit+1);
+    varatt->SetParentStructElement(structelem);
+    this->ReadVariableAttributeInformation(varatt);
+    }
+}
+
+void vtkMedDriver30::ReadConstantAttributeInformation(
+		vtkMedConstantAttribute* constAttr)
+{
+
+	FileOpen open(this);
+
+	char constattname[MED_NAME_SIZE+1] = "";
+	med_attribute_type constatttype;
+	med_int nbofcomponent;
+	med_entity_type sentitytype;
+	char profilename[MED_NAME_SIZE+1] = "";
+	med_int profilesize;
+
+	if(MEDstructElementConstAttInfo(
+			this->FileId,
+			constAttr->GetParentStructElement()->GetName(),
+			constAttr->GetMedIterator(),
+			constattname,
+			&constatttype,
+			&nbofcomponent,
+			&sentitytype,
+			profilename,
+			&profilesize) 	< 0)
+		{
+		vtkErrorMacro("MEDstructElementConstAttInfo error");
+		return;
+		}
+
+	constAttr->SetName(constattname);
+	constAttr->SetAttributeType(constatttype);
+	constAttr->SetNumberOfComponent(nbofcomponent);
+	constAttr->SetSupportEntityType(sentitytype);
+	constAttr->SetProfileName(profilename);
+	constAttr->SetProfileSize(profilesize);
+
+	vtkAbstractArray* values = vtkMedUtilities::NewArray(constatttype);
+	if(values == NULL)
+		return;
+	constAttr->SetValues(values);
+	values->Delete();
+
+	values->SetNumberOfComponents(nbofcomponent);
+	vtkIdType ntuple = 0;
+	if((strcmp(profilename, MED_NO_PROFILE) != 0) &&
+		 (strcmp(profilename, "\0") != 0))
+		{
+		ntuple = profilesize;
+		}
+	else if(constAttr->GetSupportEntityType() == MED_CELL)
+		{
+		ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfCell();
+		}
+	else
+		{
+		ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfNode();
+		}
+	values->SetNumberOfTuples(ntuple);
+
+	void* ptr = NULL;
+	vtkSmartPointer<vtkCharArray> buffer = vtkSmartPointer<vtkCharArray>::New();
+	if(constatttype != MED_ATT_NAME)
+		{
+		ptr = values->GetVoidPointer(0);
+		}
+	else
+		{
+		buffer->SetNumberOfValues(MED_NAME_SIZE*nbofcomponent*ntuple);
+		ptr = buffer->GetVoidPointer(0);
+		}
+
+	if(MEDstructElementConstAttRd (this->FileId,
+				constAttr->GetParentStructElement()->GetName(),
+				constAttr->GetName(), ptr) < 0)
+		{
+		vtkErrorMacro("MEDstructElementConstAttRd");
+		return;
+		}
+
+	if(constatttype == MED_ATT_NAME)
+		{
+		char name[MED_NAME_SIZE+1] = "";
+		char* nameptr = (char*) ptr;
+		vtkStringArray* names = vtkStringArray::SafeDownCast(values);
+		for(vtkIdType id = 0; id < nbofcomponent*ntuple; id++)
+			{
+			memset(name, '\0', MED_NAME_SIZE+1);
+			strncpy(name, nameptr + id * MED_NAME_SIZE, MED_NAME_SIZE);
+			names->SetValue(id, name);
+			}
+		}
+
+	return;
+}
+
+void vtkMedDriver30::ReadVariableAttributeInformation(
+    vtkMedVariableAttribute* varAttr)
+{
+
+  FileOpen open(this);
+
+  char varattname[MED_NAME_SIZE+1] = "";
+  med_attribute_type varatttype;
+  med_int nbofcomponent;
+
+  if(MEDstructElementVarAttInfo (
+      this->FileId,
+      varAttr->GetParentStructElement()->GetName(),
+      varAttr->GetMedIterator(),
+      varattname,
+      &varatttype,
+      &nbofcomponent) < 0)
+    {
+    vtkErrorMacro("MEDstructElementVarAttInfo");
+    return;
+    }
+
+  varAttr->SetName(varattname);
+  varAttr->SetAttributeType(varatttype);
+  varAttr->SetNumberOfComponent(nbofcomponent);
+
+  return;
 }
 
 void vtkMedDriver30::ReadProfileInformation(vtkMedProfile* profile)
@@ -1041,7 +1255,7 @@ void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
   med_axis_type axistype;
   med_int naxis;
 
-  if ( naxis=MEDmeshnAxis(this->FileId, mesh->GetMedIterator()) <0 )
+  if ( (naxis=MEDmeshnAxis(this->FileId, mesh->GetMedIterator())) <0 )
     {
     vtkDebugMacro("Error reading mesh axis number");
     }
@@ -1327,6 +1541,52 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
     delete[] power;
     delete[] coefficient;
     }
+}
+
+void vtkMedDriver30::ReadSupportMeshInformation(
+    vtkMedMesh* supportMesh)
+{
+  FileOpen open(this);
+
+  char supportmeshname[MED_NAME_SIZE+1] = "";
+  char description[MED_COMMENT_SIZE+1] = "";
+  med_int spacedim;
+  med_int meshdim;
+  med_axis_type axistype;
+  char axisname[3*MED_SNAME_SIZE+1] = "";
+  char axisunit[3*MED_SNAME_SIZE+1] = "";
+
+  if(MEDsupportMeshInfo (this->FileId,
+                         supportMesh->GetMedIterator(),
+                         supportmeshname,
+                         &spacedim,
+                         &meshdim,
+                         description,
+                         &axistype,
+                         axisname,
+                         axisunit) < 0)
+    {
+    vtkErrorMacro("MEDsupportMeshInfo");
+    }
+
+  supportMesh->SetName(supportmeshname);
+  supportMesh->SetDescription(description);
+  supportMesh->SetSpaceDimension(spacedim);
+  supportMesh->SetMeshDimension(meshdim);
+  supportMesh->SetAxisType(axistype);
+  for(int dim = 0; dim < 3; dim++)
+    {
+    char axisname_dim[MED_SNAME_SIZE+1] = "";
+    char axisunit_dim[MED_SNAME_SIZE+1] = "";
+
+    strncpy(axisname_dim, axisname+dim*MED_SNAME_SIZE, MED_SNAME_SIZE);
+    strncpy(axisunit_dim, axisunit+dim*MED_SNAME_SIZE, MED_SNAME_SIZE);
+
+    supportMesh->GetAxisName()->SetValue(dim, axisname_dim);
+    supportMesh->GetAxisUnit()->SetValue(dim, axisunit_dim);
+    }
+
+  return;
 }
 
 void vtkMedDriver30::LoadFamilyIds(vtkMedEntityArray* array)
@@ -1658,11 +1918,36 @@ void vtkMedDriver30::LoadConnectivity(vtkMedEntityArray* array)
     }
   else
     {
+    bool doReadConnectivity = true;
     if(array->GetConnectivity() == MED_NODAL)
       {
-      conn->SetNumberOfTuples(array->GetNumberOfEntity()
-          * vtkMedUtilities::GetNumberOfPoint(
-              array->GetEntity().GeometryType));
+      if(array->GetEntity().EntityType == MED_STRUCT_ELEMENT)
+        {
+        if(array->GetStructElement() == NULL)
+          {
+          vtkErrorMacro("Entity type = MED_STRUCT_ELEMENT, but StructElement is not set!");
+          return;
+          }
+        vtkIdType ntuple = array->GetNumberOfEntity()
+                           * array->GetStructElement()->GetConnectivitySize();
+
+        conn->SetNumberOfTuples(ntuple);
+        // particles are special : connectivity is not stored in the med file
+        if(strcmp(array->GetStructElement()->GetName(), MED_PARTICLE_NAME) == 0 )
+          {
+          for(vtkIdType cellId = 0; cellId < ntuple; cellId++)
+            {
+            conn->SetValue(cellId, cellId+1);
+            }
+          doReadConnectivity = false;
+          }
+        }
+      else
+        {
+        conn->SetNumberOfTuples(array->GetNumberOfEntity()
+            * vtkMedUtilities::GetNumberOfPoint(
+                array->GetEntity().GeometryType));
+        }
       }
     else
       {
@@ -1670,19 +1955,22 @@ void vtkMedDriver30::LoadConnectivity(vtkMedEntityArray* array)
           * vtkMedUtilities::GetNumberOfSubEntity(
               array->GetEntity().GeometryType));
       }
-    if ( (MEDmeshElementConnectivityRd(
-            this->FileId,
-            meshName,
-            cs.TimeIt,
-            cs.IterationIt,
-            array->GetEntity().EntityType,
-            array->GetEntity().GeometryType,
-            array->GetConnectivity(),
-            MED_FULL_INTERLACE,
-            conn->GetPointer(0)) ) < 0)
+    if(doReadConnectivity)
       {
-      vtkErrorMacro("Error while load connectivity of cells "
-          << array->GetEntity().GeometryType);
+      if ( (MEDmeshElementConnectivityRd(
+              this->FileId,
+              meshName,
+              cs.TimeIt,
+              cs.IterationIt,
+              array->GetEntity().EntityType,
+              array->GetEntity().GeometryType,
+              array->GetConnectivity(),
+              MED_FULL_INTERLACE,
+              conn->GetPointer(0)) ) < 0)
+        {
+        vtkErrorMacro("Error while load connectivity of cells "
+            << array->GetEntity().GeometryType);
+        }
       }
     }
 }
@@ -1777,6 +2065,115 @@ void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode)
     {
     vtkErrorMacro("Error on MEDfieldValueWithProfileRd");
     }
+}
+
+void vtkMedDriver30::LoadVariableAttribute(vtkMedVariableAttribute* varatt,
+                                           vtkMedEntityArray* array)
+{
+  FileOpen open(this);
+
+  void  *value = NULL;
+
+  vtkAbstractArray* valuearray = array->GetVariableAttributeValue(varatt);
+  // first test if this is already loaded
+  if(valuearray != NULL && valuearray->GetNumberOfTuples() > 0)
+    return;
+
+  if(valuearray == NULL)
+    {
+    valuearray = vtkMedUtilities::NewArray(varatt->GetAttributeType());
+    array->SetVariableAttributeValues(varatt, valuearray);
+    valuearray->Delete();
+    }
+
+  valuearray->SetNumberOfComponents(varatt->GetNumberOfComponent());
+  valuearray->SetNumberOfTuples(array->GetNumberOfEntity());
+  valuearray->SetName(varatt->GetName());
+
+  vtkSmartPointer<vtkCharArray> chararray = vtkSmartPointer<vtkCharArray>::New();
+
+  if(varatt->GetAttributeType() != MED_ATT_NAME)
+    {
+    value = valuearray->GetVoidPointer(0);
+    }
+  else
+    {
+    chararray->SetNumberOfValues(varatt->GetNumberOfComponent() *
+                                  array->GetNumberOfEntity() *
+                                  MED_NAME_SIZE);
+
+    value = chararray->GetVoidPointer(0);
+    }
+
+  vtkMedComputeStep cs = array->GetParentGrid()->GetComputeStep();
+
+  if(MEDmeshStructElementVarAttRd(
+      this->FileId,
+      array->GetParentGrid()->GetParentMesh()->GetName(),
+      cs.TimeIt,
+      cs.IterationIt,
+      varatt->GetParentStructElement()->GetGeometryType(),
+      varatt->GetName(),
+      value) < 0)
+    {
+
+    if(cs.IterationIt == MED_NO_IT && cs.TimeIt == MED_NO_DT && cs.TimeOrFrequency == MED_UNDEF_DT)
+      {
+      vtkErrorMacro("MEDmeshStructElementVarAttRd");
+      return;
+      }
+    // try to see if I can reuse
+    // the variable attributes of the NO_DT, NO_IT compute step
+    vtkMedComputeStep nocs;
+    nocs.IterationIt = MED_NO_IT;
+    nocs.TimeIt = MED_NO_DT;
+    nocs.TimeOrFrequency = MED_UNDEF_DT;
+    vtkMedEntityArray* nocs_array =
+        array->GetParentGrid()->GetParentMesh()->GetGridStep(nocs)->GetEntityArray(array->GetEntity());
+    if(nocs_array == NULL)
+      {
+      nocs_array = array->GetParentGrid()->GetParentMesh()->GetGridStep(0)->GetEntityArray(array->GetEntity());
+      }
+
+    if(nocs_array == NULL || nocs_array == array)
+      {
+      // try to force load the default compute step.
+      if(MEDmeshStructElementVarAttRd(
+          this->FileId,
+          array->GetParentGrid()->GetParentMesh()->GetName(),
+          nocs.TimeIt,
+          nocs.IterationIt,
+          varatt->GetParentStructElement()->GetGeometryType(),
+          varatt->GetName(),
+          value) < 0)
+        {
+        vtkErrorMacro("MEDmeshStructElementVarAttRd");
+        return;
+        }
+      }
+    else
+      {
+      this->LoadVariableAttribute(varatt, nocs_array);
+      array->SetVariableAttributeValues(varatt, nocs_array->GetVariableAttributeValue(varatt));
+      return;
+      }
+    }
+
+  // If I am here, it means that I read the values
+  if(varatt->GetAttributeType() == MED_ATT_NAME)
+    {
+    char current_name[MED_NAME_SIZE+1] = "";
+    vtkStringArray* sarray = vtkStringArray::SafeDownCast(valuearray);
+    for(vtkIdType id = 0; id < varatt->GetNumberOfComponent() *
+                       array->GetNumberOfEntity(); id++)
+      {
+      memset(current_name, '\0', MED_NAME_SIZE+1);
+      strncpy(current_name, ((char*)value) + id*MED_NAME_SIZE, MED_NAME_SIZE);
+      sarray->SetValue(id, current_name);
+      }
+    }
+
+  return;
 }
 
 void vtkMedDriver30::PrintSelf(ostream& os, vtkIndent indent)

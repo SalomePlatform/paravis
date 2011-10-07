@@ -31,6 +31,7 @@
 #include "vtkMedCurvilinearGrid.h"
 #include "vtkMedFile.h"
 #include "vtkMedDriver.h"
+#include "vtkMedStructElement.h"
 
 #include "vtkIdList.h"
 
@@ -46,6 +47,7 @@ vtkCxxSetObjectMacro(vtkMedEntityArray,FaceIndex,vtkMedIntArray);
 vtkCxxSetObjectMacro(vtkMedEntityArray,NodeIndex,vtkMedIntArray);
 
 vtkCxxSetObjectMacro(vtkMedEntityArray,ParentGrid,vtkMedGrid);
+vtkCxxSetObjectMacro(vtkMedEntityArray,StructElement,vtkMedStructElement);
 
 vtkCxxRevisionMacro(vtkMedEntityArray, "$Revision$");
 vtkStandardNewMacro(vtkMedEntityArray);
@@ -63,7 +65,7 @@ vtkMedEntityArray::vtkMedEntityArray()
   this->FamilyOnEntity = new vtkObjectVector<vtkMedFamilyOnEntity> ();
   this->FamilyIdStatus = vtkMedEntityArray::FAMILY_ID_NOT_LOADED;
   this->ParentGrid = NULL;
-
+  this->StructElement = NULL;
 }
 
 vtkMedEntityArray::~vtkMedEntityArray()
@@ -75,6 +77,7 @@ vtkMedEntityArray::~vtkMedEntityArray()
   this->SetNodeIndex(NULL);
   delete this->FamilyOnEntity;
   this->SetParentGrid(NULL);
+  this->SetStructElement(NULL);
 }
 
 void vtkMedEntityArray::Initialize()
@@ -171,16 +174,27 @@ int vtkMedEntityArray::IsConnectivityLoaded()
 
   if( this->Entity.EntityType != MED_CELL &&
       this->Entity.EntityType != MED_DESCENDING_FACE &&
-      this->Entity.EntityType != MED_DESCENDING_EDGE )
+      this->Entity.EntityType != MED_DESCENDING_EDGE &&
+      this->Entity.EntityType != MED_STRUCT_ELEMENT)
     return 1;
 
   if(this->ConnectivityArray == NULL)
     return 0;
 
-  if(this->Connectivity == MED_NODAL)
+  if(this->Connectivity == MED_NODAL && this->Entity.EntityType != MED_STRUCT_ELEMENT)
     {
     vtkIdType connSize = this->NumberOfEntity
         * vtkMedUtilities::GetNumberOfPoint(this->Entity.GeometryType);
+
+    return connSize == this->ConnectivityArray->GetNumberOfTuples();
+    }
+  else if (this->Connectivity == MED_NODAL && this->Entity.EntityType == MED_STRUCT_ELEMENT)
+    {
+    if(this->StructElement == NULL)
+      return 1;
+
+    vtkIdType connSize = this->NumberOfEntity
+                         * this->StructElement->GetConnectivitySize();
 
     return connSize == this->ConnectivityArray->GetNumberOfTuples();
     }
@@ -216,7 +230,8 @@ void vtkMedEntityArray::GetCellVertices(vtkIdType index, vtkIdList* ids)
 
   if( this->Entity.EntityType != MED_CELL &&
       this->Entity.EntityType != MED_DESCENDING_FACE &&
-      this->Entity.EntityType != MED_DESCENDING_EDGE )
+      this->Entity.EntityType != MED_DESCENDING_EDGE &&
+      this->Entity.EntityType != MED_STRUCT_ELEMENT)
     {
     vtkErrorMacro("This reader is not compatible with those entities (yet)...");
     return;
@@ -410,7 +425,18 @@ void vtkMedEntityArray::GetCellVertices(vtkIdType index, vtkIdList* ids)
   else if (this->GetConnectivity()==MED_NODAL ||
            vtkMedUtilities::GetDimension(this->GetEntity().GeometryType)<1)
     {
-    int npts = vtkMedUtilities::GetNumberOfPoint(this->GetEntity().GeometryType);
+    int npts = 0;
+    if(this->GetEntity().EntityType == MED_STRUCT_ELEMENT)
+      {
+      if(this->StructElement != NULL)
+        {
+        npts = this->StructElement->GetConnectivitySize();
+        }
+      }
+    else
+      {
+      npts = vtkMedUtilities::GetNumberOfPoint(this->GetEntity().GeometryType);
+      }
     vtkMedIntArray* conn = this->GetConnectivityArray();
     for (int i = 0; i<npts; i++)
       {
@@ -476,6 +502,22 @@ void  vtkMedEntityArray::LoadConnectivity()
 
   this->GetParentGrid()->GetParentMesh()->GetParentFile()->GetMedDriver()
       ->LoadConnectivity(this);
+}
+
+void  vtkMedEntityArray::SetVariableAttributeValues(
+    vtkMedVariableAttribute* varatt, vtkAbstractArray* value)
+{
+  this->VariableAttributeValue[varatt] = value;
+}
+
+vtkAbstractArray* vtkMedEntityArray::GetVariableAttributeValue(
+    vtkMedVariableAttribute* varatt)
+{
+  if(this->VariableAttributeValue.find(varatt)
+    == this->VariableAttributeValue.end())
+    return NULL;
+
+  return this->VariableAttributeValue[varatt];
 }
 
 void vtkMedEntityArray::PrintSelf(ostream& os, vtkIndent indent)

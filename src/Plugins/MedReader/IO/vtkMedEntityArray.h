@@ -32,6 +32,8 @@ class vtkMedFamilyOnEntity;
 class vtkMedMesh;
 class vtkMedGrid;
 class vtkIdList;
+class vtkMedStructElement;
+class vtkMedVariableAttribute;
 
 class VTK_EXPORT vtkMedEntityArray: public vtkObject
 {
@@ -136,6 +138,17 @@ public:
 
   virtual void  LoadConnectivity();
 
+  // Descritpion:
+  // This is a pointer to the StructElement object if any
+  // This pointer is set during the LinkMedInfo pass
+  virtual void  SetStructElement(vtkMedStructElement*);
+  vtkGetObjectMacro(StructElement, vtkMedStructElement);
+
+
+  void  SetVariableAttributeValues(vtkMedVariableAttribute*,
+                                   vtkAbstractArray*);
+  vtkAbstractArray* GetVariableAttributeValue(vtkMedVariableAttribute*);
+
 protected:
   vtkMedEntityArray();
   virtual ~vtkMedEntityArray();
@@ -154,6 +167,8 @@ protected:
   vtkMedIntArray* FaceIndex;
   vtkMedIntArray* NodeIndex;
 
+  vtkMedStructElement* StructElement;
+
   int FamilyIdStatus;
   enum{
     FAMILY_ID_NOT_LOADED,
@@ -163,6 +178,9 @@ protected:
 
   //BTX
 	vtkObjectVector<vtkMedFamilyOnEntity>* FamilyOnEntity;
+
+	std::map<vtkMedVariableAttribute*, vtkSmartPointer<vtkAbstractArray> >
+			VariableAttributeValue;
 	//ETX
 
 	int Valid;

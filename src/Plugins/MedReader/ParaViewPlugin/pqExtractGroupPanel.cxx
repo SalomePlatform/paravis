@@ -32,10 +32,8 @@
 #include "vtkPVSILInformation.h"
 #include "vtkGraph.h"
 #include "vtkSMPropertyHelper.h"
-#include "vtkSMDoubleArrayInformationHelper.h"
 #include "vtkStringArray.h"
 #include "vtkDataSetAttributes.h"
-#include "vtkProcessModuleConnectionManager.h"
 
 #include "vtkMedUtilities.h"
 
@@ -151,17 +149,16 @@ void pqExtractGroupPanel::linkServerManagerProperties()
 
 void pqExtractGroupPanel::updateSIL()
 {
-  this->proxy()->UpdatePropertyInformation(
-      this->proxy()->GetProperty("SILUpdateStamp"));
 
-  int stamp = vtkSMPropertyHelper(this->proxy(), "SILUpdateStamp").GetAsInt();
-  if(stamp != this->UI->SILUpdateStamp)
+  vtkSMProxy* reader = this->referenceProxy()->getProxy();
+  reader->UpdatePropertyInformation(reader->GetProperty("SILUpdateStamp"));
+
+  int stamp = vtkSMPropertyHelper(reader, "SILUpdateStamp").GetAsInt();
+  if (stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
-    vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
-    pm->GatherInformation(this->proxy()->GetConnectionID(),
-        vtkProcessModule::DATA_SERVER, info, this->proxy()->GetID());
+    reader->GatherInformation(info);
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
@@ -169,4 +166,5 @@ void pqExtractGroupPanel::updateSIL()
 
     info->Delete();
     }
+
 }

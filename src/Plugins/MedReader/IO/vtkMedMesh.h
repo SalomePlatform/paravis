@@ -31,7 +31,6 @@ class vtkMedString;
 class vtkMedIntArray;
 class vtkMedComputeStep;
 class vtkMedFile;
-
 class vtkStringArray;
 
 #include <set>
@@ -159,6 +158,10 @@ public:
   virtual void  SetParentFile(vtkMedFile*);
   vtkGetObjectMacro(ParentFile, vtkMedFile);
 
+  // Description:
+  // This flag is set if this the mesh is used for a support mesh.
+
+
 protected:
   vtkMedMesh();
   virtual ~vtkMedMesh();
@@ -187,6 +190,8 @@ protected:
   vtkStringArray* AxisUnit;
 
   vtkMedComputeStepMap<vtkMedGrid>* GridStep;
+
+  bool IsSupportMesh;
 
 private:
   vtkMedMesh(const vtkMedMesh&); // Not implemented.

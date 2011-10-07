@@ -42,7 +42,6 @@ vtkMedFieldStep::vtkMedFieldStep()
 	this->PreviousStep = NULL;
 	this->ParentField = NULL;
 	this->MedIterator = -1;
-  this->EntityInfoLoaded = 0;
 }
 
 vtkMedFieldStep::~vtkMedFieldStep()

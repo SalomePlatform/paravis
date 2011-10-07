@@ -207,7 +207,7 @@ int vtkMedFamilyOnEntityOnProfile::CanShallowCopyPointField(vtkMedFieldOnProfile
       this->ComputeCellFamilyVsPointProfileMatch(profile);
       }
     int match = this->PointProfileMatch[profile];
-    return this->PointProfileMatch[profile]
+    return match
         == vtkMedFamilyOnEntityOnProfile::ProfileEqualsSupport;
     }
   else
@@ -281,8 +281,7 @@ void  vtkMedFamilyOnEntityOnProfile::ComputeUsedPoints()
     }
 
   vtkSmartPointer<vtkBitArray> flag = vtkSmartPointer<vtkBitArray>::New();
-  flag->SetNumberOfTuples(
-      this->FamilyOnEntity->GetParentGrid()->GetNumberOfPoints());
+  flag->SetNumberOfTuples(grid->GetNumberOfPoints());
 
   // initialize the array to false
   for(vtkIdType pid = 0; pid < flag->GetNumberOfTuples(); pid++)
@@ -297,6 +296,8 @@ void  vtkMedFamilyOnEntityOnProfile::ComputeUsedPoints()
   med_int famId = this->FamilyOnEntity->GetFamily()->GetId();
   vtkMedEntityArray* array = this->FamilyOnEntity->GetEntityArray();
   vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
+
+  array->LoadConnectivity();
 
   vtkIdType pflsize = (pids != NULL ? pids->GetNumberOfTuples():array->GetNumberOfEntity());
   for(vtkIdType pindex=0; pindex<pflsize; pindex++)

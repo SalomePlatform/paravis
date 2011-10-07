@@ -57,6 +57,10 @@ set(MedReader_CLASSES
     vtkMedSelection
     vtkMedLink
     vtkMedFamilyOnEntityOnProfile
+    vtkMedConstantAttribute
+    vtkMedVariableAttribute
+    vtkMedStructElement
+    vtkGenerateStructElement
 )
 
 set(MedReader_SRCS)

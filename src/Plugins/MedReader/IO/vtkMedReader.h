@@ -41,6 +41,7 @@ class vtkMedComputeStep;
 class vtkMedGrid;
 class vtkMedFieldOnProfile;
 class vtkMedListOfFieldSteps;
+class vtkMedEntity;
 
 class vtkUnstructuredGrid;
 class vtkUnsignedCharArray;
@@ -120,7 +121,7 @@ public:
   // which returns a string
   // CELL_TYPE/MED_ENTITE_MAILLAGE/MED_GEOMETRIE_ELEMENT
   virtual void SetEntityStatus(const char* key, int flag);
-  virtual int GetEntityStatus(int type, int geometry);
+  virtual int GetEntityStatus(const vtkMedEntity&);
 
   // Description:
   // use this method to enable/disable a family support

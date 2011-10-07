@@ -31,6 +31,7 @@
 #include "vtkMedLink.h"
 #include "vtkMedDriver.h"
 #include "vtkMedFactory.h"
+#include "vtkMedStructElement.h"
 
 vtkCxxGetObjectVectorMacro(vtkMedFile, Mesh, vtkMedMesh);
 vtkCxxSetObjectVectorMacro(vtkMedFile, Mesh, vtkMedMesh);
@@ -47,6 +48,12 @@ vtkCxxSetObjectVectorMacro(vtkMedFile, Localization, vtkMedLocalization);
 vtkCxxGetObjectVectorMacro(vtkMedFile, Link, vtkMedLink);
 vtkCxxSetObjectVectorMacro(vtkMedFile, Link, vtkMedLink);
 
+vtkCxxGetObjectVectorMacro(vtkMedFile, StructElement, vtkMedStructElement);
+vtkCxxSetObjectVectorMacro(vtkMedFile, StructElement, vtkMedStructElement);
+
+vtkCxxGetObjectVectorMacro(vtkMedFile, SupportMesh, vtkMedMesh);
+vtkCxxSetObjectVectorMacro(vtkMedFile, SupportMesh, vtkMedMesh);
+
 vtkCxxSetObjectMacro(vtkMedFile, MedDriver, vtkMedDriver);
 
 vtkCxxRevisionMacro(vtkMedFile, "$Revision$")
@@ -60,6 +67,8 @@ vtkMedFile::vtkMedFile()
   this->Profile = new vtkObjectVector<vtkMedProfile> ();
   this->Localization = new vtkObjectVector<vtkMedLocalization> ();
   this->Link = new vtkObjectVector<vtkMedLink> ();
+  this->StructElement = new vtkObjectVector<vtkMedStructElement>();
+  this->SupportMesh = new vtkObjectVector<vtkMedMesh>();
   this->FileName = NULL;
   this->MedDriver = NULL;
   this->VersionMajor = -1;
@@ -75,6 +84,8 @@ vtkMedFile::~vtkMedFile()
   delete this->Profile;
   delete this->Localization;
   delete this->Link;
+  delete this->StructElement;
+  delete this->SupportMesh;
   this->SetFileName(NULL);
   this->SetMedDriver(NULL);
 }
@@ -153,6 +164,20 @@ vtkMedLocalization* vtkMedFile::GetLocalization(const char* str)
       {
       return loc;
       }
+    }
+  return NULL;
+}
+
+vtkMedStructElement* vtkMedFile::GetStructElement(const vtkMedEntity& entity)
+{
+  if(entity.EntityType != MED_STRUCT_ELEMENT)
+    return NULL;
+
+  for(int selemit = 0; selemit < this->GetNumberOfStructElement(); selemit++)
+    {
+    vtkMedStructElement* structelem = this->GetStructElement(selemit);
+    if(structelem->GetGeometryType() == entity.GeometryType)
+      return structelem;
     }
   return NULL;
 }

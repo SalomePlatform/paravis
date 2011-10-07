@@ -27,6 +27,7 @@
 #include "vtkCellData.h"
 #include "vtkIdList.h"
 #include "vtkCellType.h"
+#include "vtkInformation.h"
 
 #include "vtkMedUtilities.h"
 #include "vtkMedEntityArray.h"
@@ -37,6 +38,8 @@
 #include "vtkMedFamilyOnEntity.h"
 #include "vtkMedProfile.h"
 #include "vtkMedUtilities.h"
+#include "vtkMedStructElement.h"
+#include "vtkMedVariableAttribute.h"
 
 vtkCxxSetObjectMacro(vtkMedUnstructuredGrid,Coordinates,vtkDataArray);
 
@@ -182,10 +185,63 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
     numberOfPoints=currentIndex;
     }
 
-  int vtkType = vtkMedUtilities::GetVTKCellType(
-      array->GetEntity().GeometryType);
+  vtkMedStructElement* structelem = NULL;
+  int vtkType = VTK_EMPTY_CELL;
+  int nsupportcell = 1;
+  vtkSmartPointer<vtkIdTypeArray> supportIndex = vtkSmartPointer<vtkIdTypeArray>::New();
+  supportIndex->SetName("STRUCT_ELEMENT_INDEX");
+  supportIndex->SetNumberOfComponents(2);
+  supportIndex->GetInformation()->Set(vtkMedUtilities::STRUCT_ELEMENT_INDEX(), 1);
+  supportIndex->GetInformation()->Set(vtkAbstractArray::GUI_HIDE(), 1);
+  supportIndex->SetComponentName(0, "GLOBAL_ID");
+  supportIndex->SetComponentName(1, "LOCAL_ID");
+
+  vtkDataArray* diam = NULL;
+
+  if(array->GetEntity().EntityType == MED_STRUCT_ELEMENT)
+    {
+    structelem = array->GetStructElement();
+    if(structelem == NULL)
+      {
+      foep->SetValid(0);
+      }
+    else
+      {
+      vtkType = vtkMedUtilities::GetVTKCellType(
+          structelem->GetSupportGeometryType());
+      nsupportcell = structelem->GetSupportNumberOfCell();
+      if(structelem->GetSupportEntityType() != MED_CELL
+         || strcmp(structelem->GetName(), MED_PARTICLE_NAME) == 0)
+        {
+        // Special case : the support connectivity is implicit
+        // (for particles)
+        // map this to points
+        vtkType = VTK_VERTEX;
+        nsupportcell = structelem->GetSupportNumberOfNode();
+        }
+
+      vtkugrid->GetInformation()->Set(vtkMedUtilities::STRUCT_ELEMENT(), structelem);
+      for(int varattid = 0; varattid<structelem->GetNumberOfVariableAttribute(); varattid++)
+        {
+        vtkMedVariableAttribute* varatt = structelem->GetVariableAttribute(varattid);
+        varatt->Load(array);
+        vtkAbstractArray* values = array->GetVariableAttributeValue(varatt);
+        vtkugrid->GetFieldData()->AddArray(values);
+
+        if(varatt->GetName() == MED_BALL_DIAMETER)
+          diam = vtkDataArray::SafeDownCast(values);
+        }
+      vtkugrid->GetCellData()->AddArray(supportIndex);
+      }
+    }
+  else
+    {
+    vtkType = vtkMedUtilities::GetVTKCellType(
+        array->GetEntity().GeometryType);
+    }
 
   vtkSmartPointer<vtkIdList> pts = vtkSmartPointer<vtkIdList>::New();
+  vtkSmartPointer<vtkIdList> vtkpts = vtkSmartPointer<vtkIdList>::New();
   vtkIdType intialGlobalId = array->GetInitialGlobalId();
   vtkMedIntArray* pids = (foep->GetProfile()!=NULL?
                            foep->GetProfile()->GetIds() : NULL);
@@ -203,7 +259,23 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
 
     array->GetCellVertices(pindex, pts);
 
-    cellGlobalIds->InsertNextValue(intialGlobalId+pindex);
+    // The structural elements can have more than 1 vtk cell for each med cell.
+    // They share the same global id.
+    for(int sid = 0; sid < nsupportcell; sid++)
+      {
+      cellGlobalIds->InsertNextValue(intialGlobalId+pindex);
+      }
+
+    // The supportIndex array has 2 component, the first to give the index
+    // of the med cell in the variable attributes array, the second to give
+    // the index of the cell in the n cells composing the structural element
+    if(array->GetEntity().EntityType == MED_STRUCT_ELEMENT)
+      {
+      for(int sid = 0; sid < nsupportcell; sid++)
+        {
+        supportIndex->InsertNextTuple2(pindex, sid);
+        }
+      }
 
     if (array->GetEntity().GeometryType==MED_POLYHEDRON)
       {
@@ -220,6 +292,9 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
       }
     else
       {
+      vtkpts->Initialize();
+      vtkpts->SetNumberOfIds(pts->GetNumberOfIds());
+      cout << "ptids : ";
       for(vtkIdType node=0; node<pts->GetNumberOfIds(); node++)
         {
         vtkIdType pid = pts->GetId(node);
@@ -232,11 +307,50 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
           foep->SetValid(0);
           return NULL;
           }
-        pts->SetId(vtkMedUtilities::MedToVTKIndex(vtkType, node), ptid);
+        vtkpts->SetId(vtkMedUtilities::MedToVTKIndex(vtkType, node), ptid);
+        cout << vtkMedUtilities::MedToVTKIndex(vtkType, node) << ":" << ptid << " ";
         }
-      vtkugrid->InsertNextCell(vtkType, pts);
+      cout << endl;
+
+      // for strutural elements, insert nsupportcell instead of only one
+      if(nsupportcell > 1)
+        {
+        vtkIdType npts = vtkpts->GetNumberOfIds() / nsupportcell;
+        for(int sid=0; sid < nsupportcell; sid++)
+          {
+          vtkIdType* ptids = vtkpts->GetPointer(sid * npts);
+          vtkugrid->InsertNextCell(vtkType, npts, ptids);
+          }
+        }
+      else
+        {
+        vtkugrid->InsertNextCell(vtkType, vtkpts);
+        }
       }
     }
+
+  if(diam != NULL && vtkugrid->GetNumberOfCells() == vtkugrid->GetNumberOfPoints())
+    {
+    if(diam->GetNumberOfTuples() == vtkugrid->GetNumberOfCells())
+      {
+      vtkugrid->GetPointData()->AddArray(diam);
+      }
+    else
+      {
+      vtkDataArray* real_diam = diam->NewInstance();
+      real_diam->SetName(diam->GetName());
+
+      for(vtkIdType cellId = 0; cellId < vtkugrid->GetNumberOfPoints(); cellId++)
+        {
+        vtkIdType supportId = supportIndex->GetTuple2(cellId)[0];
+        real_diam->InsertNextTuple1(diam->GetTuple1(supportId));
+        }
+
+      vtkugrid->GetPointData()->AddArray(real_diam);
+      real_diam->Delete();
+      }
+    }
+
   return vtkugrid;
 }
 

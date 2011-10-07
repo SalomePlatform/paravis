@@ -43,6 +43,7 @@
 #include "vtkOutEdgeIterator.h"
 #include "vtkInformationIntegerKey.h"
 #include "vtkInformationStringVectorKey.h"
+#include "vtkInformationObjectBaseKey.h"
 
 #include <sstream>
 using namespace std;
@@ -89,6 +90,8 @@ const int MED_PENTA_CHILD_TO_PARENT_INDEX[5][8]=
 vtkInformationKeyMacro(vtkMedUtilities, ELNO, Integer);
 vtkInformationKeyMacro(vtkMedUtilities, ELGA, Integer);
 vtkInformationKeyMacro(vtkMedUtilities, BLOCK_NAME, StringVector);
+vtkInformationKeyMacro(vtkMedUtilities, STRUCT_ELEMENT, ObjectBase);
+vtkInformationKeyMacro(vtkMedUtilities, STRUCT_ELEMENT_INDEX, Integer);
 
 vtkDataArray* vtkMedUtilities::NewCoordArray()
 {
@@ -136,7 +139,33 @@ vtkDataArray* vtkMedUtilities::NewArray(med_field_type type)
   }
 }
 
-const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
+vtkAbstractArray* vtkMedUtilities::NewArray(med_attribute_type type)
+{
+  switch(type)
+    {
+    case MED_ATT_FLOAT64 :
+      if(sizeof(double) == sizeof(med_float))
+        return vtkDoubleArray::New();
+      vtkGenericWarningMacro("double type do not match med_float, aborting");
+      return NULL;
+    case MED_ATT_INT :
+      if(sizeof(vtkIdType) == sizeof(med_int))
+        return vtkIdTypeArray::New();
+      if(sizeof(int) == sizeof(med_int))
+        return vtkIntArray::New();
+      if(sizeof(long) == sizeof(med_int))
+        return vtkLongArray::New();
+      if(sizeof(long long) == sizeof(med_int))
+        return vtkLongLongArray::New();
+      vtkGenericWarningMacro("med_int type does not match known VTK type, aborting");
+      return NULL;
+    case MED_ATT_NAME :
+      return vtkStringArray::New();
+    }
+  return NULL;
+}
+
+/*const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
 {
   switch(geometry)
   {
@@ -189,7 +218,7 @@ const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
     default:
       return "UNKNOWN_GEOMETRY";
   }
-}
+}*/
 
 const char* vtkMedUtilities::EntityName(med_entity_type type)
 {
@@ -297,7 +326,7 @@ const std::string vtkMedUtilities::EntityKey(const vtkMedEntity& entity)
 {
   ostringstream sstr;
   sstr << "CELL_TYPE" << Separator << EntityName(entity.EntityType)
-      << Separator<<GeometryName(entity.GeometryType);
+      << Separator<<entity.GeometryName;
   return sstr.str();
 }
 
@@ -363,7 +392,7 @@ int vtkMedUtilities::GetVTKCellType(med_geometry_type geometry)
     case MED_NO_GEOTYPE:
       return VTK_EMPTY_CELL;
     default:
-      vtkGenericWarningMacro("No vtk type matches " << vtkMedUtilities::GeometryName(geometry) << ", aborting")
+      vtkGenericWarningMacro("No vtk type matches " << geometry << ", aborting")
       ;
       return VTK_EMPTY_CELL;
   }
@@ -378,7 +407,7 @@ int vtkMedUtilities::MedToVTKIndex(int vtktype, int node)
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
      24, 22, 21, 23, 20, 25, 26};
 
-  return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node];
+  return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node % 27] + 27 * floor(node / 27);
 }
 
 int vtkMedUtilities::GetNumberOfSubEntity(med_geometry_type geometry)
@@ -433,7 +462,7 @@ int vtkMedUtilities::GetNumberOfSubEntity(med_geometry_type geometry)
       return 0;
     default:
       vtkGenericWarningMacro("No vtk type matches "
-                             << vtkMedUtilities::GeometryName(geometry)
+                             << geometry
                              << ", aborting");
       return -1;
   }
@@ -755,6 +784,17 @@ vtkMultiBlockDataSet* vtkMedUtilities::GetParent(vtkMultiBlockDataSet* root,
         }
       }
     return parent;
+}
+
+int vtkMedUtilities::SizeOf(med_attribute_type type)
+{
+  switch(type)
+    {
+    case MED_ATT_FLOAT64 : return sizeof(med_float);
+    case MED_ATT_INT : return sizeof(med_int);
+    case MED_ATT_NAME : return MED_NAME_SIZE * sizeof(char);
+    }
+  return 0;
 }
 
 bool operator==(const vtkMedComputeStep& cs0, const vtkMedComputeStep& cs1)

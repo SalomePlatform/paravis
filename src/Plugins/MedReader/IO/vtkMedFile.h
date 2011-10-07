@@ -29,6 +29,8 @@ class vtkMedProfile;
 class vtkMedLocalization;
 class vtkMedLink;
 class vtkMedDriver;
+class vtkMedStructElement;
+class vtkMedEntity;
 
 class VTK_EXPORT vtkMedFile: public vtkObject
 {
@@ -97,6 +99,17 @@ public:
   vtkSetMacro(VersionRelease, int);
   vtkGetMacro(VersionRelease, int);
 
+  // Description:
+  // Get the structural elements models
+  vtkGetObjectVectorMacro(StructElement, vtkMedStructElement);
+  vtkSetObjectVectorMacro(StructElement, vtkMedStructElement);
+  vtkMedStructElement* GetStructElement(const vtkMedEntity&);
+
+  // Description:
+  // Get the support mesh informations
+  vtkGetObjectVectorMacro(SupportMesh, vtkMedMesh);
+  vtkSetObjectVectorMacro(SupportMesh, vtkMedMesh);
+
 protected:
 	vtkMedFile();
   virtual ~vtkMedFile();
@@ -116,6 +129,8 @@ protected:
   vtkObjectVector<vtkMedProfile>* Profile;
   vtkObjectVector<vtkMedLocalization>* Localization;
   vtkObjectVector<vtkMedLink>* Link;
+  vtkObjectVector<vtkMedStructElement>* StructElement;
+  vtkObjectVector<vtkMedMesh>* SupportMesh;
   //ETX
 
 private:

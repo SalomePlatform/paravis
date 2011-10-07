@@ -41,6 +41,8 @@
 #include "vtkMedFamilyOnEntityOnProfile.h"
 #include "vtkMedLink.h"
 #include "vtkMedInterpolation.h"
+#include "vtkMedStructElement.h"
+#include "vtkMedConstantAttribute.h"
 
 #include "vtkObjectFactory.h"
 #include "vtkMutableDirectedGraph.h"
@@ -617,9 +619,6 @@ void  vtkMedReader::LinkMedInfo()
     for(int fieldid=0; fieldid < fieldfile->GetNumberOfField(); fieldid++)
       {
       vtkMedField* field = fieldfile->GetField(fieldid);
-      // on the first pass, do not add point fields
-//      if(field->GetFieldType() == vtkMedField::PointField)
-//        continue;
 
       for(int fstepid=0; fstepid < field->GetNumberOfFieldStep(); fstepid++)
         {
@@ -766,6 +765,107 @@ void  vtkMedReader::LinkMedInfo()
       loc->BuildShapeFunction();
       }
     }
+
+  // set the supportmesh pointer in the structural element
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* file = fileit->second;
+    fileit++;
+
+    for(int structelemit = 0;
+        structelemit < file->GetNumberOfStructElement();
+        structelemit++)
+      {
+      vtkMedStructElement* structElem =
+          file->GetStructElement(structelemit);
+
+      for(int supportmeshit = 0;
+          supportmeshit < file->GetNumberOfSupportMesh();
+          supportmeshit++)
+        {
+        vtkMedMesh* supportMesh =
+            file->GetSupportMesh(supportmeshit);
+
+        if(strcmp(supportMesh->GetName(), structElem->GetName()) == 0 )
+          {
+          structElem->SetSupportMesh(supportMesh);
+          break;
+          }
+        }
+      }
+    }
+
+  // set the pointer to the profile used by the constant attributes
+  fileit = this->Internal->MedFiles.begin();
+  while(fileit != this->Internal->MedFiles.end())
+  {
+  vtkMedFile* file = fileit->second;
+  fileit++;
+
+  for(int structelemit = 0;
+      structelemit < file->GetNumberOfStructElement();
+      structelemit++)
+    {
+    vtkMedStructElement* structElem =
+        file->GetStructElement(structelemit);
+
+    for(int cstattit = 0; cstattit < structElem->GetNumberOfConstantAttribute(); cstattit++)
+      {
+      vtkMedConstantAttribute* cstatt = structElem->GetConstantAttribute(cstattit);
+
+      for(int profit = 0;
+          profit < file->GetNumberOfProfile();
+          profit++)
+        {
+        vtkMedProfile* profile =
+            file->GetProfile(profit);
+
+        if(strcmp(profile->GetName(), cstatt->GetProfileName()) == 0 )
+          {
+          cstatt->SetProfile(profile);
+          break;
+          }
+        }
+      }
+    }
+  }
+
+  meshfit = this->Internal->MedFiles.begin();
+  while(meshfit != this->Internal->MedFiles.end())
+  {
+  vtkMedFile* meshfile = meshfit->second;
+  meshfit++;
+
+  for(int mid=0; mid<meshfile->GetNumberOfMesh(); mid++)
+    {
+    vtkMedMesh* mesh = meshfile->GetMesh(mid);
+
+    for(int gid=0; gid<mesh->GetNumberOfGridStep(); gid++)
+      {
+      vtkMedGrid* grid = mesh->GetGridStep(gid);
+      // read point family data and create EntityArrays
+
+      for(int eid=0; eid < grid->GetNumberOfEntityArray(); eid++)
+        {
+        vtkMedEntityArray* array = grid->GetEntityArray(eid);
+        if(array->GetEntity().EntityType != MED_STRUCT_ELEMENT)
+          continue;
+
+        for(int structelemit = 0; structelemit < meshfile->GetNumberOfStructElement(); structelemit++)
+          {
+          vtkMedStructElement* structelem = meshfile->GetStructElement(structelemit);
+          if(structelem->GetGeometryType() == array->GetEntity().GeometryType)
+            {
+            array->SetStructElement(structelem);
+            break;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 int vtkMedReader::GetFrequencyArrayStatus(const char* name)
@@ -860,15 +960,14 @@ void vtkMedReader::ChooseRealAnimationMode()
   this->Internal->RealAnimationMode=PhysicalTime;
 }
 
-int vtkMedReader::GetEntityStatus(int type, int geometry)
+int vtkMedReader::GetEntityStatus(const vtkMedEntity& entity)
 {
-  if (type==MED_NODE)
+  if (entity.EntityType==MED_NODE)
     return 1;
-  if(type == MED_DESCENDING_FACE || type == MED_DESCENDING_EDGE)
+  if(entity.EntityType == MED_DESCENDING_FACE
+     || entity.EntityType == MED_DESCENDING_EDGE)
     return 0;
-  vtkMedEntity entity;
-  entity.EntityType = (med_entity_type)type;
-  entity.GeometryType = (med_geometry_type)geometry;
+
   return this->Entities->GetKeyStatus(vtkMedUtilities::EntityKey(entity).c_str());
 }
 
@@ -1581,11 +1680,14 @@ vtkDataSet* vtkMedReader::CreateUnstructuredGridForPointSupport(
     }
 
   vtkDataArray* coords = NULL;
-  if(medugrid != NULL)
-    coords = medugrid->GetCoordinates();
-  if(medcgrid != NULL)
-    coords = medcgrid->GetCoordinates();
-  
+  if (shallowCopy)
+    {
+    if(medugrid != NULL)
+      coords = medugrid->GetCoordinates();
+    if(medcgrid != NULL)
+      coords = medcgrid->GetCoordinates();
+    }
+
   vtkIdType numberOfPoints;
   vtkPoints* points=vtkPoints::New(coords->GetDataType());
   vtkgrid->SetPoints(points);
@@ -1698,8 +1800,7 @@ void vtkMedReader::CreateMedSupports()
         entityIndex++)
         {
         vtkMedEntityArray* array=grid->GetEntityArray(entityIndex);
-        if(this->GetEntityStatus(array->GetEntity().EntityType,
-                                 array->GetEntity().GeometryType)==0)
+        if(this->GetEntityStatus(array->GetEntity())==0)
           {
           continue;
           }
@@ -2663,7 +2764,7 @@ void vtkMedReader::BuildSIL(vtkMutableDirectedGraph* sil)
             typeId=typeMap[entity.EntityType];
             }
           vtkIdType entityId=sil->AddChild(typeId, childEdge);
-          names.push_back(vtkMedUtilities::GeometryName(entity.GeometryType));
+          names.push_back(entity.GeometryName);
 
           sil->AddEdge(entityId, entityGlobalId, crossEdge);
 

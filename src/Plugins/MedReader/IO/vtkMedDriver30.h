@@ -37,6 +37,9 @@ class vtkMedFieldOverEntity;
 class vtkMedEntityArray;
 class vtkMedFieldStep;
 class vtkMedLink;
+class vtkMedStructElement;
+class vtkMedConstantAttribute;
+class vtkMedVariableAttribute;
 
 class VTK_EXPORT vtkMedDriver30: public vtkMedDriver
 {
@@ -102,6 +105,26 @@ public:
   virtual void ReadLinkInformation(vtkMedLink*);
 
   // Description:
+  // read all information related to the structural elements models
+  // in this file
+  virtual void ReadStructElementInformation(vtkMedStructElement*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadSupportMeshInformation(vtkMedMesh*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadConstantAttributeInformation(vtkMedConstantAttribute*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadVariableAttributeInformation(vtkMedVariableAttribute*);
+
+  // Description:
   // load the field on this profile
   virtual void LoadField(vtkMedFieldOnProfile*, med_storage_mode mode);
 
@@ -126,6 +149,9 @@ public:
   virtual void LoadCellGlobalIds(vtkMedEntityArray*);
 
   virtual void LoadRegularGridCoordinates(vtkMedRegularGrid*);
+
+  virtual void  LoadVariableAttribute(vtkMedVariableAttribute*,
+                                      vtkMedEntityArray*);
 
 protected:
   vtkMedDriver30();

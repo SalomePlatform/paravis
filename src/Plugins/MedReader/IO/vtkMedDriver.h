@@ -39,6 +39,9 @@ class vtkMedFieldStep;
 class vtkMedGrid;
 class vtkMedInterpolation;
 class vtkMedFieldOnProfile;
+class vtkMedStructElement;
+class vtkMedConstantAttribute;
+class vtkMedVariableAttribute;
 
 class VTK_EXPORT vtkMedDriver: public vtkObject
 {
@@ -120,6 +123,26 @@ public:
   virtual void ReadFieldOnProfileInformation(vtkMedFieldOnProfile*);
 
   // Description:
+  // read all information related to the structural elements models
+  // in this file
+  virtual void ReadStructElementInformation(vtkMedStructElement*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadSupportMeshInformation(vtkMedMesh*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadConstantAttributeInformation(vtkMedConstantAttribute*);
+
+  // Description:
+  // read all information related to the support mesh
+  // in this file
+  virtual void ReadVariableAttributeInformation(vtkMedVariableAttribute*);
+
+  // Description:
   // load the field on this profile
   virtual void LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode);
 
@@ -142,6 +165,9 @@ public:
   virtual void LoadConnectivity(vtkMedEntityArray*);
 
   virtual void LoadCellGlobalIds(vtkMedEntityArray*);
+
+  virtual void  LoadVariableAttribute(vtkMedVariableAttribute*,
+                                      vtkMedEntityArray*);
 
   //BTX
   class FileOpen

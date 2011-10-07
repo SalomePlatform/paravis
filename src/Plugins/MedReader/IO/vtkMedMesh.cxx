@@ -61,6 +61,8 @@ vtkMedMesh::vtkMedMesh()
   this->CellGroup = new vtkObjectVector<vtkMedGroup> ();
   this->AxisName = vtkStringArray::New();
   this->AxisUnit = vtkStringArray::New();
+  this->AxisName->SetNumberOfValues(3);
+  this->AxisUnit->SetNumberOfValues(3);
   this->MedIterator = -1;
   this->MeshType = MED_UNDEF_MESH_TYPE;
   this->StructuredGridType = MED_UNDEF_GRID_TYPE;
@@ -69,6 +71,7 @@ vtkMedMesh::vtkMedMesh()
   this->SortingType = MED_SORT_DTIT;
   this->MeshDimension = 3;
   this->SpaceDimension = 3;
+  this->IsSupportMesh = 0;
 }
 
 vtkMedMesh::~vtkMedMesh()
