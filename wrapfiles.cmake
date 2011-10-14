@@ -18,7 +18,7 @@
 #
 
 ADD_CUSTOM_COMMAND(
- OUTPUT wrapfiles.txt
+ OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/wrapfiles.txt
  COMMAND pvpython ${CMAKE_SOURCE_DIR}/getwrapclasses.py
  DEPENDS ${CMAKE_SOURCE_DIR}/getwrapclasses.py ${PARAVIEW_PYTHON_EXECUTABLE}
 )

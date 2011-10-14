@@ -32,8 +32,10 @@
 #include "vtkPVSILInformation.h"
 #include "vtkGraph.h"
 #include "vtkSMPropertyHelper.h"
+#include "vtkSMDoubleArrayInformationHelper.h"
 #include "vtkStringArray.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkProcessModuleConnectionManager.h"
 #include "vtkMedReader.h"
 
 #include "vtkMedUtilities.h"
@@ -277,13 +279,11 @@ void pqMedReaderPanel::updateAvailableTimes()
   vtkSMDoubleVectorProperty* prop = vtkSMDoubleVectorProperty::SafeDownCast(
       this->proxy()->GetProperty("AvailableTimes"));
 
-  this->proxy()->UpdatePropertyInformation(prop);
-
-  //prop->GetInformationHelper()->UpdateProperty(
-  //    vtkProcessModuleConnectionManager::GetRootServerConnectionID(),
-  //    vtkProcessModule::DATA_SERVER,
-  //    this->proxy()->GetID(),
-  //    prop);
+  prop->GetInformationHelper()->UpdateProperty(
+      vtkProcessModuleConnectionManager::GetRootServerConnectionID(),
+      vtkProcessModule::DATA_SERVER,
+      this->proxy()->GetID(),
+      prop);
 
   this->UI->TimeCombo->clear();
   double *aux = prop->GetElements();
@@ -297,24 +297,6 @@ void pqMedReaderPanel::updateAvailableTimes()
 
 void pqMedReaderPanel::updateSIL()
 {
-  vtkSMProxy* reader = this->referenceProxy()->getProxy();
-  reader->UpdatePropertyInformation(reader->GetProperty("SILUpdateStamp"));
-
-  int stamp = vtkSMPropertyHelper(reader, "SILUpdateStamp").GetAsInt();
-  if (stamp != this->UI->SILUpdateStamp)
-    {
-    this->UI->SILUpdateStamp = stamp;
-    vtkPVSILInformation* info = vtkPVSILInformation::New();
-    reader->GatherInformation(info);
-    this->UI->SILModel.update(info->GetSIL());
-
-    this->UI->Groups->expandAll();
-    this->UI->Entity->expandAll();
-
-    info->Delete();
-    }
-
-  /*
   this->proxy()->UpdatePropertyInformation(
       this->proxy()->GetProperty("SILUpdateStamp"));
 
@@ -322,17 +304,15 @@ void pqMedReaderPanel::updateSIL()
   if(stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
-
     vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
     pm->GatherInformation(this->proxy()->GetConnectionID(),
         vtkProcessModule::DATA_SERVER, info, this->proxy()->GetID());
-
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
     this->UI->Entity->expandAll();
 
     info->Delete();
-    }*/
+    }
 }

@@ -150,15 +150,17 @@ void pqExtractGroupPanel::linkServerManagerProperties()
 void pqExtractGroupPanel::updateSIL()
 {
 
-  vtkSMProxy* reader = this->referenceProxy()->getProxy();
-  reader->UpdatePropertyInformation(reader->GetProperty("SILUpdateStamp"));
+  this->proxy()->UpdatePropertyInformation(
+      this->proxy()->GetProperty("SILUpdateStamp"));
 
-  int stamp = vtkSMPropertyHelper(reader, "SILUpdateStamp").GetAsInt();
-  if (stamp != this->UI->SILUpdateStamp)
+  int stamp = vtkSMPropertyHelper(this->proxy(), "SILUpdateStamp").GetAsInt();
+  if(stamp != this->UI->SILUpdateStamp)
     {
     this->UI->SILUpdateStamp = stamp;
+    vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
     vtkPVSILInformation* info = vtkPVSILInformation::New();
-    reader->GatherInformation(info);
+    pm->GatherInformation(this->proxy()->GetConnectionID(),
+        vtkProcessModule::DATA_SERVER, info, this->proxy()->GetID());
     this->UI->SILModel.update(info->GetSIL());
 
     this->UI->Groups->expandAll();
