@@ -63,9 +63,12 @@ PROJECT( ParaMEDCorba )
     TARGET_LINK_LIBRARIES(ParaMEDCorbaPlugin
       vtkFiltering
       vtkCommon
+      vtkClientServer
       ParaMEDMEM2VTK
+      pqCore
       ${MED_ROOT_DIR}/lib/salome/libSalomeIDLMED.so
       ${KERNEL_ROOT_DIR}/lib/salome/libSalomeIDLKernel.so
+      ${QT_LIBS}
       ${CORBA_LIBS}
       )
     
