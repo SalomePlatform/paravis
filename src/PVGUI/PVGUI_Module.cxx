@@ -247,9 +247,7 @@ PVGUI_Module::PVGUI_Module()
   ParavisModule = this;
 
   // Clear old macros
-  QString aHomeDir = getenv("HOME");
-  QString aDestPath = aHomeDir + "/.config/salome/Macros";
-
+  QString aDestPath = QString( "%1/.config/%2/Macros" ).arg( QDir::homePath() ).arg( QApplication::applicationName() );
   QStringList aFilter;
   aFilter << "*.py";
 
