@@ -248,7 +248,7 @@ PVGUI_Module::PVGUI_Module()
 
   // Clear old macros
   QString aHomeDir = getenv("HOME");
-  QString aDestPath = aHomeDir + "/.config/SALOME/Macros";
+  QString aDestPath = aHomeDir + "/.config/salome/Macros";
 
   QStringList aFilter;
   aFilter << "*.py";
