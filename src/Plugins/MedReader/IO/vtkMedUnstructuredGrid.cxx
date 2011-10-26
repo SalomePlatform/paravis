@@ -342,7 +342,7 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
 
       for(vtkIdType cellId = 0; cellId < vtkugrid->GetNumberOfPoints(); cellId++)
         {
-        vtkIdType supportId = supportIndex->GetTuple2(cellId)[0];
+        vtkIdType supportId = static_cast<int>(supportIndex->GetTuple2(cellId)[0]);
         real_diam->InsertNextTuple1(diam->GetTuple1(supportId));
         }
 

@@ -407,7 +407,7 @@ int vtkMedUtilities::MedToVTKIndex(int vtktype, int node)
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
      24, 22, 21, 23, 20, 25, 26};
 
-  return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node % 27] + 27 * floor(node / 27);
+  return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node % 27] + static_cast<int>(27 * floor(node / 27));
 }
 
 int vtkMedUtilities::GetNumberOfSubEntity(med_geometry_type geometry)
