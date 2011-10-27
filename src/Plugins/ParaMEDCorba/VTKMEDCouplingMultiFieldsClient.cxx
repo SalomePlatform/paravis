@@ -35,6 +35,7 @@
 #include <sstream>
 #include <iterator>
 #include <algorithm>
+#include <functional>
 
 const double ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::EPS_TIME=1e-7;
 

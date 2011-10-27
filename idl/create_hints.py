@@ -17,29 +17,22 @@
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-PROJECT(ELNOFilter)
-cmake_minimum_required(VERSION 2.6)
+import sys
+import os
 
-cmake_policy(SET CMP0003 NEW)
+CONF_DIR = os.path.dirname(sys.argv[0])
 
+content = ""
+for filename in [
+    os.path.join(sys.argv[1], "hints"),
+    os.path.join(CONF_DIR, "hints_paravis"),
+    ]:
+    stream = open(filename)
+    content += stream.read()
+    stream.close()
+    pass
 
-FIND_PACKAGE(ParaView REQUIRED)
-INCLUDE(${PARAVIEW_USE_FILE})
-
-SET(SRCS
-    vtkELNOFilter.cxx 
-    vtkELNOMeshFilter.cxx
-    vtkELNOSurfaceFilter.cxx
-    )
-
-ADD_PARAVIEW_PLUGIN(ELNOFilter "1.0"
-	SERVER_MANAGER_XML ELNOFilter.xml
-	GUI_RESOURCE_FILES ELNOFilterClient.xml
-	SERVER_MANAGER_SOURCES ${SRCS})
-
-install(TARGETS ${PROJECT_NAME} 
-   RUNTIME DESTINATION lib/paraview
-   LIBRARY DESTINATION lib/paraview
-   ARCHIVE DESTINATION lib/paraview
-   )
-
+filename = "hints"
+stream = open(filename, "w")
+stream.write(content)
+stream.close()

@@ -20,7 +20,7 @@
 
 #include "vtkObjectFactory.h"
 
-class VTK_PARALLEL_EXPORT vtkEDFFactory : public vtkObjectFactory
+class VTK_EXPORT vtkEDFFactory : public vtkObjectFactory
 {
 public:
 // Methods from vtkObject

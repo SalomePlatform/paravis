@@ -21,6 +21,7 @@
 // File   : PVGUI_Module.cxx
 // Author : Julia DOROVSKIKH
 
+#include <Standard_math.hxx>  // E.A. must be included before Python.h to fix compilation on windows
 #include <vtkPython.h> // Python first
 #include "PVGUI_Module.h"
 
@@ -434,6 +435,7 @@ void PVGUI_Module::onConnectionCreated(vtkIdType theId)
 */
 void PVGUI_Module::activateTrace()
 {
+#ifndef WNT
   PyInterp_Dispatcher* aDispatcher = PyInterp_Dispatcher::Get();
   if (aDispatcher->IsBusy()) {
     myTraceTimer->start(50);
@@ -453,6 +455,7 @@ void PVGUI_Module::activateTrace()
       }
     }
   }
+#endif
 }
   
 void PVGUI_Module::updateMacros()
@@ -829,6 +832,7 @@ void PVGUI_Module::openFile(const char* theName)
 
 void PVGUI_Module::executeScript(const char *script)
 {
+#ifndef WNT
   pqPythonManager* manager = qobject_cast<pqPythonManager*>(
                              pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
   if (manager)  {
@@ -837,6 +841,7 @@ void PVGUI_Module::executeScript(const char *script)
       pyDiag->runString(script);  
       }
     }
+#endif
 }
 
 /*!
@@ -847,6 +852,7 @@ static const QString MYReplaceImportStr("except: from pvsimple import *");
 QString PVGUI_Module::getTraceString()
 {
   QString traceString;
+#ifndef WNT
   pqPythonManager* manager = qobject_cast<pqPythonManager*>(
                              pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
   if (manager)  {
@@ -877,6 +883,7 @@ QString PVGUI_Module::getTraceString()
       traceString = traceString.replace(aImportPos, MYReplaceImportStr.length(), "except:\n  import pvsimple\n  from pvsimple import *");
       }
   }
+#endif
   return traceString;
 }
 

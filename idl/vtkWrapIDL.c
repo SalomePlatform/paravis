@@ -257,7 +257,7 @@ void AddShortArrayArg(int I, ValueInfo* Type, char *Result, int *CurrPos) {
 
 int IsLong(ValueInfo* theType) {
   //return ((Type % 0x10) == 0x6 || (Type % 0x10) == 0xB || (Type % 0x10) == 0xC);
-  uint aVal = theType->Type & VTK_PARSE_BASE_TYPE;
+  unsigned int aVal = theType->Type & VTK_PARSE_BASE_TYPE;
   return (aVal == VTK_PARSE_LONG) || (aVal == VTK_PARSE_UNSIGNED_LONG) || 
     (aVal == VTK_PARSE___INT64) || (aVal == VTK_PARSE_UNSIGNED___INT64) || (aVal == VTK_PARSE_LONG_LONG) || 
     (aVal == VTK_PARSE_UNSIGNED_LONG_LONG);
@@ -299,7 +299,7 @@ int IsVoid(ValueInfo* Type) {
 }
 
 int IsUnsigned(ValueInfo* theType) {
-  uint aVal = theType->Type & VTK_PARSE_BASE_TYPE;
+  unsigned int aVal = theType->Type & VTK_PARSE_BASE_TYPE;
   switch (aVal) {
   case VTK_PARSE_UNSIGNED_CHAR:
   case VTK_PARSE_UNSIGNED_INT:
@@ -1283,7 +1283,7 @@ void outputFunction2(FILE *fp, ClassInfo *data)
   FunctionInfo *theFunc;
   FunctionInfo *backFunc;
   const char *theName;
-  uint theType;
+  unsigned int theType;
   const char *backName;
   int backType;
   char static num[8];
@@ -1520,7 +1520,7 @@ void outputFunction(FILE *fp, ClassInfo *data)
   //int args_ok = 1;
   ValueInfo* aRetVal = NULL;//currentFunction->ReturnValue;
   ValueInfo* aArgVal = NULL;
-  uint aType;
+  unsigned int aType;
   unsigned int argtype;
 
   fp = fp;

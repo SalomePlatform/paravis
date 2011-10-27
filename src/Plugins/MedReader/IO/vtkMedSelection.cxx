@@ -90,7 +90,7 @@ const char* vtkMedSelection::GetKey(int index)
 	return this->Internals->Keys[index].c_str();
 }
 
-int vtkMedSelection::vtkMedSelection::GetNumberOfKey()
+int vtkMedSelection::GetNumberOfKey()
 {
 	return this->Internals->Keys.size();
 }

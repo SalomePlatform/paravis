@@ -17,43 +17,17 @@
 // See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
 
-#ifndef _pqExtractGroupPanel_h
-#define _pqExtractGroupPanel_h
+#ifndef __ParaMEDMEM2VTK_defines_h__
+#define __ParaMEDMEM2VTK_defines_h__
 
-#include "pqNamedObjectPanel.h"
-
-#include <QTreeWidget>
-class pqTreeWidgetItemObject;
-
-class vtkSMProperty;
-
-class pqExtractGroupPanel: public pqNamedObjectPanel
-{
-Q_OBJECT
-  typedef pqNamedObjectPanel Superclass;
-public:
-  /// constructor
-  pqExtractGroupPanel(pqProxy* proxy, QWidget* p = NULL);
-  /// destructor
-  ~pqExtractGroupPanel();
-
-public slots:
-  // accept changes made by this panel
-  //virtual void accept();
-  // reset changes made by this panel
-  //virtual void reset();
-
-protected slots:
-
-  void updateSIL();
-
-protected:
-  /// populate widgets with properties from the server manager
-  virtual void linkServerManagerProperties();
-
-  class pqUI;
-  pqUI* UI;
-};
-
+#ifdef WIN32
+#  if defined ParaMEDMEM2VTK_EXPORTS
+#    define ParaMEDMEM2VTK_EXPORT __declspec( dllexport )
+#  else
+#    define ParaMEDMEM2VTK_EXPORT __declspec( dllimport )
+#  endif
+#else
+#  define ParaMEDMEM2VTK_EXPORT
 #endif
 
+#endif // __ParaMEDMEM2VTK_defines_h__

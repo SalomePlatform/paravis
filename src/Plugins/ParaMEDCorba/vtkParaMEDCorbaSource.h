@@ -21,6 +21,7 @@
 #ifndef __vtkParaMEDCorbaSource_h
 #define __vtkParaMEDCorbaSource_h
 
+#include "ParaMEDMEM2VTK_defines.hxx"
 #include "vtkUnstructuredGridAlgorithm.h"
 #include <vtkstd/vector>
 
@@ -32,11 +33,11 @@ namespace ParaMEDMEM2VTK
   class MEDCouplingMultiFieldsFetcher;
 }
 
-class VTK_EXPORT vtkParaMEDCorbaSource : public vtkAlgorithm //
+class vtkParaMEDCorbaSource : public vtkAlgorithm //
 {
 public:
   vtkTypeRevisionMacro(vtkParaMEDCorbaSource, vtkAlgorithm);
-  static vtkParaMEDCorbaSource* New();
+  ParaMEDMEM2VTK_EXPORT static vtkParaMEDCorbaSource* New();
   virtual void PrintSelf( ostream& os, vtkIndent indent );
   const char *GetIORCorba();
   void SetIORCorba(char *ior);

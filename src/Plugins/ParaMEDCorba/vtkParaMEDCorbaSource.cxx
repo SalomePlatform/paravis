@@ -28,7 +28,6 @@
 #include "vtkDoubleArray.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkUnstructuredGrid.h"
-#include "vtkDataArrayTemplate.txx"
 //
 #include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkGenericAttributeCollection.h"

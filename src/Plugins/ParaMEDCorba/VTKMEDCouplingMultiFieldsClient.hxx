@@ -20,6 +20,7 @@
 #ifndef __VTKMEDCOUPLINGMULTIFIELDSCLIENT_HXX__
 #define __VTKMEDCOUPLINGMULTIFIELDSCLIENT_HXX__
 
+#include "ParaMEDMEM2VTK_defines.hxx"
 #include "ParaMEDCouplingCorbaServant.hh"
 
 #include <vector>
@@ -40,7 +41,7 @@ namespace ParaMEDMEM2VTK
     std::string _name;
   };
 
-  class MEDCouplingMultiFieldsFetcher
+  class ParaMEDMEM2VTK_EXPORT MEDCouplingMultiFieldsFetcher
   {
   public:
     MEDCouplingMultiFieldsFetcher(int bufferingPolicy, SALOME_MED::MEDCouplingMultiFieldsCorbaInterface_ptr mfieldsPtr);

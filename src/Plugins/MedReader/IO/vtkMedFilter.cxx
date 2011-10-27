@@ -24,8 +24,10 @@
 vtkCxxRevisionMacro(vtkMedFilter, "$Revision$")
 vtkStandardNewMacro(vtkMedFilter)
 
-vtkMedFilter::vtkMedFilter() : Filter((med_filter)MED_FILTER_INIT)
+vtkMedFilter::vtkMedFilter()
 {
+  med_filter tmp=MED_FILTER_INIT;
+  Filter=tmp;//windows porting
 }
 
 vtkMedFilter::~vtkMedFilter()

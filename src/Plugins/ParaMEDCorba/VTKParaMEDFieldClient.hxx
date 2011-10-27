@@ -20,6 +20,7 @@
 #ifndef __VTKPARAMEDFIELDCLIENT_HXX__
 #define __VTKPARAMEDFIELDCLIENT_HXX__
 
+#include "ParaMEDMEM2VTK_defines.hxx"
 #include "ParaMEDCouplingCorbaServant.hh"
 
 #include <vector>
@@ -28,8 +29,8 @@ class vtkMultiBlockDataSet;
 
 namespace ParaMEDMEM2VTK
 {
-  std::vector<double> FillMEDCouplingParaFieldDoubleInstanceFrom(SALOME_MED::ParaMEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr, int begin, int end,
-                                                                 vtkMultiBlockDataSet *ret);
+  ParaMEDMEM2VTK_EXPORT std::vector<double> FillMEDCouplingParaFieldDoubleInstanceFrom(SALOME_MED::ParaMEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr, int begin, int end,
+                                                                                       vtkMultiBlockDataSet *ret);
 }
 
 #endif

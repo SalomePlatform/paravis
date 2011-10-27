@@ -20,11 +20,13 @@
 // Instantiate superclass first to give the template a DLL interface.
 #include "vtkMed.h"
 
+#ifndef WIN32
 #include "vtkDataArrayTemplate.txx"
 VTK_DATA_ARRAY_TEMPLATE_INSTANTIATE(med_int);
 
 #include "vtkArrayIteratorTemplate.txx"
 VTK_ARRAY_ITERATOR_TEMPLATE_INSTANTIATE(med_int);
+#endif
 
 #define __vtkMedIntArrayInternal_cxx
 #include "vtkMedIntArrayInternal.h"

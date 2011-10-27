@@ -20,7 +20,35 @@
 FIND_PACKAGE(ParaView REQUIRED)
 
 SET(PARAVIEW_INCLUDES -I${PARAVIEW_INCLUDE_DIRS})
-SET(PARAVIEW_LIBS -L${PARAVIEW_LIBRARY_DIRS} -lvtkPVServerManager -lpqApplicationComponents)
 
+FIND_LIBRARY(QtPython QtPython ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(QVTK QVTK ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkClientServer vtkClientServer ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkGenericFiltering vtkGenericFiltering ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkInfovis vtkInfovis ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkVolumeRendering vtkVolumeRendering ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkPVCommandOptions vtkPVCommandOptions ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkPVFilters vtkPVFilters ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(vtkPVServerCommon vtkPVServerCommon ${PARAVIEW_LIBRARY_DIRS})
 FIND_LIBRARY(vtkPVServerManager vtkPVServerManager ${PARAVIEW_LIBRARY_DIRS})
 FIND_LIBRARY(pqApplicationComponents pqApplicationComponents ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(pqComponents pqComponents ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(pqCore pqCore ${PARAVIEW_LIBRARY_DIRS})
+FIND_LIBRARY(pqWidgets pqWidgets ${PARAVIEW_LIBRARY_DIRS})
+
+SET(PARAVIEW_LIBS
+  ${QtPython}
+  ${QVTK}
+  ${vtkClientServer}
+  ${vtkGenericFiltering}
+  ${vtkInfovis}
+  ${vtkVolumeRendering}
+  ${vtkPVCommandOptions}
+  ${vtkPVFilters}
+  ${vtkPVServerCommon}
+  ${vtkPVServerManager}
+  ${pqApplicationComponents}
+  ${pqComponents}
+  ${pqCore}
+  ${pqWidgets}
+  )

@@ -28,7 +28,7 @@ class vtkDataArraySelection;
 class vtkTimeStamp;
 class vtkStringArray;
 
-class vtkExtractGroup: public vtkMultiBlockDataSetAlgorithm
+class VTK_EXPORT vtkExtractGroup: public vtkMultiBlockDataSetAlgorithm
 {
 public:
   static vtkExtractGroup* New();

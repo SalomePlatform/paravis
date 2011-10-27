@@ -713,11 +713,11 @@ std::string vtkMedUtilities::GetModeKey(int index, double frequency, int maxinde
   key<<"[";
   if(maxindex > 0)
     {
-      int maxdecim = (int)floor(log(maxindex)/log(10));
+      int maxdecim = (int)floor(log(1.0*maxindex)/log(10.0));
     int decim = 0;
     if(index > 0)
       {
-        decim = (int)floor(log(index)/log(10));
+        decim = (int)floor(log(1.0*index)/log(10.0));
       }
     for(int i=decim; i<maxdecim; i++)
       {

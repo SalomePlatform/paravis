@@ -57,19 +57,20 @@ PROJECT( ParaMEDCorba )
     SET_TARGET_PROPERTIES(ParaMEDCorbaPlugin PROPERTIES COMPILE_FLAGS "${flags}")
 
     TARGET_LINK_LIBRARIES(ParaMEDMEM2VTK
-      ${MED_ROOT_DIR}/lib/salome/libSalomeIDLMED.so
-      ${KERNEL_ROOT_DIR}/lib/salome/libSalomeIDLKernel.so
-      )
-    TARGET_LINK_LIBRARIES(ParaMEDCorbaPlugin
-      vtkFiltering
       vtkCommon
+      vtkFiltering
+      vtkGraphics
+      vtkPVFilters
       vtkClientServer
-      ParaMEDMEM2VTK
       pqCore
-      ${MED_ROOT_DIR}/lib/salome/libSalomeIDLMED.so
-      ${KERNEL_ROOT_DIR}/lib/salome/libSalomeIDLKernel.so
+      ${CORBA_LIBS}
+      ${SalomeIDLMED}
+      ${SalomeIDLKernel}
       ${QT_LIBS}
       ${CORBA_LIBS}
+      )
+    TARGET_LINK_LIBRARIES(ParaMEDCorbaPlugin
+      ParaMEDMEM2VTK
       )
     
     INSTALL(TARGETS ParaMEDCorbaPlugin DESTINATION lib/paraview)

@@ -24,9 +24,11 @@ SET(READER_SRCS
 
 ADD_LIBRARY(vtkVisuTableReader ${READER_SRCS})
 
+TARGET_LINK_LIBRARIES(vtkVisuTableReader ${VTK_LIBS} ${vtkInfovis} ${QT_LIBS})
+
 INSTALL(
     TARGETS vtkVisuTableReader
-    RUNTIME DESTINATION .
+    RUNTIME DESTINATION lib/salome
     LIBRARY DESTINATION lib/salome
-    ARCHIVE DESTINATION .
+    ARCHIVE DESTINATION lib/salome
     )

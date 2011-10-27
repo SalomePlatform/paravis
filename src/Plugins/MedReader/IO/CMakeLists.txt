@@ -91,7 +91,7 @@ if(${HDF5_IS_PARALLEL})
   set(VTK_LIBS ${VTK_LIBS} vtkParallel)
 endif(${HDF5_IS_PARALLEL})
 
-target_link_libraries(vtkMedReader ${MED_LIBRARIES} ${VTK_LIBS})
+target_link_libraries(vtkMedReader ${MED_LIBRARIES} ${VTK_LIBS} ${VTK_PARALLEL} ${vtkPVServerManager})
 
 set(MedReader_BUILD_Testing ${VTK_BUILD_TESTING} CACHE BOOL "Build tests for the MedReader filter")
 
@@ -101,9 +101,9 @@ endif(MedReader_BUILD_Testing)
 
 install(
     TARGETS vtkMedReader
-    RUNTIME DESTINATION .
+    RUNTIME DESTINATION lib/salome
     LIBRARY DESTINATION lib/salome
-    ARCHIVE DESTINATION .
+    ARCHIVE DESTINATION lib/salome
     )
     
 install(FILES ${MedReader_HDRS} DESTINATION include)

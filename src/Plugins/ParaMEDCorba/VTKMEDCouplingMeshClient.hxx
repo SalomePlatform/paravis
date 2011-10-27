@@ -20,6 +20,7 @@
 #ifndef __VTKMEDCOUPLINGMESHCLIENT_HXX__
 #define __VTKMEDCOUPLINGMESHCLIENT_HXX__
 
+#include "ParaMEDMEM2VTK_defines.hxx"
 #include "ParaMEDCouplingCorbaServant.hh"
 
 class vtkDataSet;
@@ -27,7 +28,7 @@ class vtkDataSet;
 namespace ParaMEDMEM2VTK
 {
   void FillMEDCouplingMeshInstanceFrom(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, vtkDataSet *ret);
-  vtkDataSet *BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, bool& isPolyh);//isPolyh bug VTK
+  ParaMEDMEM2VTK_EXPORT vtkDataSet *BuildFromMEDCouplingMeshInstance(SALOME_MED::MEDCouplingMeshCorbaInterface_ptr meshPtr, bool& isPolyh);//isPolyh bug VTK
 }
 
 #endif

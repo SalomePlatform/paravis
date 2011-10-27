@@ -24,7 +24,7 @@
 #define _PARAVIS_I_HXX_
 
 #ifdef WNT
-# if defined PARAVIS_I_EXPORTS || defined PARAVISEngineImpl_EXPORTS
+# if defined PARAVIS_EXPORTS
 #  define PARAVIS_I_EXPORT __declspec( dllexport )
 # else
 #  define PARAVIS_I_EXPORT __declspec( dllimport )

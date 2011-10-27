@@ -52,7 +52,7 @@ ADD_PARAVIEW_PLUGIN(NavigationMode "1.0"
 # Install
 INSTALL(
     TARGETS NavigationMode
-    RUNTIME DESTINATION .
+    RUNTIME DESTINATION lib/paraview
     LIBRARY DESTINATION lib/paraview
-    ARCHIVE DESTINATION .
+    ARCHIVE DESTINATION lib/paraview
 )

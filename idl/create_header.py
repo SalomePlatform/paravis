@@ -17,29 +17,23 @@
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-PROJECT(ELNOFilter)
-cmake_minimum_required(VERSION 2.6)
+import sys
+import os
 
-cmake_policy(SET CMP0003 NEW)
+ffile = "vtkWrapIDL.h"
+wfile = os.path.join(sys.argv[1], "wrapfiles.txt")
 
-
-FIND_PACKAGE(ParaView REQUIRED)
-INCLUDE(${PARAVIEW_USE_FILE})
-
-SET(SRCS
-    vtkELNOFilter.cxx 
-    vtkELNOMeshFilter.cxx
-    vtkELNOSurfaceFilter.cxx
-    )
-
-ADD_PARAVIEW_PLUGIN(ELNOFilter "1.0"
-	SERVER_MANAGER_XML ELNOFilter.xml
-	GUI_RESOURCE_FILES ELNOFilterClient.xml
-	SERVER_MANAGER_SOURCES ${SRCS})
-
-install(TARGETS ${PROJECT_NAME} 
-   RUNTIME DESTINATION lib/paraview
-   LIBRARY DESTINATION lib/paraview
-   ARCHIVE DESTINATION lib/paraview
-   )
-
+ffile_stream = open(ffile, "w")
+ffile_stream.write('const char* wrapped_classes[] = {')
+ffile_stream.write('\n')
+wfile_stream = open(wfile)
+for line in wfile_stream:
+    ffile_stream.write('"'+line.split()[0]+'",')
+    ffile_stream.write('\n')
+    pass
+wfile_stream.close()
+ffile_stream.write('""')
+ffile_stream.write('\n')
+ffile_stream.write('};')
+ffile_stream.write('\n')
+ffile_stream.close()

@@ -27,7 +27,7 @@ class pqTreeWidgetItemObject;
 
 class vtkSMProperty;
 
-class PQCOMPONENTS_EXPORT pqMedReaderPanel: public pqNamedObjectPanel
+class pqMedReaderPanel: public pqNamedObjectPanel
 {
 Q_OBJECT
   typedef pqNamedObjectPanel Superclass;
@@ -40,7 +40,7 @@ public:
 protected slots:
   void animationModeChanged(int mode);
 
-  void timeComboChanged(int timeStep);
+  // void timeComboChanged(int timeStep);
 
   void updateSIL();
 

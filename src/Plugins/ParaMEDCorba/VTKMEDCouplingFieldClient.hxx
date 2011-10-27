@@ -20,6 +20,7 @@
 #ifndef __VTKMEDCOUPLINGFIELDCLIENT_HXX__
 #define __VTKMEDCOUPLINGFIELDCLIENT_HXX__
 
+#include "ParaMEDMEM2VTK_defines.hxx"
 #include "ParaMEDCouplingCorbaServant.hh"
 
 #include <vector>
@@ -31,9 +32,9 @@ namespace ParaMEDMEM2VTK
 {
   std::vector<double> FillMEDCouplingFieldDoubleInstanceFrom(SALOME_MED::MEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr, vtkDataSet *ret);
   std::vector<double> FillMEDCouplingFieldDoublePartOnly(SALOME_MED::MEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr, vtkDataSet *ret);
-  vtkDataSet *BuildFullyFilledFromMEDCouplingFieldDoubleInstance(SALOME_MED::MEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr,
-                                                                 std::vector<double>& times);
-  vtkDoubleArray *BuildFromMEDCouplingFieldDoubleArr(SALOME_MED::DataArrayDoubleCorbaInterface_ptr dadPtr);
+  ParaMEDMEM2VTK_EXPORT vtkDataSet *BuildFullyFilledFromMEDCouplingFieldDoubleInstance(SALOME_MED::MEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr,
+                                                                                       std::vector<double>& times);
+  ParaMEDMEM2VTK_EXPORT vtkDoubleArray *BuildFromMEDCouplingFieldDoubleArr(SALOME_MED::DataArrayDoubleCorbaInterface_ptr dadPtr);
 }
 
 #endif
