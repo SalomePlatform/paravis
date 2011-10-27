@@ -615,8 +615,7 @@ void read_class_functions(const char* name, const char* classname, FILE* fp)
       }
 #endif
       len=strlen(sig);
-      fgets(buf,bs-1,fin);
-      if(strlen(buf) > 1) {
+      if(fgets(buf,bs-1,fin)!=NULL && strlen(buf) > 1) {
 	ret_str=0;
 #if defined(IDL_I_HH)
 	strcpy(sig+len,buf);
