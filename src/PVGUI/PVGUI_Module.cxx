@@ -22,6 +22,9 @@
 // Author : Julia DOROVSKIKH
 
 #include <Standard_math.hxx>  // E.A. must be included before Python.h to fix compilation on windows
+#ifdef HAVE_FINITE
+#undef HAVE_FINITE            // VSR: avoid compilation warning on Linux : "HAVE_FINITE" redefined
+#endif
 #include <vtkPython.h> // Python first
 #include "PVGUI_Module.h"
 
