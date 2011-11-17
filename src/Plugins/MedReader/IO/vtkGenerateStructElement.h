@@ -4,9 +4,9 @@
 #include "vtkUnstructuredGridAlgorithm.h"
 
 class vtkMedStructElement;
-struct vtkGenerateStructElementCache;
+class vtkGenerateStructElementCache;
 
-class vtkGenerateStructElement : public vtkUnstructuredGridAlgorithm
+class VTK_EXPORT vtkGenerateStructElement : public vtkUnstructuredGridAlgorithm
 {
 public:
   static vtkGenerateStructElement* New();
