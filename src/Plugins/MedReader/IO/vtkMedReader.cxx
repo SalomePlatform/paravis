@@ -1867,7 +1867,7 @@ void vtkMedReader::CreateMedSupports()
             }
           // If no field use this family on entity, I nevertheless create the
           // support, with an empty profile.
-          if(true)//!selectedSupport)
+          if(!selectedSupport)
             {
             vtkMedFamilyOnEntityOnProfile* foep =
                 foe->GetFamilyOnEntityOnProfile((vtkMedProfile*)NULL);
