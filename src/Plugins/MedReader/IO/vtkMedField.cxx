@@ -71,16 +71,15 @@ vtkMedField::~vtkMedField()
 void vtkMedField::ComputeFieldType()
 {
 	this->FieldType = UnknownFieldType;
-	if (this->FieldStep->size() == 0)
-		{
-		return;
-		}
 
 	// look for the med_entity_type
 	// on which this field is.
 	for(int sid = 0; sid < this->GetNumberOfFieldStep(); sid++)
 		{
 		vtkMedFieldStep* step = this->GetFieldStep(sid);
+  
+    this->FieldType = PointField;
+  
 		for(int eid = 0; eid < step->GetNumberOfFieldOverEntity(); eid++)
 			{
 			vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(eid);
