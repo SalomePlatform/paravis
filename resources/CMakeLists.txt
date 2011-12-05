@@ -18,7 +18,6 @@
 #
 
 SET(dist_salomeres_DATA
-  LightApp.xml
   pqAppIcon22.png
   pqAppIcon16.png
   ParaViewFilters.xml

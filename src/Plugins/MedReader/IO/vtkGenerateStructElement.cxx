@@ -182,6 +182,9 @@ double  vtkGenerateStructElement::GetParameter1(const char* name,
                               vtkIdType medid,
                               vtkGenerateStructElementCache& cache)
 {
+#ifdef WIN32 //rnv : Avoid compliation error in the VS under windows.
+	return 0;
+#endif
 }
 
 void  vtkGenerateStructElement::PrintSelf(ostream& os, vtkIndent indent)

@@ -142,7 +142,7 @@ TARGET_LINK_LIBRARIES(PARAVIS
   ${CORBA_LIBS}
   ${QT_LIBS}
   ${CAS_KERNEL}
-  ${VTK_COMMON} ${VTK_GRAPHICS} ${VTK_IMAGING} ${VTK_FILTERING} ${VTK_IO} ${VTK_RENDERING} ${VTK_HYBRID} ${VTK_PARALLEL}
+  ${VTK_LIBS}
   ${PYTHON_LIBS}
   ${KERNEL_LDFLAGS} ${SalomeDS} ${SALOMELocalTrace} ${SalomeIDLKernel} ${SalomeNS} ${SalomeLifeCycleCORBA} ${SalomeContainer} ${TOOLSDS}
   ${GUI_LDFLAGS} ${SalomeApp} ${LightApp} ${CAM} ${qtx} ${suit} ${Event} ${PyInterp} ${SalomeObject}
