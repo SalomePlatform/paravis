@@ -78,8 +78,6 @@ void vtkMedField::ComputeFieldType()
 		{
 		vtkMedFieldStep* step = this->GetFieldStep(sid);
   
-    this->FieldType = PointField;
-  
 		for(int eid = 0; eid < step->GetNumberOfFieldOverEntity(); eid++)
 			{
 			vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(eid);
@@ -111,6 +109,9 @@ void vtkMedField::ComputeFieldType()
 				}
 			}
 		}
+		
+	if(this->FieldType == UnknownFieldType) 
+    this->FieldType = PointField;
 }
 
 int vtkMedField::HasManyFieldTypes()
