@@ -1680,13 +1680,12 @@ vtkDataSet* vtkMedReader::CreateUnstructuredGridForPointSupport(
     }
 
   vtkDataArray* coords = NULL;
-  if (shallowCopy)
-    {
-    if(medugrid != NULL)
-      coords = medugrid->GetCoordinates();
-    if(medcgrid != NULL)
-      coords = medcgrid->GetCoordinates();
-    }
+
+  if(medugrid != NULL)
+    coords = medugrid->GetCoordinates();
+  if(medcgrid != NULL)
+    coords = medcgrid->GetCoordinates();
+
 
   vtkIdType numberOfPoints;
   vtkPoints* points=vtkPoints::New(coords->GetDataType());

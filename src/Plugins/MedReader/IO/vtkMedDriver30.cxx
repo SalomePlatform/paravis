@@ -1071,7 +1071,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAl
       {
       entity.GeometryType = MED_GET_CELL_GEOMETRY_TYPE[geoid];
       entity.GeometryName = MED_GET_CELL_GEOMETRY_TYPENAME[geoid];
-      // only point or cell fields are supported on polygons and polyhedrons
+       // only point or cell fields are supported on polygons and polyhedrons
       // (no elno nor elga field)
       if((entity.GeometryType == MED_POLYGON ||
          entity.GeometryType == MED_POLYHEDRON) &&
@@ -1114,11 +1114,13 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAl
 
       med_int profilesize;
       med_int nintegrationpoint;
+      
       for(int pid=0; pid<nprofile; pid++)
         {
         med_int medid = (hasprofile ? pid+1 : -1);
         nvalues = MEDfieldnValueWithProfile(
-                    this->FileId, field->GetName(),
+                    this->FileId, 
+                    field->GetName(),
                     step->GetComputeStep().TimeIt,
                     step->GetComputeStep().IterationIt,
                     entity.EntityType,
@@ -1129,6 +1131,7 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAl
                     &profilesize,
                     localizationname,
                     &nintegrationpoint);
+        
         if(nvalues < 0)
           {
           vtkErrorMacro("MEDfieldnValueWithProfile");

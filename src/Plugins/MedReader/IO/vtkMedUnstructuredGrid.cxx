@@ -294,7 +294,7 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
       {
       vtkpts->Initialize();
       vtkpts->SetNumberOfIds(pts->GetNumberOfIds());
-      cout << "ptids : ";
+ 
       for(vtkIdType node=0; node<pts->GetNumberOfIds(); node++)
         {
         vtkIdType pid = pts->GetId(node);
@@ -308,9 +308,7 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
           return NULL;
           }
         vtkpts->SetId(vtkMedUtilities::MedToVTKIndex(vtkType, node), ptid);
-        cout << vtkMedUtilities::MedToVTKIndex(vtkType, node) << ":" << ptid << " ";
         }
-      cout << endl;
 
       // for strutural elements, insert nsupportcell instead of only one
       if(nsupportcell > 1)
