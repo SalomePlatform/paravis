@@ -2476,7 +2476,7 @@ class PVModule(object):
     pass
 
 def _make_name_valid(name):
-    """"Make a string into a valid Python variable name."""
+    """Make a string into a valid Python variable name."""
     if not name:
         return None
     import string
