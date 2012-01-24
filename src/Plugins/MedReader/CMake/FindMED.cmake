@@ -20,7 +20,7 @@
 # - Find MED library
 # Find the MED includes and library
 # This module defines
-#  MED2HOME, a directory where MED was installed. This directory is used to help find trhe other values.
+#  MED3HOME, a directory where MED was installed. This directory is used to help find trhe other values.
 #  MED_INCLUDE_DIR, where to find med.h
 #  MED_INCLUDE_DIRS, where to find med.h file, concatenated with other include dirs from HDF5 and MPI (if parallel)
 #  MED_LIBRARIES, libraries to link against to use MED. (including HDF5 and MPI if parallel)
@@ -29,20 +29,20 @@
 #  MED_LIBRARY, the med library.
 #  MEDC_LIBRARY, the medC library
 
-SET(MED2HOME $ENV{MED2HOME} CACHE PATH "Path to the med install dir")
+SET(MED3HOME $ENV{MED3HOME} CACHE PATH "Path to the med install dir")
 
-IF(NOT MED2HOME)
+IF(NOT MED3HOME)
   FIND_PROGRAM(MDUMP mdump)
   IF(MDUMP)
-    SET(MED2HOME ${MDUMP})
-    GET_FILENAME_COMPONENT(MED2HOME ${MED2HOME} PATH)
-    GET_FILENAME_COMPONENT(MED2HOME ${MED2HOME} PATH)
+    SET(MED3HOME ${MDUMP})
+    GET_FILENAME_COMPONENT(MED3HOME ${MED3HOME} PATH)
+    GET_FILENAME_COMPONENT(MED3HOME ${MED3HOME} PATH)
   ENDIF(MDUMP)
-ENDIF(NOT MED2HOME)
+ENDIF(NOT MED3HOME)
 
 FIND_PATH(MED_INCLUDE_DIR med.h
   HINTS
-  ${MED2HOME}/include
+  ${MED3HOME}/include
   PATHS
   /usr/local/include
   /usr/include
@@ -51,7 +51,7 @@ FIND_PATH(MED_INCLUDE_DIR med.h
 FIND_LIBRARY(MED_LIBRARY med
   HINTS
   ${MED_INCLUDE_DIR}/../lib
-  ${MED2HOME}/lib
+  ${MED3HOME}/lib
   PATHS
   /usr/local/lib
   /usr/lib
@@ -62,7 +62,7 @@ get_filename_component(MED_LIBRARY_DIR ${MED_LIBRARY} PATH)
 FIND_LIBRARY(MEDC_LIBRARY medC
   HINTS
   ${MED_LIBRARY_DIR}
-  ${MED2HOME}/lib
+  ${MED3HOME}/lib
   PATHS
   /usr/local/lib
   /usr/lib
