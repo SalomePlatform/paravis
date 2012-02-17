@@ -257,7 +257,7 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
     if (!foep->KeepCell(realIndex))
       continue;
 
-    array->GetCellVertices(pindex, pts);
+    array->GetCellVertices(realIndex, pts);
 
     // The structural elements can have more than 1 vtk cell for each med cell.
     // They share the same global id.
