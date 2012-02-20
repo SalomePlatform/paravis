@@ -34,6 +34,7 @@
 #include "vtkCellArray.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
+//#include "vtkDataSetSurfaceFilter.h"
 
 #include <math.h>
 
@@ -94,7 +95,7 @@ int vtkElevationSurfaceFilter::FillOutputPortInformation(
 int vtkElevationSurfaceFilter::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPointSet");
   return 1;
 }
 
@@ -126,15 +127,22 @@ int vtkElevationSurfaceFilter::RequestInformation(vtkInformation *request,
 int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
     vtkInformationVector **input, vtkInformationVector *output)
 {
-  vtkPolyData *pdIn = vtkPolyData::SafeDownCast(
+	vtkPointSet *psIn = vtkPointSet::SafeDownCast(
       input[0]->GetInformationObject(0)->Get(vtkDataObject::DATA_OBJECT()));
+
+  //vtkPolyData *psIn = vtkPolyData::SafeDownCast(
+  //    input[0]->GetInformationObject(0)->Get(vtkDataObject::DATA_OBJECT()));
+
+  /*vtkSmartPointer<vtkDataSetSurfaceFilter> surfaceFilter = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+  surfaceFilter->SetInput(psIn);
+  vtkPolyData* psIn = vtkPolyData::SafeDownCast(surfaceFilter->GetOutput());*/
 
   vtkUnstructuredGrid *usgOut = vtkUnstructuredGrid::SafeDownCast(
       output->GetInformationObject(0)->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkDataArray* array = this->GetInputArrayToProcess(0, input);
 
-  if(pdIn == NULL || array == NULL || usgOut == NULL
+  if(psIn == NULL || array == NULL || usgOut == NULL
      || array->GetNumberOfComponents() != 1)
     {
     vtkDebugMacro("vtkElevationSurfaceFilter no correctly configured");
@@ -144,7 +152,7 @@ int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
   double dir[3];
   if(this->AutoDetectDirection)
     {
-    this->ComputeDirection(pdIn, dir);
+    this->ComputeDirection(psIn, dir);
     }
   else
     {
@@ -171,22 +179,23 @@ int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
   dir[1] *= this->GetScaleFactor();
   dir[2] *= this->GetScaleFactor();
 
-  usgOut->Allocate(pdIn->GetNumberOfCells());
+  usgOut->Allocate(psIn->GetNumberOfCells());
 
   vtkSmartPointer<vtkPoints> newPts = vtkSmartPointer<vtkPoints>::New();
   usgOut->SetPoints(newPts);
 
-  usgOut->GetPointData()->CopyAllocate(pdIn->GetPointData(),
-                                       2*pdIn->GetNumberOfPoints());
-  usgOut->GetCellData()->CopyAllocate(pdIn->GetCellData(),
-                                       pdIn->GetNumberOfCells());
+  usgOut->GetPointData()->CopyAllocate(psIn->GetPointData(),
+          2*psIn->GetNumberOfPoints());
+  usgOut->GetCellData()->CopyAllocate(psIn->GetCellData(),
+		  psIn->GetNumberOfCells());
 
-  vtkIdType ncell = pdIn->GetNumberOfCells();
+  vtkIdType ncell = psIn->GetNumberOfCells();
   vtkSmartPointer<vtkIdList> newIds = vtkSmartPointer<vtkIdList>::New();
   vtkSmartPointer<vtkIdList> polyhedronIds = vtkSmartPointer<vtkIdList>::New();
+  vtkSmartPointer<vtkIdList> neighbors = vtkSmartPointer<vtkIdList>::New();
   for(vtkIdType cellId=0; cellId < ncell; cellId++)
     {
-    vtkCell* cell = pdIn->GetCell(cellId);
+    vtkCell* cell = psIn->GetCell(cellId);
     if(cell->GetCellDimension() != 2)
       continue;
 
@@ -216,7 +225,7 @@ int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
     double coords[VTK_CELL_SIZE*3];
     for(int ptid = 0; ptid < oldPtsNumber; ptid++)
       {
-      pdIn->GetPoint(oldIds->GetId(ptid), coords + 3*ptid);
+    	psIn->GetPoint(oldIds->GetId(ptid), coords + 3*ptid);
       }
     for(int ptid = 0; ptid < oldPtsNumber; ptid++)
       {
@@ -224,11 +233,50 @@ int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
       coords[(ptid+oldPtsNumber)*3+1] = coords[ptid*3+1] + cellScalar*dir[1];
       coords[(ptid+oldPtsNumber)*3+2] = coords[ptid*3+2] + cellScalar*dir[2];
       }
+    double minScalar;
+    bool minInitialized = false;
+    for(int ptid = 0; ptid < oldPtsNumber; ptid++)
+      {
+      neighbors->Initialize();
+      psIn->GetPointCells(oldIds->GetId(ptid), neighbors);
+      for(int neiCellIt = 0; neiCellIt < neighbors->GetNumberOfIds(); neiCellIt++)
+        {
+        vtkIdType  neigCellId = neighbors->GetId(neiCellIt);
+        if(neigCellId == cellId)
+          continue;
+        double neighborScalar = array->GetTuple1(neigCellId);
+        if(neighborScalar != 0.0)
+		  {
+          if(!minInitialized)
+        	minScalar = neighborScalar;
+          else
+		    minScalar = (neighborScalar < minScalar ? neighborScalar : minScalar);
+		  minInitialized = true;
+		  }
+        }
+      if(!minInitialized)
+    	minScalar = 0.0;
+      }
+    for(int ptid = 0; ptid < oldPtsNumber; ptid++)
+      {
+	  if(cellScalar != 0)
+	    {
+        coords[(ptid)*3+0] = coords[ptid*3+0] + minScalar*dir[0];
+        coords[(ptid)*3+1] = coords[ptid*3+1] + minScalar*dir[1];
+        coords[(ptid)*3+2] = coords[ptid*3+2] + minScalar*dir[2];
+    	}
+      else
+    	{
+        coords[(ptid+oldPtsNumber)*3+0] = coords[ptid*3+0] + minScalar*dir[0];
+        coords[(ptid+oldPtsNumber)*3+1] = coords[ptid*3+1] + minScalar*dir[1];
+        coords[(ptid+oldPtsNumber)*3+2] = coords[ptid*3+2] + minScalar*dir[2];
+    	}
+      }
     for(int ptid=0; ptid<newPtsNumber; ptid++)
       {
       vtkIdType newId = newPts->InsertNextPoint(coords + 3*ptid);
       newIds->SetId(ptid, newId);
-      usgOut->GetPointData()->CopyData(pdIn->GetPointData(),
+      usgOut->GetPointData()->CopyData(psIn->GetPointData(),
                                        oldIds->GetId(ptid % oldPtsNumber),
                                        newIds->GetId(ptid));
       }
@@ -267,29 +315,29 @@ int vtkElevationSurfaceFilter::RequestData(vtkInformation *request,
         }
       }
     newCellId = usgOut->InsertNextCell(newCellType, newIds);
-    usgOut->GetCellData()->CopyData(pdIn->GetCellData(),
+    usgOut->GetCellData()->CopyData(psIn->GetCellData(),
                                    cellId,
                                    newCellId);
     }
 
-  usgOut->GetFieldData()->ShallowCopy(pdIn->GetFieldData());
+  usgOut->GetFieldData()->ShallowCopy(psIn->GetFieldData());
 
   usgOut->Squeeze();
 
   return 1;
 }
 
-void  vtkElevationSurfaceFilter::ComputeDirection(vtkPolyData* pdIn, double *outDir)
+void  vtkElevationSurfaceFilter::ComputeDirection(vtkPointSet* psIn, double *outDir)
 {
   double tmp[2][3] = {{0, 0, 0}, {0, 0, 0}};
   outDir[0] = outDir[1] = outDir[2] = 0;
 
-  vtkPoints* pts = pdIn->GetPoints();
+  vtkPoints* pts = psIn->GetPoints();
   vtkSmartPointer<vtkGenericCell> cell = vtkSmartPointer<vtkGenericCell>::New();
 
-  for(vtkIdType cellId = 0; cellId < pdIn->GetNumberOfCells(); cellId++)
+  for(vtkIdType cellId = 0; cellId < psIn->GetNumberOfCells(); cellId++)
     {
-    pdIn->GetCell(cellId, cell);
+    psIn->GetCell(cellId, cell);
     if(cell->GetCellDimension() != 2)
       continue;
 
