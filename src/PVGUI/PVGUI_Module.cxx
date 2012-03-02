@@ -386,19 +386,16 @@ void PVGUI_Module::initialize( CAM_Application* app )
   }
 
   updateMacros();
- 
-  pqServerManagerObserver* aObserver = pqImplementation::Core->getServerManagerObserver();
-  connect(aObserver, SIGNAL(connectionCreated(vtkIdType)), this, SLOT(onConnectionCreated(vtkIdType)));
+  
+  // we need to start trace after connection is done
+  connect(pqApplicationCore::instance()->getObjectBuilder(), SIGNAL(finishedAddingServer(pqServer*)), 
+	  this, SLOT(onFinishedAddingServer(pqServer*)));
 
-  myTraceTimer = new QTimer(this);
-  myTraceTimer->setSingleShot(true);
-  connect(myTraceTimer, SIGNAL(timeout()), this, SLOT(activateTrace()));
- 
   SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
   bool isStop = aResourceMgr->booleanValue( "PARAVIS", "stop_trace", false );
+  // start timer to activate trace in a proper moment
   if(!isStop) 
-    myTraceTimer->start(50);
-    //QTimer::singleShot(50, this, SLOT(activateTrace()));
+    startTimer( 50 );
 
   this->VTKConnect = vtkEventQtSlotConnect::New();
   vtkProcessModule* pm = vtkProcessModule::GetProcessModule();
@@ -419,42 +416,33 @@ void PVGUI_Module::onEndProgress()
   QApplication::restoreOverrideCursor();
 }
 
-void PVGUI_Module::onConnectionCreated(vtkIdType theId)
+void PVGUI_Module::onFinishedAddingServer(pqServer* /*server*/)
 {
-  if (myTraceTimer->isActive())
-    myTraceTimer->stop();
-
   SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
   bool isStop = aResourceMgr->booleanValue( "PARAVIS", "stop_trace", false );
-  if (!isStop)
-    myTraceTimer->start(1000);
-    //QTimer::singleShot(500, this, SLOT(activateTrace()));
-    //activateTrace();
- 
+  if(!isStop) 
+    startTimer( 50 );
 }
 
 /*!
   \brief Launches a tracing of current server
 */
-void PVGUI_Module::activateTrace()
+void PVGUI_Module::timerEvent(QTimerEvent* te )
 {
 #ifndef WNT
   PyInterp_Dispatcher* aDispatcher = PyInterp_Dispatcher::Get();
-  if (aDispatcher->IsBusy()) {
-    myTraceTimer->start(50);
-    //QTimer::singleShot(50, this, SLOT(activateTrace()));
-    return;
-  }
-
-  pqPythonManager* manager = qobject_cast<pqPythonManager*>(
-                             pqApplicationCore::instance()->manager("PYTHON_MANAGER"));
-  if (manager)  {
-    pqPythonDialog* pyDiag = manager->pythonShellDialog();
-    if (pyDiag) {
-      pqPythonShell* shell = pyDiag->shell();
-      if(shell) {
-        QString script = "from paraview import smtrace\nsmtrace.start_trace()\n";
-        shell->executeScript(script);    
+  if ( !aDispatcher->IsBusy() ) {
+    pqPythonManager* manager = qobject_cast<pqPythonManager*>
+      ( pqApplicationCore::instance()->manager( "PYTHON_MANAGER" ) );
+    if ( manager )  {
+      pqPythonDialog* pyDiag = manager->pythonShellDialog();
+      if ( pyDiag ) {
+	pqPythonShell* shell = pyDiag->shell();
+	if ( shell ) {
+	  QString script = "from paraview import smtrace\nsmtrace.start_trace()\n";
+	  shell->executeScript(script);
+	  killTimer( te->timerId() );
+	}
       }
     }
   }

@@ -213,14 +213,12 @@ private slots:
   void onPostAccept();
   void endWaitCursor();
 
-  void activateTrace();
-
   //  void buildToolbarsMenu();
 
   void showParaViewHelp();
   void showHelp(const QString& url);
 
-  void onConnectionCreated(vtkIdType);
+  void onFinishedAddingServer(pqServer*);
 
   void onStartProgress();
   void onEndProgress();
@@ -244,6 +242,9 @@ public slots:
 protected slots:
   virtual void           onModelOpened();
 
+protected:
+  void timerEvent(QTimerEvent *event);
+
 private:
   class pqImplementation;
   pqImplementation*      Implementation;
@@ -262,7 +263,6 @@ private:
   QStringList            myTemporaryFiles;
 
   QtMsgHandler           myOldMsgHandler;
-  QTimer* myTraceTimer;
 
   vtkEventQtSlotConnect *VTKConnect;
 
