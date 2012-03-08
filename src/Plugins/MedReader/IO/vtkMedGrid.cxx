@@ -83,6 +83,15 @@ vtkMedEntityArray* vtkMedGrid::GetEntityArray(const vtkMedEntity& entity)
 	return NULL;
 }
 
+void  vtkMedGrid::GatherMedEntities(std::set<vtkMedEntity>& entities)
+{
+  for(int id = 0; id < this->EntityArray->size(); id++)
+    {
+    vtkMedEntityArray* array = this->EntityArray->at(id);
+    entities.insert(array->GetEntity());
+    }
+}
+
 void vtkMedGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

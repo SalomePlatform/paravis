@@ -248,6 +248,15 @@ vtkMedGrid* vtkMedMesh::GetGridStep(med_int id)
   return this->GridStep->GetObject(id);
 }
 
+void  vtkMedMesh::GatherMedEntities(std::set<vtkMedEntity>& entities)
+{
+  vtkMedGrid* firstStep = this->GetGridStep(0);
+  if(firstStep == NULL)
+    return;
+  
+  firstStep->GatherMedEntities(entities);
+}
+
 void vtkMedMesh::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

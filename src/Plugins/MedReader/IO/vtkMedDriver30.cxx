@@ -679,6 +679,16 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
     this->ReadSupportMeshInformation(supportmesh);
     }
 
+  int nmesh = MEDnMesh(this->FileId);
+  file->AllocateNumberOfMesh(nmesh);
+  for(int i = 0; i < nmesh; i++)
+    {
+    vtkMedMesh* mesh = file->GetMesh(i);
+    mesh->SetMedIterator(i + 1);
+    mesh->SetParentFile(file);
+    this->ReadMeshInformation(mesh);
+    }
+
   int nfields = MEDnField(this->FileId);
   file->AllocateNumberOfField(nfields);
   for(int i = 0; i < nfields; i++)
@@ -696,17 +706,6 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
       file->AppendField(newfield);
       newfield->Delete();
       }
-    }
-
-  int nmesh = MEDnMesh(this->FileId);
-
-  file->AllocateNumberOfMesh(nmesh);
-  for(int i = 0; i < nmesh; i++)
-    {
-    vtkMedMesh* mesh = file->GetMesh(i);
-    mesh->SetMedIterator(i + 1);
-    mesh->SetParentFile(file);
-    this->ReadMeshInformation(mesh);
     }
 
   int nstruct = MEDnStructElement(this->FileId);
@@ -1057,104 +1056,96 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAl
     return;
 
   step->SetEntityInfoLoaded(1);
-
-  for(int entityid = 1; entityid <= MED_N_ENTITY_TYPES; entityid++)
+  
+  vtkMedFile* file = field->GetParentFile();
+  vtkMedMesh* mesh = file->GetMesh(field->GetMeshName());
+  
+  if(mesh == NULL)
+    return;
+  
+  std::set<vtkMedEntity> entities;
+  mesh->GatherMedEntities(entities);
+  
+  vtkMedEntity pointEntity;
+  pointEntity.EntityType = MED_NODE;
+  pointEntity.GeometryType = MED_NONE;
+  pointEntity.GeometryName = MED_NAME_BLANK;
+  entities.insert(pointEntity);
+  
+  std::set<vtkMedEntity>::iterator entity_it = entities.begin();
+  while(entity_it != entities.end())
     {
-    vtkMedEntity entity;
-    entity.EntityType = MED_GET_ENTITY_TYPE[entityid];
-    if(entity.EntityType == MED_STRUCT_ELEMENT)
+    vtkMedEntity entity = *entity_it;
+    entity_it++;
+
+    med_int nvalues = 0;
+    med_int nprofile;
+    char profilename[MED_NAME_SIZE+1] = "";
+    char localizationname[MED_NAME_SIZE+1] = "";
+
+    nprofile = MEDfieldnProfile(
+        this->FileId, 
+        field->GetName(),
+        step->GetComputeStep().TimeIt,
+        step->GetComputeStep().IterationIt,
+        entity.EntityType,
+        entity.GeometryType,
+        profilename,
+        localizationname);
+    if(nprofile < 0)
       {
-      vtkDebugMacro("MED_STRUCT_ELEMENT are not yet supported.");
+      vtkErrorMacro("MEDfieldnProfile");
       continue;
       }
-    for (int geoid=1; geoid<=MED_N_CELL_FIXED_GEO; geoid++)
+
+    bool hasprofile = (nprofile > 0);
+    if(!hasprofile)
       {
-      entity.GeometryType = MED_GET_CELL_GEOMETRY_TYPE[geoid];
-      entity.GeometryName = MED_GET_CELL_GEOMETRY_TYPENAME[geoid];
-       // only point or cell fields are supported on polygons and polyhedrons
-      // (no elno nor elga field)
-      if((entity.GeometryType == MED_POLYGON ||
-         entity.GeometryType == MED_POLYHEDRON) &&
-         entity.EntityType != MED_CELL && entity.EntityType != MED_NODE)
+      nprofile = 1;
+      }
+
+    med_int profilesize;
+    med_int nintegrationpoint;
+    
+    for(int pid=0; pid<nprofile; pid++)
+      {
+      med_int medid = (hasprofile ? pid+1 : -1);
+      nvalues = MEDfieldnValueWithProfile(
+                  this->FileId, 
+                  field->GetName(),
+                  step->GetComputeStep().TimeIt,
+                  step->GetComputeStep().IterationIt,
+                  entity.EntityType,
+                  entity.GeometryType,
+                  medid,
+                  MED_COMPACT_PFLMODE,
+                  profilename,
+                  &profilesize,
+                  localizationname,
+                  &nintegrationpoint);
+            
+      if(nvalues < 0)
         {
+        vtkErrorMacro("MEDfieldnValueWithProfile");
         continue;
         }
-
-      // for point-centered fields, only look for MED_POINT1 geo type
-      if(entity.EntityType == MED_NODE &&
-         entity.GeometryType != MED_POINT1)
+      else if(nvalues > 0)
         {
-        continue;
+        // I have found a profile with values, stop the loop here
+        break;
         }
+      }
 
-      med_int nvalues = 0;
-      med_int nprofile;
-      char profilename[MED_NAME_SIZE+1] = "";
-      char localizationname[MED_NAME_SIZE+1] = "";
+    if(nvalues > 0)
+      {
+      vtkMedFieldOverEntity* fieldOverEntity = vtkMedFieldOverEntity::New();
+      step->AppendFieldOverEntity(fieldOverEntity);
+      fieldOverEntity->Delete();
 
-      nprofile = MEDfieldnProfile(
-          this->FileId, field->GetName(),
-          step->GetComputeStep().TimeIt,
-          step->GetComputeStep().IterationIt,
-          entity.EntityType,
-          entity.GeometryType,
-          profilename,
-          localizationname);
-      if(nprofile < 0)
-        {
-        vtkErrorMacro("MEDfieldnProfile");
-        continue;
-        }
+      fieldOverEntity->SetParentStep(step);
+      fieldOverEntity->SetEntity(entity);
 
-      bool hasprofile = (nprofile > 0);
-      if(!hasprofile)
-        {
-        nprofile = 1;
-        }
-
-      med_int profilesize;
-      med_int nintegrationpoint;
-      
-      for(int pid=0; pid<nprofile; pid++)
-        {
-        med_int medid = (hasprofile ? pid+1 : -1);
-        nvalues = MEDfieldnValueWithProfile(
-                    this->FileId, 
-                    field->GetName(),
-                    step->GetComputeStep().TimeIt,
-                    step->GetComputeStep().IterationIt,
-                    entity.EntityType,
-                    entity.GeometryType,
-                    medid,
-                    MED_COMPACT_PFLMODE,
-                    profilename,
-                    &profilesize,
-                    localizationname,
-                    &nintegrationpoint);
-        
-        if(nvalues < 0)
-          {
-          vtkErrorMacro("MEDfieldnValueWithProfile");
-          continue;
-          }
-        else if(nvalues > 0)
-          {
-          // I have found a profile with values, stop the loop here
-          break;
-          }
-        }
-
-      if(nvalues > 0)
-        {
-        vtkMedFieldOverEntity* fieldOverEntity = vtkMedFieldOverEntity::New();
-        step->AppendFieldOverEntity(fieldOverEntity);
-        fieldOverEntity->Delete();
-
-        fieldOverEntity->SetParentStep(step);
-        fieldOverEntity->SetEntity(entity);
-
-        this->ReadFieldOverEntityInformation(fieldOverEntity);
-        }
+      this->ReadFieldOverEntityInformation(fieldOverEntity);
       }
     }
 }

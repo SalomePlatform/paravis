@@ -76,6 +76,12 @@ int vtkMedFamilyOnEntity::GetVertexOnly()
   if(entity.EntityType == MED_POINT1 || entity.GeometryType == MED_NONE)
     return true;
 
+  if(entity.GeometryName == MED_BALL_NAME && entity.EntityType == MED_STRUCT_ELEMENT)
+    return true;
+
+  if(entity.GeometryName == MED_PARTICLE_NAME && entity.EntityType == MED_STRUCT_ELEMENT)
+    return true;
+
   return false;
 }
 

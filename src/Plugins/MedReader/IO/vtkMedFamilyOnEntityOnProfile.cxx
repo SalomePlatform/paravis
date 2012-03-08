@@ -98,15 +98,15 @@ int vtkMedFamilyOnEntityOnProfile::CanMapField(vtkMedFieldOnProfile* fop)
      this->GetFamilyOnEntity()->GetEntity().GeometryType)
     return false;
 
-  if(this->GetFamilyOnEntity()->GetEntity().EntityType != MED_NODE &&
-     fop->GetParentFieldOverEntity()->GetEntity().EntityType != MED_NODE &&
-     fop->GetProfile() != this->Profile)
-    return false;
-
-  if(this->GetFamilyOnEntity()->GetEntity().EntityType == MED_NODE &&
-     fop->GetParentFieldOverEntity()->GetEntity().EntityType == MED_NODE &&
-     fop->GetProfile() != this->Profile)
-    return false;
+//   if(this->GetFamilyOnEntity()->GetEntity().EntityType != MED_NODE &&
+//      fop->GetParentFieldOverEntity()->GetEntity().EntityType != MED_NODE &&
+//      fop->GetProfile() != this->Profile)
+//     return false;
+// 
+//   if(this->GetFamilyOnEntity()->GetEntity().EntityType == MED_NODE &&
+//      fop->GetParentFieldOverEntity()->GetEntity().EntityType == MED_NODE &&
+//      fop->GetProfile() != this->Profile)
+//     return false;
 
   if(this->GetValid() == 0)
     return false;
@@ -179,7 +179,7 @@ void vtkMedFamilyOnEntityOnProfile::ComputeIntersection(vtkMedFieldOnProfile* fo
       {
       profile = fop->GetProfile();
       }
-    // point fields must share the same profile has point supports.
+    // point fields must share the same profile as the point support.
     this->ComputePointFamilyVsPointProfileMatch();
 
     }

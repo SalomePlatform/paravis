@@ -827,6 +827,6 @@ bool operator!=(const vtkMedEntity& e0, const vtkMedEntity& e1)
 bool operator<(const vtkMedEntity& e0, const vtkMedEntity& e1)
 {
   if(e0.EntityType != e1.EntityType)
-    return e1.EntityType < e1.EntityType;
+    return e0.EntityType < e1.EntityType;
   return e0.GeometryType < e1.GeometryType;
 }

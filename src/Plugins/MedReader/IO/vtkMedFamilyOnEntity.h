@@ -60,7 +60,8 @@ public :
   virtual int  GetPointOrCell();
 
   // Description :
-  // Returns true if the family is on points or if the entity is MED_POINT
+  // Returns true if the family is on points or if the entity is MED_POINT1
+  // of if it is MED_BALL or MED_PARTICLE elements
   virtual int  GetVertexOnly();
 
   // Description:

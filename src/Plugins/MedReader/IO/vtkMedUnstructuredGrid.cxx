@@ -66,27 +66,20 @@ int vtkMedUnstructuredGrid::IsCoordinatesLoaded()
 void  vtkMedUnstructuredGrid::InitializeCellGlobalIds()
 {
   vtkIdType ncells = 0;
-
-  for(int entityIndex = 0; entityIndex < MED_N_ENTITY_TYPES; entityIndex++)
+  
+  for(int id = 0; id < this->EntityArray->size(); id++)
     {
-    vtkMedEntity entity;
-    entity.EntityType = MED_GET_ENTITY_TYPE[entityIndex+1];
-    if(entity.EntityType == MED_NODE)
+    vtkMedEntityArray* array = this->EntityArray->at(id);
+    
+    if(array == NULL)
       continue;
-
-    for(int geomIndex = 0; geomIndex < MED_N_CELL_FIXED_GEO; geomIndex++)
-      {
-      entity.GeometryType = MED_GET_CELL_GEOMETRY_TYPE[geomIndex+1];
-      vtkMedEntityArray* array = this->GetEntityArray(entity);
-
-      if(array == NULL)
-        continue;
-
-      array->SetInitialGlobalId(ncells + 1);
-
-      ncells += array->GetNumberOfEntity();
-      }
-   }
+    
+    if(array->GetEntity().EntityType == MED_NODE)
+      continue;
+    
+    array->SetInitialGlobalId(ncells + 1);
+    ncells += array->GetNumberOfEntity();
+    }
 }
 
 void  vtkMedUnstructuredGrid::ClearMedSupports()
@@ -196,8 +189,6 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
   supportIndex->SetComponentName(0, "GLOBAL_ID");
   supportIndex->SetComponentName(1, "LOCAL_ID");
 
-  vtkDataArray* diam = NULL;
-
   if(array->GetEntity().EntityType == MED_STRUCT_ELEMENT)
     {
     structelem = array->GetStructElement();
@@ -227,9 +218,6 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
         varatt->Load(array);
         vtkAbstractArray* values = array->GetVariableAttributeValue(varatt);
         vtkugrid->GetFieldData()->AddArray(values);
-
-        if(varatt->GetName() == MED_BALL_DIAMETER)
-          diam = vtkDataArray::SafeDownCast(values);
         }
       vtkugrid->GetCellData()->AddArray(supportIndex);
       }
@@ -327,25 +315,31 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
       }
     }
 
-  if(diam != NULL && vtkugrid->GetNumberOfCells() == vtkugrid->GetNumberOfPoints())
+  if(vtkugrid->GetNumberOfCells() == vtkugrid->GetNumberOfPoints())
     {
-    if(diam->GetNumberOfTuples() == vtkugrid->GetNumberOfCells())
+    for(int fieldId = 0; fieldId < vtkugrid->GetFieldData()->GetNumberOfArrays(); fieldId++)
       {
-      vtkugrid->GetPointData()->AddArray(diam);
-      }
-    else
-      {
-      vtkDataArray* real_diam = diam->NewInstance();
-      real_diam->SetName(diam->GetName());
-
-      for(vtkIdType cellId = 0; cellId < vtkugrid->GetNumberOfPoints(); cellId++)
+      vtkDataArray* fieldData = vtkugrid->GetFieldData()->GetArray(fieldId);
+    
+      if(fieldData->GetNumberOfTuples() == vtkugrid->GetNumberOfCells())
         {
-        vtkIdType supportId = static_cast<int>(supportIndex->GetTuple2(cellId)[0]);
-        real_diam->InsertNextTuple1(diam->GetTuple1(supportId));
+        vtkugrid->GetPointData()->AddArray(fieldData);
         }
+      else
+        {
+        vtkDataArray* real_fieldData = fieldData->NewInstance();
+        real_fieldData->SetName(fieldData->GetName());
+        real_fieldData->SetNumberOfComponents(fieldData->GetNumberOfComponents());
 
-      vtkugrid->GetPointData()->AddArray(real_diam);
-      real_diam->Delete();
+        for(vtkIdType cellId = 0; cellId < vtkugrid->GetNumberOfPoints(); cellId++)
+          {
+          vtkIdType supportId = static_cast<int>(supportIndex->GetTuple2(cellId)[0]);
+          real_fieldData->InsertNextTuple(fieldData->GetTuple(supportId));
+          }
+
+        vtkugrid->GetPointData()->AddArray(real_fieldData);
+        real_fieldData->Delete();
+        }
       }
     }
 

@@ -2022,7 +2022,7 @@ void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
     for(int fieldId=0; fieldId<file->GetNumberOfField(); fieldId++)
       {
       vtkMedField* field=file->GetField(fieldId);
-
+    
       if(strcmp(foep->GetFamilyOnEntity()->
                 GetParentGrid()->GetParentMesh()->GetName(),
                 field->GetMeshName()) != 0)
@@ -2030,18 +2030,18 @@ void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
 
       if (!this->IsFieldSelected(field))
         continue;
-
+      
       vtkMedListOfFieldSteps steps;
 
       this->GatherFieldSteps(field, steps);
-
+      
       vtkMedListOfFieldSteps::iterator it=steps.begin();
       while(it!=steps.end())
         {
         vtkMedFieldStep *step = *it;
         step->LoadInformation();
         it++;
-
+      
         for(int eid=0; eid<step->GetNumberOfFieldOverEntity(); eid++)
           {
           vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(eid);
@@ -2109,7 +2109,7 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
   vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
   vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
   vtkMedField* field = step->GetParentField();
-
+  
   const vtkMedComputeStep& cs = step->GetComputeStep();
 
   vtkDataSet* ds=this->Internal->CurrentDataSet[foep];
@@ -2216,7 +2216,7 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       // if the data set is only composed of VTK_VERTEX cells,
       // and no field called with the same name exist on points,
       // map this field to points too
-      if(foe->GetVertexOnly()==1&&ds->GetPointData()->GetArray(
+      if(foe->GetVertexOnly()==1 && ds->GetPointData()->GetArray(
               vtkfield.DataArray->GetName())==NULL)
         {
         ds->GetPointData()->AddArray(vtkfield.DataArray);
@@ -2382,7 +2382,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
     vtkMedFamilyOnEntityOnProfile* foep, int doCreateField)
 {
   vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
-
   vtkMedFieldOverEntity* fieldOverEntity = fop->GetParentFieldOverEntity();
   vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
   vtkMedField* field = step->GetParentField();
@@ -2548,7 +2547,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
   else if(foe->GetPointOrCell() == vtkMedUtilities::OnCell
      && field->GetFieldType() == vtkMedField::PointField)
     {// point field on cell support
-
     vtkMedIntArray* profids=NULL;
 
     vtkMedProfile* profile=fop->GetProfile();
@@ -2580,7 +2578,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       // if I use the med2VTKIndex, then the index to insert
       // this value is given by the map.
       destIndex = foep->GetVTKPointIndex(destIndex);
-
       vtkfield.DataArray->InsertTuple(destIndex, id, fop->GetData());
       }
     vtkfield.DataArray->Squeeze();

@@ -23,6 +23,7 @@
 #include "vtkObject.h"
 #include "vtkMedSetGet.h"
 #include "vtkMed.h"
+#include "vtkMedUtilities.h"
 
 class vtkMedGrid;
 class vtkMedFamily;
@@ -159,7 +160,9 @@ public:
   vtkGetObjectMacro(ParentFile, vtkMedFile);
 
   // Description:
-  // This flag is set if this the mesh is used for a support mesh.
+  // This helper method fills the std::set with all vtkMedEntity types used in the first grid step
+  // MED specifies that all types must be present in the first step for a varying mesh to be valid
+  virtual void  GatherMedEntities(std::set<vtkMedEntity>& entities);
 
 
 protected:

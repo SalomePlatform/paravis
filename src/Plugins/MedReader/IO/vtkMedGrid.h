@@ -130,6 +130,10 @@ public :
 	// This will instanciate a new vtkDataSet object.
 	// The caller is responsible for deleting it.
 	virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*) = 0;
+  
+  //  Description:
+  // This utility method returns all vtkMedEntity types present in this grid
+  virtual void  GatherMedEntities(std::set<vtkMedEntity>& entities);
 
 protected:
   vtkMedGrid();
