@@ -52,8 +52,6 @@ add_subdirectory(IO)
 # Build the parallel vtkPMedReader
 #
 set(MedReader_BUILD_PARALLEL ${VTK_USE_PARALLEL} CACHE BOOL "Build the Med Reader with parallel support.")
-CONFIGURE_FILE( ${CMAKE_SOURCE_DIR}/IO/config.h.cmake ${CMAKE_SOURCE_DIR}/IO/config.h )
-# MESSAGE(${MedReader_BUILD_PARALLEL})
 
 #
 # Build the ParaView Plugin
