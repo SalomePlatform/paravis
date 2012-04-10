@@ -51,9 +51,9 @@ public:
   // This returns the
   int GetDataType()
     { if(sizeof(med_int) == sizeof(vtkIdType)) return VTK_ID_TYPE;
-			if(sizeof(med_int) == sizeof(int)) return VTK_INT;
-			if(sizeof(med_int) == sizeof(long)) return VTK_LONG;
-			return VTK_VOID;
+      if(sizeof(med_int) == sizeof(int)) return VTK_INT;
+      if(sizeof(med_int) == sizeof(long)) return VTK_LONG;
+      return VTK_VOID;
      }
 
   // Description:
@@ -135,7 +135,7 @@ protected:
   ~vtkMedIntArrayInternal();
 
 private:
-	//BTX
+  //BTX
   typedef vtkDataArrayTemplate<med_int> RealSuperclass;
   //ETX
   vtkMedIntArrayInternal(const vtkMedIntArrayInternal&);  // Not implemented.

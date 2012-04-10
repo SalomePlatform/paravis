@@ -39,48 +39,48 @@ vtkStandardNewMacro(vtkMedCurvilinearGrid)
 
 vtkMedCurvilinearGrid::vtkMedCurvilinearGrid()
 {
-	this->Coordinates = NULL;
-	this->NumberOfPoints = 0;
+  this->Coordinates = NULL;
+  this->NumberOfPoints = 0;
 }
 
 vtkMedCurvilinearGrid::~vtkMedCurvilinearGrid()
 {
-	this->SetCoordinates(NULL);
+  this->SetCoordinates(NULL);
 }
 
 void vtkMedCurvilinearGrid::SetDimension(int dim)
 {
-	this->AxisSize.resize(dim);
+  this->AxisSize.resize(dim);
 }
 
 int vtkMedCurvilinearGrid::GetDimension()
 {
-	return this->AxisSize.size();
+  return this->AxisSize.size();
 }
 
 void  vtkMedCurvilinearGrid::SetAxisSize(int axis, med_int size)
 {
-	if(axis < 0)
-		return;
+  if(axis < 0)
+    return;
 
-	if(axis >= this->AxisSize.size())
-		this->AxisSize.resize(axis+1);
+  if(axis >= this->AxisSize.size())
+    this->AxisSize.resize(axis+1);
 
-	this->AxisSize[axis] = size;
+  this->AxisSize[axis] = size;
 }
 
 med_int vtkMedCurvilinearGrid::GetAxisSize(int axis)
 {
-	if(axis < 0 || axis >= this->AxisSize.size())
-		return 0;
+  if(axis < 0 || axis >= this->AxisSize.size())
+    return 0;
 
-	return this->AxisSize[axis];
+  return this->AxisSize[axis];
 }
 
 void  vtkMedCurvilinearGrid::LoadCoordinates()
 {
-	vtkMedDriver* driver = this->GetParentMesh()->GetParentFile()->GetMedDriver();
-	driver->LoadCoordinates(this);
+  vtkMedDriver* driver = this->GetParentMesh()->GetParentFile()->GetMedDriver();
+  driver->LoadCoordinates(this);
 }
 
 int vtkMedCurvilinearGrid::IsCoordinatesLoaded()
@@ -168,5 +168,5 @@ vtkDataSet* vtkMedCurvilinearGrid::CreateVTKDataSet(
 
 void vtkMedCurvilinearGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
+  this->Superclass::PrintSelf(os, indent);
 }

@@ -81,6 +81,16 @@ PARAVIS_I_EXPORT PARAVIS::PARAVIS_Gen_ptr GetImpl(CORBA::ORB_ptr theORB,
 
 namespace PARAVIS
 {
+
+  const char* checkNullStr(const char* theStr)
+  {
+    if (strcmp(theStr, "NULL") == 0)
+      return NULL;
+    else
+      return theStr;
+  }
+
+
   PARAVIS_Base_i::~PARAVIS_Base_i() {
     if(mySmartPointer != NULL) mySmartPointer->Delete();
   }

@@ -51,6 +51,8 @@
 #include "vtkMedConstantAttribute.h"
 #include "vtkMedVariableAttribute.h"
 
+#include "vtkMultiProcessController.h"
+
 #include <string>
 using namespace std;
 
@@ -321,10 +323,10 @@ void vtkMedDriver30::ReadNumberOfEntity(
                              cs.IterationIt,
                              entity.EntityType,
                              entity.GeometryType,
-                              MED_INDEX_NODE,
-                              connectivity,
-                              &changement,
-                              &transformation	) - 1;
+                             MED_INDEX_NODE,
+                             connectivity,
+                             &changement,
+                             &transformation ) - 1;
       }
     else if(entity.GeometryType == MED_POLYHEDRON)
       {
@@ -338,7 +340,7 @@ void vtkMedDriver30::ReadNumberOfEntity(
                              MED_INDEX_FACE,
                              connectivity,
                              &changement,
-                             &transformation	) - 1;
+                             &transformation  ) - 1;
       }
     else
       {
@@ -351,7 +353,7 @@ void vtkMedDriver30::ReadNumberOfEntity(
                              MED_CONNECTIVITY,
                              connectivity,
                              &changement,
-                             &transformation	);
+                             &transformation  );
       }
 
     if(ncell > 0)
@@ -650,6 +652,14 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
     }
 
   int nprof = MEDnProfile(FileId);
+  // Reading id s not possible in parallel if the file contains Profiles
+  vtkMultiProcessController* controller = vtkMultiProcessController::GetGlobalController();
+  if (controller != NULL)
+    if ((nprof != 0) && (controller->GetNumberOfProcesses() > 1))
+    {
+      vtkWarningMacro("ATTENTION: The MED Reader cannot read profiles when used in parallel");
+    return;
+    }
   file->AllocateNumberOfProfile(nprof);
   for(int i = 0; i < nprof; i++)
     {
@@ -718,6 +728,7 @@ void vtkMedDriver30::ReadFileInformation(vtkMedFile* file)
     structelem->SetParentFile(file);
     this->ReadStructElementInformation(structelem);
     }
+
 }
 
 void  vtkMedDriver30::ReadStructElementInformation(
@@ -785,97 +796,97 @@ void  vtkMedDriver30::ReadStructElementInformation(
 }
 
 void vtkMedDriver30::ReadConstantAttributeInformation(
-		vtkMedConstantAttribute* constAttr)
+    vtkMedConstantAttribute* constAttr)
 {
 
-	FileOpen open(this);
+  FileOpen open(this);
 
-	char constattname[MED_NAME_SIZE+1] = "";
-	med_attribute_type constatttype;
-	med_int nbofcomponent;
-	med_entity_type sentitytype;
-	char profilename[MED_NAME_SIZE+1] = "";
-	med_int profilesize;
+  char constattname[MED_NAME_SIZE+1] = "";
+  med_attribute_type constatttype;
+  med_int nbofcomponent;
+  med_entity_type sentitytype;
+  char profilename[MED_NAME_SIZE+1] = "";
+  med_int profilesize;
 
-	if(MEDstructElementConstAttInfo(
-			this->FileId,
-			constAttr->GetParentStructElement()->GetName(),
-			constAttr->GetMedIterator(),
-			constattname,
-			&constatttype,
-			&nbofcomponent,
-			&sentitytype,
-			profilename,
-			&profilesize) 	< 0)
-		{
-		vtkErrorMacro("MEDstructElementConstAttInfo error");
-		return;
-		}
+  if(MEDstructElementConstAttInfo(
+      this->FileId,
+      constAttr->GetParentStructElement()->GetName(),
+      constAttr->GetMedIterator(),
+      constattname,
+      &constatttype,
+      &nbofcomponent,
+      &sentitytype,
+      profilename,
+      &profilesize)   < 0)
+    {
+    vtkErrorMacro("MEDstructElementConstAttInfo error");
+    return;
+    }
 
-	constAttr->SetName(constattname);
-	constAttr->SetAttributeType(constatttype);
-	constAttr->SetNumberOfComponent(nbofcomponent);
-	constAttr->SetSupportEntityType(sentitytype);
-	constAttr->SetProfileName(profilename);
-	constAttr->SetProfileSize(profilesize);
+  constAttr->SetName(constattname);
+  constAttr->SetAttributeType(constatttype);
+  constAttr->SetNumberOfComponent(nbofcomponent);
+  constAttr->SetSupportEntityType(sentitytype);
+  constAttr->SetProfileName(profilename);
+  constAttr->SetProfileSize(profilesize);
 
-	vtkAbstractArray* values = vtkMedUtilities::NewArray(constatttype);
-	if(values == NULL)
-		return;
-	constAttr->SetValues(values);
-	values->Delete();
+  vtkAbstractArray* values = vtkMedUtilities::NewArray(constatttype);
+  if(values == NULL)
+    return;
+  constAttr->SetValues(values);
+  values->Delete();
 
-	values->SetNumberOfComponents(nbofcomponent);
-	vtkIdType ntuple = 0;
-	if((strcmp(profilename, MED_NO_PROFILE) != 0) &&
-		 (strcmp(profilename, "\0") != 0))
-		{
-		ntuple = profilesize;
-		}
-	else if(constAttr->GetSupportEntityType() == MED_CELL)
-		{
-		ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfCell();
-		}
-	else
-		{
-		ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfNode();
-		}
-	values->SetNumberOfTuples(ntuple);
+  values->SetNumberOfComponents(nbofcomponent);
+  vtkIdType ntuple = 0;
+  if((strcmp(profilename, MED_NO_PROFILE) != 0) &&
+     (strcmp(profilename, "\0") != 0))
+    {
+    ntuple = profilesize;
+    }
+  else if(constAttr->GetSupportEntityType() == MED_CELL)
+    {
+    ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfCell();
+    }
+  else
+    {
+    ntuple = constAttr->GetParentStructElement()->GetSupportNumberOfNode();
+    }
+  values->SetNumberOfTuples(ntuple);
 
-	void* ptr = NULL;
-	vtkSmartPointer<vtkCharArray> buffer = vtkSmartPointer<vtkCharArray>::New();
-	if(constatttype != MED_ATT_NAME)
-		{
-		ptr = values->GetVoidPointer(0);
-		}
-	else
-		{
-		buffer->SetNumberOfValues(MED_NAME_SIZE*nbofcomponent*ntuple);
-		ptr = buffer->GetVoidPointer(0);
-		}
+  void* ptr = NULL;
+  vtkSmartPointer<vtkCharArray> buffer = vtkSmartPointer<vtkCharArray>::New();
+  if(constatttype != MED_ATT_NAME)
+    {
+    ptr = values->GetVoidPointer(0);
+    }
+  else
+    {
+    buffer->SetNumberOfValues(MED_NAME_SIZE*nbofcomponent*ntuple);
+    ptr = buffer->GetVoidPointer(0);
+    }
 
-	if(MEDstructElementConstAttRd (this->FileId,
-				constAttr->GetParentStructElement()->GetName(),
-				constAttr->GetName(), ptr) < 0)
-		{
-		vtkErrorMacro("MEDstructElementConstAttRd");
-		return;
-		}
+  if(MEDstructElementConstAttRd (this->FileId,
+        constAttr->GetParentStructElement()->GetName(),
+        constAttr->GetName(), ptr) < 0)
+    {
+    vtkErrorMacro("MEDstructElementConstAttRd");
+    return;
+    }
 
-	if(constatttype == MED_ATT_NAME)
-		{
-		char name[MED_NAME_SIZE+1] = "";
-		char* nameptr = (char*) ptr;
-		vtkStringArray* names = vtkStringArray::SafeDownCast(values);
-		for(vtkIdType id = 0; id < nbofcomponent*ntuple; id++)
-			{
-			memset(name, '\0', MED_NAME_SIZE+1);
-			strncpy(name, nameptr + id * MED_NAME_SIZE, MED_NAME_SIZE);
-			names->SetValue(id, name);
-			}
-		}
+  if(constatttype == MED_ATT_NAME)
+    {
+    char name[MED_NAME_SIZE+1] = "";
+    char* nameptr = (char*) ptr;
+    vtkStringArray* names = vtkStringArray::SafeDownCast(values);
+    for(vtkIdType id = 0; id < nbofcomponent*ntuple; id++)
+      {
+      memset(name, '\0', MED_NAME_SIZE+1);
+      strncpy(name, nameptr + id * MED_NAME_SIZE, MED_NAME_SIZE);
+      names->SetValue(id, name);
+      }
+    }
 
-	return;
+  return;
 }
 
 void vtkMedDriver30::ReadVariableAttributeInformation(
@@ -1204,36 +1215,36 @@ void vtkMedDriver30::ReadFieldOnProfileInformation(vtkMedFieldOnProfile* fop)
   vtkMedFieldStep* step = fieldOverEntity->GetParentStep();
   vtkMedField* field = step->GetParentField();
 
-	const vtkMedComputeStep& cs = step->GetComputeStep();
-	med_int profilesize;
-	med_int nbofintegrationpoint;
+  const vtkMedComputeStep& cs = step->GetComputeStep();
+  med_int profilesize;
+  med_int nbofintegrationpoint;
 
-	char profileName[MED_NAME_SIZE+1] = "";
-	char localizationName[MED_NAME_SIZE+1] = "";
+  char profileName[MED_NAME_SIZE+1] = "";
+  char localizationName[MED_NAME_SIZE+1] = "";
 
-	med_int nvalue = MEDfieldnValueWithProfile(FileId,
-										field->GetName(),
-										cs.TimeIt,
-										cs.IterationIt,
-										fieldOverEntity->GetEntity().EntityType,
-										fieldOverEntity->GetEntity().GeometryType,
-										fop->GetMedIterator(),
-										MED_COMPACT_STMODE,
-										profileName,
-										&profilesize,
-										localizationName,
-										&nbofintegrationpoint);
+  med_int nvalue = MEDfieldnValueWithProfile(FileId,
+                    field->GetName(),
+                    cs.TimeIt,
+                    cs.IterationIt,
+                    fieldOverEntity->GetEntity().EntityType,
+                    fieldOverEntity->GetEntity().GeometryType,
+                    fop->GetMedIterator(),
+                    MED_COMPACT_STMODE,
+                    profileName,
+                    &profilesize,
+                    localizationName,
+                    &nbofintegrationpoint);
 
-	if(nvalue < 0)
-		{
-		vtkErrorMacro("Error while reading MEDfieldnValueWithProfile");
-		}
+  if(nvalue < 0)
+    {
+    vtkErrorMacro("Error while reading MEDfieldnValueWithProfile");
+    }
 
-	fop->SetProfileName(profileName);
-	fop->SetLocalizationName(localizationName);
-	fop->SetNumberOfValues(nvalue);
-	fop->SetNumberOfIntegrationPoint(nbofintegrationpoint);
-	fop->SetProfileSize(profilesize);
+  fop->SetProfileName(profileName);
+  fop->SetLocalizationName(localizationName);
+  fop->SetNumberOfValues(nvalue);
+  fop->SetNumberOfIntegrationPoint(nbofintegrationpoint);
+  fop->SetProfileSize(profilesize);
 }
 
 void vtkMedDriver30::ReadMeshInformation(vtkMedMesh* mesh)
@@ -1510,27 +1521,27 @@ void vtkMedDriver30::ReadInterpolationInformation(vtkMedInterpolation* interp)
     med_int *power = new med_int[nbofvariable * ncoef];
     med_float *coefficient = new med_float[ncoef];
 
-		if(MEDinterpBaseFunctionRd 	(
-				this->FileId,
-				interp->GetName(),
-				basisid+1,
-				&ncoef,
-				power,
-				coefficient) < 0)
-			{
-			vtkErrorMacro("MEDinterpBaseFunctionRd");
-			continue;
-			}
-		vtkDoubleArray* coeffs = func->GetCoefficients();
-		for(int cid=0; cid < ncoef; cid++)
-			{
-			coeffs->SetValue(cid, coefficient[cid]);
-			}
-		vtkIntArray* powers = func->GetPowers();
-		for(int pid=0; pid < ncoef*nbofvariable; pid++)
-			{
-			powers->SetValue(pid, power[pid]);
-			}
+    if(MEDinterpBaseFunctionRd  (
+        this->FileId,
+        interp->GetName(),
+        basisid+1,
+        &ncoef,
+        power,
+        coefficient) < 0)
+      {
+      vtkErrorMacro("MEDinterpBaseFunctionRd");
+      continue;
+      }
+    vtkDoubleArray* coeffs = func->GetCoefficients();
+    for(int cid=0; cid < ncoef; cid++)
+      {
+      coeffs->SetValue(cid, coefficient[cid]);
+      }
+    vtkIntArray* powers = func->GetPowers();
+    for(int pid=0; pid < ncoef*nbofvariable; pid++)
+      {
+      powers->SetValue(pid, power[pid]);
+      }
 
     delete[] power;
     delete[] coefficient;
@@ -1949,22 +1960,77 @@ void vtkMedDriver30::LoadConnectivity(vtkMedEntityArray* array)
           * vtkMedUtilities::GetNumberOfSubEntity(
               array->GetEntity().GeometryType));
       }
-    if(doReadConnectivity)
+
+    if  (this->ParallelFileId == -1) // also (array->GetFilter() == NULL)
       {
       if ( (MEDmeshElementConnectivityRd(
-              this->FileId,
+            this->FileId,
+            meshName,
+            cs.TimeIt,
+            cs.IterationIt,
+            array->GetEntity().EntityType,
+            array->GetEntity().GeometryType,
+            array->GetConnectivity(),
+            MED_FULL_INTERLACE,
+            conn->GetPointer(0)) ) < 0)
+        {
+        vtkErrorMacro("Error while load connectivity of cells "
+            << array->GetEntity().GeometryType);
+        }
+      }
+    else
+      {
+      med_filter filter = MED_FILTER_INIT;
+
+      int    start;
+      int    stride;
+      int    count;
+      int    blocksize;
+      int    lastblocksize;
+      array->GetFilter()->GetFilterSizes(start, stride, count,
+                                   blocksize, lastblocksize );
+
+      med_int nbofconstituentpervalue = vtkMedUtilities::GetNumberOfNodes(
+                                        array->GetEntity().GeometryType);
+
+      if ( MEDfilterBlockOfEntityCr( this->ParallelFileId,
+              array->GetNumberOfEntity(),
+            1, // one is for mesh elements, more than 1 is for fields
+              nbofconstituentpervalue,
+            MED_ALL_CONSTITUENT,
+            MED_FULL_INTERLACE,
+            MED_COMPACT_STMODE,
+            MED_NO_PROFILE,
+            (med_size)start,
+            (med_size)stride,
+            (med_size)count,
+            (med_size)blocksize,
+            (med_size)lastblocksize,
+            &filter ) < 0 )
+        {
+        vtkErrorMacro("Filter creation ");
+        }
+
+        if ( (MEDmeshElementConnectivityAdvancedRd(
+              this->ParallelFileId,
               meshName,
               cs.TimeIt,
               cs.IterationIt,
               array->GetEntity().EntityType,
               array->GetEntity().GeometryType,
               array->GetConnectivity(),
-              MED_FULL_INTERLACE,
+              &filter,
               conn->GetPointer(0)) ) < 0)
-        {
-        vtkErrorMacro("Error while load connectivity of cells "
-            << array->GetEntity().GeometryType);
-        }
+          {
+          vtkErrorMacro("Error while load connectivity of cells "
+              << array->GetEntity().GeometryType);
+          }
+
+      if ( MEDfilterClose( &filter ) < 0)
+          {
+        vtkErrorMacro("ERROR : filter closing ...");
+          }
+
       }
     }
 }
@@ -2043,8 +2109,9 @@ void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode)
 
   data->SetNumberOfComponents(field->GetNumberOfComponent());
   data->SetNumberOfTuples(size);
-
-  if ( MEDfieldValueWithProfileRd(
+  if  (this->ParallelFileId == -1)
+    {
+    if ( MEDfieldValueWithProfileRd(
           this->FileId,
           field->GetName(),
           cs.TimeIt,
@@ -2056,8 +2123,78 @@ void vtkMedDriver30::LoadField(vtkMedFieldOnProfile* fop, med_storage_mode mode)
           MED_FULL_INTERLACE,
           MED_ALL_CONSTITUENT,
           (unsigned char*) data->GetVoidPointer(0) ) < 0)
+      {
+      vtkErrorMacro("Error on MEDfieldValueWithProfileRd");
+      }
+    }
+  else
     {
-    vtkErrorMacro("Error on MEDfieldValueWithProfileRd");
+  if  (field->GetFieldType() == vtkMedField::CellField)
+    {
+    med_filter filter = MED_FILTER_INIT;
+
+    int    start;
+    int    stride;
+    int    count;
+    int    blocksize;
+    int    lastblocksize;
+    fop->GetFilter()->GetFilterSizes(start, stride, count,
+                                 blocksize, lastblocksize );
+
+    if ( MEDfilterBlockOfEntityCr( this->ParallelFileId,
+        fop->GetNumberOfValues(),
+          1, // one is for mesh elements, more than 1 is for fields
+          field->GetNumberOfComponent(),
+          MED_ALL_CONSTITUENT,
+          MED_FULL_INTERLACE,
+          MED_COMPACT_STMODE,
+          MED_NO_PROFILE,
+          (med_size)start,
+          (med_size)stride,
+          (med_size)count,
+          (med_size)blocksize,
+          (med_size)lastblocksize,
+          &filter ) < 0 )
+      {
+      vtkErrorMacro("Filter creation ");
+      }
+
+    if ( MEDfieldValueAdvancedRd(
+            this->ParallelFileId,
+            field->GetName(),
+            cs.TimeIt,
+            cs.IterationIt,
+            fieldOverEntity->GetEntity().EntityType,
+            fieldOverEntity->GetEntity().GeometryType,
+            &filter,
+            (unsigned char*) data->GetVoidPointer(0) ) < 0)
+        {
+        vtkErrorMacro("Error on MEDfieldValueAdvancedRd");
+        }
+
+    if ( MEDfilterClose( &filter ) < 0)
+        {
+      vtkErrorMacro("ERROR : filter closing ...");
+        }
+      }
+  else
+    {//TODO : option utilisateur pour desactiver ou non les champs avec profile en //
+    if ( MEDfieldValueWithProfileRd(
+              this->FileId,
+              field->GetName(),
+              cs.TimeIt,
+              cs.IterationIt,
+              fieldOverEntity->GetEntity().EntityType,
+              fieldOverEntity->GetEntity().GeometryType,
+              mode,
+              fop->GetProfileName(),
+              MED_FULL_INTERLACE,
+              MED_ALL_CONSTITUENT,
+              (unsigned char*) data->GetVoidPointer(0) ) < 0)
+          {
+          vtkErrorMacro("Error on MEDfieldValueWithProfileRd");
+          }
+    }
     }
 }
 

@@ -46,29 +46,29 @@ public :
 
   // Description:
   // Allocate and clear memory of this profil.
-  virtual void	SetIds(vtkMedIntArray*);
+  virtual void  SetIds(vtkMedIntArray*);
   vtkGetObjectMacro(Ids, vtkMedIntArray);
 
   // Description:
   // return true if the index array is not null and the size match
-  virtual int	IsLoaded();
+  virtual int IsLoaded();
 
-	// Description:
-	// The index of this field in the med file
-	vtkSetMacro(MedIterator, med_int);
-	vtkGetMacro(MedIterator, med_int);
+  // Description:
+  // The index of this field in the med file
+  vtkSetMacro(MedIterator, med_int);
+  vtkGetMacro(MedIterator, med_int);
 
-	// Description:
-	// Load the profile ids
-	void	Load();
+  // Description:
+  // Load the profile ids
+  void  Load();
 
   // Description:
   // this is the file where this Profile is stored
-  virtual void	SetParentFile(vtkMedFile*);
+  virtual void  SetParentFile(vtkMedFile*);
   vtkGetObjectMacro(ParentFile, vtkMedFile);
 
 protected:
-	vtkMedProfile();
+  vtkMedProfile();
   virtual ~vtkMedProfile();
 
   med_int MedIterator;
@@ -79,7 +79,7 @@ protected:
   vtkMedFile* ParentFile;
 
 private:
-	vtkMedProfile(const vtkMedProfile&); // Not implemented.
+  vtkMedProfile(const vtkMedProfile&); // Not implemented.
   void operator=(const vtkMedProfile&); // Not implemented.
 
 };

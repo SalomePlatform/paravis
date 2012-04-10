@@ -291,6 +291,11 @@ protected:
                                  int doCreateField);
 
   // Description:
+  // Necessary call for the initialization of the filters used for the MED
+  // library in their parallel reads
+  virtual void InitializeParallelRead();
+
+  // Description:
   // This method is called after all info from all med files are read.
   // it links information coming from different files :
   // for instance, it creates the vtkMedFamilyOnEntityOnProfile instances

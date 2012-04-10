@@ -30,11 +30,20 @@ public:
   vtkTypeRevisionMacro(vtkMedFilter, vtkObject)
   void PrintSelf(ostream& os, vtkIndent indent);
 
-protected :
-	vtkMedFilter();
-	~vtkMedFilter();
+  void SetFilterSizes( int , int , int , int , int );
 
-	med_filter Filter;
+  void GetFilterSizes( int& , int& , int& , int& , int& );
+
+protected :
+  vtkMedFilter();
+  ~vtkMedFilter();
+
+  //med_filter Filter;
+    int  _start;
+    int  _stride;
+    int  _count;
+    int  _blocksize;
+    int  _lastblocksize;
 };
 
 #endif //__vtkMedFilter_h_

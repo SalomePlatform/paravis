@@ -354,19 +354,19 @@ static const int PYRA13_aster2med[PYRA13_nnode] =
 static const char* PYRA13_varnames[PYRA13_dim] = {"x", "y", "z"};
 static const char* PYRA13_functions[PYRA13_nnode] =
 {
-	"(-x+y+z-1)*(-x-y+z-1)*( x-1/2)/(2*(1-z))",
-	"(-x-y+z-1)*( x-y+z-1)*( y-1/2)/(2*(1-z))",
-	"( x-y+z-1)*( x+y+z-1)*(-x-1/2)/(2*(1-z))",
-	"( x+y+z-1)*(-x+y+z-1)*(-y-1/2)/(2*(1-z))",
-	"2*z*(z-1/2)",
-	"-(-x+y+z-1)*(-x-y+z-1)*( x-y+z-1)/(2*(1-z))",
-	"-(-x-y+z-1)*( x-y+z-1)*( x+y+z-1)/(2*(1-z))",
-	"-( x-y+z-1)*( x+y+z-1)*(-x+y+z-1)/(2*(1-z))",
-	"-( x+y+z-1)*(-x+y+z-1)*(-x-y+z-1)/(2*(1-z))",
-	"(-x+y+z-1)*(-x-y+z-1)*z/(1-z)",
-	"(-x-y+z-1)*( x-y+z-1)*z/(1-z)",
-	"( x-y+z-1)*( x+y+z-1)*z/(1-z)",
-	"( x+y+z-1)*(-x+y+z-1)*z/(1-z)"
+  "(-x+y+z-1)*(-x-y+z-1)*( x-1/2)/(2*(1-z))",
+  "(-x-y+z-1)*( x-y+z-1)*( y-1/2)/(2*(1-z))",
+  "( x-y+z-1)*( x+y+z-1)*(-x-1/2)/(2*(1-z))",
+  "( x+y+z-1)*(-x+y+z-1)*(-y-1/2)/(2*(1-z))",
+  "2*z*(z-1/2)",
+  "-(-x+y+z-1)*(-x-y+z-1)*( x-y+z-1)/(2*(1-z))",
+  "-(-x-y+z-1)*( x-y+z-1)*( x+y+z-1)/(2*(1-z))",
+  "-( x-y+z-1)*( x+y+z-1)*(-x+y+z-1)/(2*(1-z))",
+  "-( x+y+z-1)*(-x+y+z-1)*(-x-y+z-1)/(2*(1-z))",
+  "(-x+y+z-1)*(-x-y+z-1)*z/(1-z)",
+  "(-x-y+z-1)*( x-y+z-1)*z/(1-z)",
+  "( x-y+z-1)*( x+y+z-1)*z/(1-z)",
+  "( x+y+z-1)*(-x+y+z-1)*z/(1-z)"
 };
 
 vtkCxxSetObjectMacro(vtkMedLocalization, ParentFile, vtkMedFile);
@@ -377,289 +377,289 @@ vtkStandardNewMacro(vtkMedLocalization)
 
 vtkMedLocalization::vtkMedLocalization()
 {
-	this->GeometryType = MED_NONE;
-	this->NumberOfQuadraturePoint = 0;
-	this->Weights = vtkDoubleArray::New();
-	this->PointLocalCoordinates = vtkDoubleArray::New();
-	this->QuadraturePointLocalCoordinates = vtkDoubleArray::New();
-	this->ShapeFunction = vtkDoubleArray::New();
-	this->Name = NULL;
-	this->SectionName = NULL;
-	this->InterpolationName = NULL;
-	this->MedIterator = -1;
-	this->ParentFile = NULL;
-	this->SpaceDimension = 3;
-	this->NumberOfCellInSection = 0;
-	this->SectionGeometryType = MED_NONE;
-	this->Interpolation = NULL;
-	this->ShapeFunctionIsBuilt = 0;
+  this->GeometryType = MED_NONE;
+  this->NumberOfQuadraturePoint = 0;
+  this->Weights = vtkDoubleArray::New();
+  this->PointLocalCoordinates = vtkDoubleArray::New();
+  this->QuadraturePointLocalCoordinates = vtkDoubleArray::New();
+  this->ShapeFunction = vtkDoubleArray::New();
+  this->Name = NULL;
+  this->SectionName = NULL;
+  this->InterpolationName = NULL;
+  this->MedIterator = -1;
+  this->ParentFile = NULL;
+  this->SpaceDimension = 3;
+  this->NumberOfCellInSection = 0;
+  this->SectionGeometryType = MED_NONE;
+  this->Interpolation = NULL;
+  this->ShapeFunctionIsBuilt = 0;
 }
 
 vtkMedLocalization::~vtkMedLocalization()
 {
-	this->SetName(NULL);
-	this->SetSectionName(NULL);
-	this->SetInterpolationName(NULL);
-	this->Weights->Delete();
-	this->PointLocalCoordinates->Delete();
-	this->QuadraturePointLocalCoordinates->Delete();
-	this->ShapeFunction->Delete();
-	this->SetInterpolation(NULL);
+  this->SetName(NULL);
+  this->SetSectionName(NULL);
+  this->SetInterpolationName(NULL);
+  this->Weights->Delete();
+  this->PointLocalCoordinates->Delete();
+  this->QuadraturePointLocalCoordinates->Delete();
+  this->ShapeFunction->Delete();
+  this->SetInterpolation(NULL);
 
 }
 
 int vtkMedLocalization::GetSizeOfWeights()
 {
-	return this->NumberOfQuadraturePoint;
+  return this->NumberOfQuadraturePoint;
 }
 
 int vtkMedLocalization::GetSizeOfPointLocalCoordinates()
 {
-	return vtkMedUtilities::GetNumberOfPoint(this->GeometryType)
-			* vtkMedUtilities::GetDimension(this->GeometryType);
+  return vtkMedUtilities::GetNumberOfPoint(this->GeometryType)
+      * vtkMedUtilities::GetDimension(this->GeometryType);
 }
 
 int vtkMedLocalization::GetSizeOfQuadraturePointLocalCoordinates()
 {
-	return this->NumberOfQuadraturePoint * vtkMedUtilities::GetDimension(
-			this->GeometryType);
+  return this->NumberOfQuadraturePoint * vtkMedUtilities::GetDimension(
+      this->GeometryType);
 }
 
 int vtkMedLocalization::GetSizeOfShapeFunction()
 {
-	return this->NumberOfQuadraturePoint * vtkMedUtilities::GetNumberOfPoint(
-			this->GeometryType);
+  return this->NumberOfQuadraturePoint * vtkMedUtilities::GetNumberOfPoint(
+      this->GeometryType);
 }
 
 void vtkMedLocalization::BuildShapeFunction()
 {
-	if(this->ShapeFunctionIsBuilt)
-		return;
+  if(this->ShapeFunctionIsBuilt)
+    return;
 
-	if(this->Interpolation == NULL)
-		{
-		// If there is no interpolation given for this localization,
-		// I build the default aster shape function
+  if(this->Interpolation == NULL)
+    {
+    // If there is no interpolation given for this localization,
+    // I build the default aster shape function
 
-		switch (this->GeometryType)
-		{
-			case MED_POINT1:
-				BuildPoint1();
-				return;
-			case MED_SEG2:
-				BuildAsterShapeFunction(SEG2_dim, SEG2_nnode,
-													 (const int *) SEG2_aster2med,
-													 (const char**)SEG2_varnames,
-													 (const char**)SEG2_functions);
-				break;
-			case MED_SEG3:
-				BuildAsterShapeFunction(SEG3_dim, SEG3_nnode,
-													 (const int *) SEG3_aster2med,
-													 (const char**)SEG3_varnames,
-													 (const char**)SEG3_functions);
-				break;
-			case MED_SEG4:
-				BuildAsterShapeFunction(SEG4_dim, SEG4_nnode,
-													 (const int *) SEG4_aster2med,
-													 (const char**)SEG4_varnames,
-													 (const char**)SEG4_functions);
-				break;
-			case MED_TRIA3:
-				BuildAsterShapeFunction(TRIA3_dim, TRIA3_nnode,
-													 (const int *) TRIA3_aster2med,
-													 (const char**)TRIA3_varnames,
-													 (const char**)TRIA3_functions);
-				break;
-			case MED_TRIA6:
-				BuildAsterShapeFunction(TRIA6_dim, TRIA6_nnode,
-													 (const int *) TRIA6_aster2med,
-													 (const char**)TRIA6_varnames,
-													 (const char**)TRIA6_functions);
-				break;
-			case MED_TRIA7:
-				BuildAsterShapeFunction(TRIA7_dim, TRIA7_nnode,
-													 (const int *) TRIA7_aster2med,
-													 (const char**)TRIA7_varnames,
-													 (const char**)TRIA7_functions);
-				break;
-			case MED_QUAD4:
-				BuildAsterShapeFunction(QUAD4_dim, QUAD4_nnode,
-													 (const int *) QUAD4_aster2med,
-													 (const char**)QUAD4_varnames,
-													 (const char**)QUAD4_functions);
-				break;
-			case MED_QUAD8:
-				BuildAsterShapeFunction(QUAD8_dim, QUAD8_nnode,
-													 (const int *) QUAD8_aster2med,
-													 (const char**)QUAD8_varnames,
-													 (const char**)QUAD8_functions);
-				break;
-			case MED_QUAD9:
-				BuildAsterShapeFunction(QUAD9_dim, QUAD9_nnode,
-													 (const int *) QUAD9_aster2med,
-													 (const char**)QUAD9_varnames,
-													 (const char**)QUAD9_functions);
-				break;
-			case MED_HEXA8:
-				BuildAsterShapeFunction(HEXA8_dim, HEXA8_nnode,
-													 (const int *) HEXA8_aster2med,
-													 (const char**)HEXA8_varnames,
-													 (const char**)HEXA8_functions);
-				break;
-			case MED_HEXA20:
-				BuildAsterShapeFunction(HEXA20_dim, HEXA20_nnode,
-													 (const int *) HEXA20_aster2med,
-													 (const char**)HEXA20_varnames,
-													 (const char**)HEXA20_functions);
-				break;
-			case MED_HEXA27:
-				BuildAsterShapeFunction(HEXA27_dim, HEXA27_nnode,
-													 (const int *) HEXA27_aster2med,
-													 (const char**)HEXA27_varnames,
-													 (const char**)HEXA27_functions);
-				break;
-			case MED_TETRA4:
-				BuildAsterShapeFunction(TETRA4_dim, TETRA4_nnode,
-													 (const int *) TETRA4_aster2med,
-													 (const char**)TETRA4_varnames,
-													 (const char**)TETRA4_functions);
-				break;
-			case MED_TETRA10:
-				BuildAsterShapeFunction(TETRA10_dim, TETRA10_nnode,
-													 (const int *) TETRA10_aster2med,
-													 (const char**)TETRA10_varnames,
-													 (const char**)TETRA10_functions);
-				break;
-			case MED_PENTA6:
-				BuildAsterShapeFunction(PENTA6_dim, PENTA6_nnode,
-													 (const int *) PENTA6_aster2med,
-													 (const char**)PENTA6_varnames,
-													 (const char**)PENTA6_functions);
-				break;
-			case MED_PENTA15:
-				BuildAsterShapeFunction(PENTA15_dim, PENTA15_nnode,
-													 (const int *) PENTA15_aster2med,
-													 (const char**)PENTA15_varnames,
-													 (const char**)PENTA15_functions);
-				break;
-			case MED_PYRA5:
-				BuildAsterShapeFunction(PYRA5_dim, PYRA5_nnode,
-													 (const int *) PYRA5_aster2med,
-													 (const char**)PYRA5_varnames,
-													 (const char**)PYRA5_functions);
-				break;
-			case MED_PYRA13:
-				BuildAsterShapeFunction(PYRA13_dim, PYRA13_nnode,
-													 (const int *) PYRA13_aster2med,
-													 (const char**)PYRA13_varnames,
-													 (const char**)PYRA13_functions);
-				break;
-			default:
-				vtkErrorMacro("ERROR in vtkMedLocalization::BuildShapeFunction. "
-											<< this->GeometryType
-											<< " : Cell geometry not supported !!! ");
-				return;
-			}
-		}
-	else
-		{
-		this->BuildShapeFunctionFromInterpolation();
-		}
-	this->ShapeFunctionIsBuilt = 1;
+    switch (this->GeometryType)
+    {
+      case MED_POINT1:
+        BuildPoint1();
+        return;
+      case MED_SEG2:
+        BuildAsterShapeFunction(SEG2_dim, SEG2_nnode,
+                           (const int *) SEG2_aster2med,
+                           (const char**)SEG2_varnames,
+                           (const char**)SEG2_functions);
+        break;
+      case MED_SEG3:
+        BuildAsterShapeFunction(SEG3_dim, SEG3_nnode,
+                           (const int *) SEG3_aster2med,
+                           (const char**)SEG3_varnames,
+                           (const char**)SEG3_functions);
+        break;
+      case MED_SEG4:
+        BuildAsterShapeFunction(SEG4_dim, SEG4_nnode,
+                           (const int *) SEG4_aster2med,
+                           (const char**)SEG4_varnames,
+                           (const char**)SEG4_functions);
+        break;
+      case MED_TRIA3:
+        BuildAsterShapeFunction(TRIA3_dim, TRIA3_nnode,
+                           (const int *) TRIA3_aster2med,
+                           (const char**)TRIA3_varnames,
+                           (const char**)TRIA3_functions);
+        break;
+      case MED_TRIA6:
+        BuildAsterShapeFunction(TRIA6_dim, TRIA6_nnode,
+                           (const int *) TRIA6_aster2med,
+                           (const char**)TRIA6_varnames,
+                           (const char**)TRIA6_functions);
+        break;
+      case MED_TRIA7:
+        BuildAsterShapeFunction(TRIA7_dim, TRIA7_nnode,
+                           (const int *) TRIA7_aster2med,
+                           (const char**)TRIA7_varnames,
+                           (const char**)TRIA7_functions);
+        break;
+      case MED_QUAD4:
+        BuildAsterShapeFunction(QUAD4_dim, QUAD4_nnode,
+                           (const int *) QUAD4_aster2med,
+                           (const char**)QUAD4_varnames,
+                           (const char**)QUAD4_functions);
+        break;
+      case MED_QUAD8:
+        BuildAsterShapeFunction(QUAD8_dim, QUAD8_nnode,
+                           (const int *) QUAD8_aster2med,
+                           (const char**)QUAD8_varnames,
+                           (const char**)QUAD8_functions);
+        break;
+      case MED_QUAD9:
+        BuildAsterShapeFunction(QUAD9_dim, QUAD9_nnode,
+                           (const int *) QUAD9_aster2med,
+                           (const char**)QUAD9_varnames,
+                           (const char**)QUAD9_functions);
+        break;
+      case MED_HEXA8:
+        BuildAsterShapeFunction(HEXA8_dim, HEXA8_nnode,
+                           (const int *) HEXA8_aster2med,
+                           (const char**)HEXA8_varnames,
+                           (const char**)HEXA8_functions);
+        break;
+      case MED_HEXA20:
+        BuildAsterShapeFunction(HEXA20_dim, HEXA20_nnode,
+                           (const int *) HEXA20_aster2med,
+                           (const char**)HEXA20_varnames,
+                           (const char**)HEXA20_functions);
+        break;
+      case MED_HEXA27:
+        BuildAsterShapeFunction(HEXA27_dim, HEXA27_nnode,
+                           (const int *) HEXA27_aster2med,
+                           (const char**)HEXA27_varnames,
+                           (const char**)HEXA27_functions);
+        break;
+      case MED_TETRA4:
+        BuildAsterShapeFunction(TETRA4_dim, TETRA4_nnode,
+                           (const int *) TETRA4_aster2med,
+                           (const char**)TETRA4_varnames,
+                           (const char**)TETRA4_functions);
+        break;
+      case MED_TETRA10:
+        BuildAsterShapeFunction(TETRA10_dim, TETRA10_nnode,
+                           (const int *) TETRA10_aster2med,
+                           (const char**)TETRA10_varnames,
+                           (const char**)TETRA10_functions);
+        break;
+      case MED_PENTA6:
+        BuildAsterShapeFunction(PENTA6_dim, PENTA6_nnode,
+                           (const int *) PENTA6_aster2med,
+                           (const char**)PENTA6_varnames,
+                           (const char**)PENTA6_functions);
+        break;
+      case MED_PENTA15:
+        BuildAsterShapeFunction(PENTA15_dim, PENTA15_nnode,
+                           (const int *) PENTA15_aster2med,
+                           (const char**)PENTA15_varnames,
+                           (const char**)PENTA15_functions);
+        break;
+      case MED_PYRA5:
+        BuildAsterShapeFunction(PYRA5_dim, PYRA5_nnode,
+                           (const int *) PYRA5_aster2med,
+                           (const char**)PYRA5_varnames,
+                           (const char**)PYRA5_functions);
+        break;
+      case MED_PYRA13:
+        BuildAsterShapeFunction(PYRA13_dim, PYRA13_nnode,
+                           (const int *) PYRA13_aster2med,
+                           (const char**)PYRA13_varnames,
+                           (const char**)PYRA13_functions);
+        break;
+      default:
+        vtkErrorMacro("ERROR in vtkMedLocalization::BuildShapeFunction. "
+                      << this->GeometryType
+                      << " : Cell geometry not supported !!! ");
+        return;
+      }
+    }
+  else
+    {
+    this->BuildShapeFunctionFromInterpolation();
+    }
+  this->ShapeFunctionIsBuilt = 1;
 }
 
-void	vtkMedLocalization::BuildShapeFunctionFromInterpolation()
+void  vtkMedLocalization::BuildShapeFunctionFromInterpolation()
 {
-	int nnodes = this->GeometryType % 100;
-	int dim = this->GeometryType / 100;
-	this->ShapeFunction->SetNumberOfValues(this->GetSizeOfShapeFunction());
+  int nnodes = this->GeometryType % 100;
+  int dim = this->GeometryType / 100;
+  this->ShapeFunction->SetNumberOfValues(this->GetSizeOfShapeFunction());
 
-	int qpindex;
-	int nodeindex;
+  int qpindex;
+  int nodeindex;
 
-	vtkMedFraction* func;
+  vtkMedFraction* func;
 
-	switch(dim)
-		{
-		case 0 :
-			this->ShapeFunction->SetValue(0, 1);
-			break;
-		default :
-			for(qpindex=0; qpindex < this->NumberOfQuadraturePoint; qpindex++ )
-				{
-				double *coord = new double[dim];
-				for(int dimid=0; dimid<dim; dimid++)
-					{
-					coord[dimid] = this->QuadraturePointLocalCoordinates
-												 ->GetValue((qpindex * dim)+dimid);
-					}
+  switch(dim)
+    {
+    case 0 :
+      this->ShapeFunction->SetValue(0, 1);
+      break;
+    default :
+      for(qpindex=0; qpindex < this->NumberOfQuadraturePoint; qpindex++ )
+        {
+        double *coord = new double[dim];
+        for(int dimid=0; dimid<dim; dimid++)
+          {
+          coord[dimid] = this->QuadraturePointLocalCoordinates
+                         ->GetValue((qpindex * dim)+dimid);
+          }
 
-				for(nodeindex=0; nodeindex < nnodes; nodeindex++)
-					{
-					func = this->Interpolation->GetBasisFunction(nodeindex);
-					this->ShapeFunction->SetValue(
-							qpindex*nnodes + nodeindex, func->Evaluate(coord));
-					}
-				}
-		}
+        for(nodeindex=0; nodeindex < nnodes; nodeindex++)
+          {
+          func = this->Interpolation->GetBasisFunction(nodeindex);
+          this->ShapeFunction->SetValue(
+              qpindex*nnodes + nodeindex, func->Evaluate(coord));
+          }
+        }
+    }
 }
 
-void	vtkMedLocalization::BuildAsterShapeFunction(int dim,
-																 int nnodes,
-																 const int* aster2med,
-																 const char** varnames,
-																 const char** functions)
+void  vtkMedLocalization::BuildAsterShapeFunction(int dim,
+                                 int nnodes,
+                                 const int* aster2med,
+                                 const char** varnames,
+                                 const char** functions)
 {
-	this->ShapeFunction->SetNumberOfValues(
-			this->NumberOfQuadraturePoint * nnodes);
+  this->ShapeFunction->SetNumberOfValues(
+      this->NumberOfQuadraturePoint * nnodes);
 
-	std::vector<vtkSmartPointer<vtkFunctionParser> > parsers;
-	parsers.resize(nnodes);
-	for(int nodeindex=0; nodeindex < nnodes; nodeindex++)
-		{
-		parsers[nodeindex] = vtkSmartPointer<vtkFunctionParser>::New();
-		parsers[nodeindex]->SetFunction(functions[nodeindex]);
-		}
+  std::vector<vtkSmartPointer<vtkFunctionParser> > parsers;
+  parsers.resize(nnodes);
+  for(int nodeindex=0; nodeindex < nnodes; nodeindex++)
+    {
+    parsers[nodeindex] = vtkSmartPointer<vtkFunctionParser>::New();
+    parsers[nodeindex]->SetFunction(functions[nodeindex]);
+    }
 
-	for(int qpindex=0; qpindex < this->NumberOfQuadraturePoint; qpindex++ )
-		{
+  for(int qpindex=0; qpindex < this->NumberOfQuadraturePoint; qpindex++ )
+    {
 
-		for(int nodeindex=0; nodeindex < nnodes; nodeindex++)
-			{
-			int mednodeindex = aster2med[nodeindex];
-			vtkFunctionParser* parser = parsers[mednodeindex];
-			for(int dimid=0; dimid<dim; dimid++)
-				{
-				const char* varname = varnames[dimid];
-				const double coord = this->QuadraturePointLocalCoordinates
-														 ->GetValue((qpindex * dim)+dimid);
+    for(int nodeindex=0; nodeindex < nnodes; nodeindex++)
+      {
+      int mednodeindex = aster2med[nodeindex];
+      vtkFunctionParser* parser = parsers[mednodeindex];
+      for(int dimid=0; dimid<dim; dimid++)
+        {
+        const char* varname = varnames[dimid];
+        const double coord = this->QuadraturePointLocalCoordinates
+                             ->GetValue((qpindex * dim)+dimid);
 
-				parser->SetScalarVariableValue(varname, coord);
-				}
+        parser->SetScalarVariableValue(varname, coord);
+        }
 
-			double w = parser->GetScalarResult();
+      double w = parser->GetScalarResult();
 
-			this->ShapeFunction->SetValue(
-					qpindex*nnodes + mednodeindex, w);
-			}
-		}
+      this->ShapeFunction->SetValue(
+          qpindex*nnodes + mednodeindex, w);
+      }
+    }
 }
 
 void vtkMedLocalization::BuildPoint1()
 {
-	this->Weights->SetNumberOfValues(1);
-	this->ShapeFunction->SetNumberOfValues(1);
-	this->Weights->SetValue(0, 1);
-	this->ShapeFunction->SetValue(0, 1);
+  this->Weights->SetNumberOfValues(1);
+  this->ShapeFunction->SetNumberOfValues(1);
+  this->Weights->SetValue(0, 1);
+  this->ShapeFunction->SetValue(0, 1);
 }
 
 void vtkMedLocalization::BuildCenter(med_geometry_type geometry)
 {
-	this->GeometryType = geometry;
-	this->NumberOfQuadraturePoint = 1;
-	int npts = vtkMedUtilities::GetNumberOfPoint(this->GeometryType);
-	this->ShapeFunction->SetNumberOfValues(npts);
-	this->Weights->SetNumberOfValues(1);
+  this->GeometryType = geometry;
+  this->NumberOfQuadraturePoint = 1;
+  int npts = vtkMedUtilities::GetNumberOfPoint(this->GeometryType);
+  this->ShapeFunction->SetNumberOfValues(npts);
+  this->Weights->SetNumberOfValues(1);
   for (int i = 0; i < npts; i++)
     {
     this->ShapeFunction->SetValue(i, 1.0 / (double) npts);
@@ -670,32 +670,32 @@ void vtkMedLocalization::BuildCenter(med_geometry_type geometry)
 
 void vtkMedLocalization::BuildELNO(med_geometry_type geometry)
 {
-	this->GeometryType = geometry;
-	this->NumberOfQuadraturePoint = vtkMedUtilities::GetNumberOfPoint(geometry);
+  this->GeometryType = geometry;
+  this->NumberOfQuadraturePoint = vtkMedUtilities::GetNumberOfPoint(geometry);
 
-	int np2 = this->NumberOfQuadraturePoint * this->NumberOfQuadraturePoint;
-	this->ShapeFunction->SetNumberOfValues(np2);
-	this->Weights->SetNumberOfValues(this->NumberOfQuadraturePoint);
+  int np2 = this->NumberOfQuadraturePoint * this->NumberOfQuadraturePoint;
+  this->ShapeFunction->SetNumberOfValues(np2);
+  this->Weights->SetNumberOfValues(this->NumberOfQuadraturePoint);
 
-	for (int i = 0; i < np2; i++)
-		{
-		this->ShapeFunction->SetValue(i, 0);
-		}
-	for (int i = 0; i < this->NumberOfQuadraturePoint; i++)
-		{
-		this->ShapeFunction->SetValue(i + i * this->NumberOfQuadraturePoint, 1.0);
-		}
-	double w = 1.0 / (double) this->NumberOfQuadraturePoint;
-	for (int i = 0; i < this->NumberOfQuadraturePoint; i++)
-		{
-		this->Weights->SetValue(i, w);
-		}
+  for (int i = 0; i < np2; i++)
+    {
+    this->ShapeFunction->SetValue(i, 0);
+    }
+  for (int i = 0; i < this->NumberOfQuadraturePoint; i++)
+    {
+    this->ShapeFunction->SetValue(i + i * this->NumberOfQuadraturePoint, 1.0);
+    }
+  double w = 1.0 / (double) this->NumberOfQuadraturePoint;
+  for (int i = 0; i < this->NumberOfQuadraturePoint; i++)
+    {
+    this->Weights->SetValue(i, w);
+    }
 }
 
 void vtkMedLocalization::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
-	PRINT_IVAR(os, indent, GeometryType);
-	PRINT_IVAR(os, indent, NumberOfQuadraturePoint);
-	PRINT_IVAR(os, indent, MedIterator);
+  this->Superclass::PrintSelf(os, indent);
+  PRINT_IVAR(os, indent, GeometryType);
+  PRINT_IVAR(os, indent, NumberOfQuadraturePoint);
+  PRINT_IVAR(os, indent, MedIterator);
 }

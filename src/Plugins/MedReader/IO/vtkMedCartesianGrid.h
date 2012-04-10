@@ -30,11 +30,11 @@ public :
   void PrintSelf(ostream& os, vtkIndent indent);
 
 protected:
-	vtkMedCartesianGrid();
+  vtkMedCartesianGrid();
   virtual ~vtkMedCartesianGrid();
 
 private:
-	vtkMedCartesianGrid(const vtkMedCartesianGrid&); // Not implemented.
+  vtkMedCartesianGrid(const vtkMedCartesianGrid&); // Not implemented.
   void operator=(const vtkMedCartesianGrid&); // Not implemented.
 
 };

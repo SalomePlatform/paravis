@@ -72,6 +72,7 @@ ADD_EXECUTABLE(vtkWrapIDL
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParse.tab.c 
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParsePreprocess.c
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseHierarchy.c
+  ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseExtras.c
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseMain.c
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrap.c
   ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrapText.c

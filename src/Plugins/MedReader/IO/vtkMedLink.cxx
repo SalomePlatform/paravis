@@ -31,15 +31,15 @@ vtkStandardNewMacro(vtkMedLink)
 
 vtkMedLink::vtkMedLink()
 {
-	this->MedIterator = -1;
-	this->MeshName = NULL;
-	this->Link = NULL;
+  this->MedIterator = -1;
+  this->MeshName = NULL;
+  this->Link = NULL;
 }
 
 vtkMedLink::~vtkMedLink()
 {
-	this->SetMeshName(NULL);
-	this->SetLink(NULL);
+  this->SetMeshName(NULL);
+  this->SetLink(NULL);
 }
 
 const char* vtkMedLink::GetFullLink(const char* originalFileName)
@@ -94,6 +94,6 @@ med_int  vtkMedLink::GetMountedIterator(med_class what)
 
 void vtkMedLink::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
-	PRINT_IVAR(os, indent, MedIterator);
+  this->Superclass::PrintSelf(os, indent);
+  PRINT_IVAR(os, indent, MedIterator);
 }

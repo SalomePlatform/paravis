@@ -120,16 +120,16 @@ public :
   virtual void  LoadCoordinates() = 0;
   virtual int  IsCoordinatesLoaded() = 0;
 
-	// Description:
-	// return the vtkMedEntityArray that match the Entity type, if any.
-	virtual vtkMedEntityArray* GetEntityArray(const vtkMedEntity&);
+  // Description:
+  // return the vtkMedEntityArray that match the Entity type, if any.
+  virtual vtkMedEntityArray* GetEntityArray(const vtkMedEntity&);
 
-	virtual double* GetCoordTuple(med_int index) = 0;
+  virtual double* GetCoordTuple(med_int index) = 0;
 
-	// Description:
-	// This will instanciate a new vtkDataSet object.
-	// The caller is responsible for deleting it.
-	virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*) = 0;
+  // Description:
+  // This will instanciate a new vtkDataSet object.
+  // The caller is responsible for deleting it.
+  virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*) = 0;
   
   //  Description:
   // This utility method returns all vtkMedEntity types present in this grid

@@ -86,13 +86,13 @@ public:
 
   // Description:
   // This is the type of the axis
-  // MED_CARTESIAN,	MED_CYLINDRICAL, MED_SPHERICAL or MED_UNDEF_AXIS_TYPE
+  // MED_CARTESIAN, MED_CYLINDRICAL, MED_SPHERICAL or MED_UNDEF_AXIS_TYPE
   vtkSetMacro(AxisType, med_axis_type);
   vtkGetMacro(AxisType, med_axis_type);
 
   // Description:
   // This is the type of the axis
-  // MED_CARTESIAN,	MED_CYLINDRICAL, MED_SPHERICAL or MED_UNDEF_AXIS_TYPE
+  // MED_CARTESIAN, MED_CYLINDRICAL, MED_SPHERICAL or MED_UNDEF_AXIS_TYPE
   vtkSetMacro(StructuredGridType, med_grid_type);
   vtkGetMacro(StructuredGridType, med_grid_type);
 
@@ -163,7 +163,6 @@ public:
   // This helper method fills the std::set with all vtkMedEntity types used in the first grid step
   // MED specifies that all types must be present in the first step for a varying mesh to be valid
   virtual void  GatherMedEntities(std::set<vtkMedEntity>& entities);
-
 
 protected:
   vtkMedMesh();

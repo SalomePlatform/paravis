@@ -165,7 +165,7 @@ vtkAbstractArray* vtkMedUtilities::NewArray(med_attribute_type type)
   return NULL;
 }
 
-/*const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
+const char* vtkMedUtilities::GeometryName(med_geometry_type geometry)
 {
   switch(geometry)
   {
@@ -218,7 +218,7 @@ vtkAbstractArray* vtkMedUtilities::NewArray(med_attribute_type type)
     default:
       return "UNKNOWN_GEOMETRY";
   }
-}*/
+}
 
 const char* vtkMedUtilities::EntityName(med_entity_type type)
 {
@@ -410,6 +410,64 @@ int vtkMedUtilities::MedToVTKIndex(int vtktype, int node)
   return VTK_TRIQUADRATIC_HEXAHEDRON_MED_TO_VTK_INDEX[node % 27] + static_cast<int>(27 * floor((double)node / 27));
 }
 
+int vtkMedUtilities::GetNumberOfNodes(med_geometry_type geometry)
+{
+  switch(geometry)
+  {
+    case MED_POINT1:
+      return 1;
+    case MED_SEG2:
+      return 2;
+    case MED_SEG3:
+      return 3;
+    case MED_SEG4:
+      return 4;
+    case MED_TRIA3:
+      return 3;
+    case MED_QUAD4:
+      return 4;
+    case MED_TRIA6:
+      return 6;
+    case MED_TRIA7:
+      return 7;
+    case MED_QUAD8:
+      return 8;
+    case MED_QUAD9:
+      return 9;
+    case MED_TETRA4:
+      return 4;
+    case MED_PYRA5:
+      return 5;
+    case MED_PENTA6:
+      return 5;
+    case MED_HEXA8:
+      return 8;
+    case MED_TETRA10:
+      return 10;
+    case MED_OCTA12:
+      return 12;
+    case MED_PYRA13:
+      return 13;
+    case MED_PENTA15:
+      return 15;
+    case MED_HEXA20:
+      return 20;
+    case MED_HEXA27:
+      return 27;
+    case MED_POLYGON:
+      return -1;
+    case MED_POLYHEDRON:
+      return -1;
+    case MED_NO_GEOTYPE:
+      return 0;
+    default:
+      vtkGenericWarningMacro("No vtk type matches "
+                             << vtkMedUtilities::GeometryName(geometry)
+                             << ", aborting");
+      return -1;
+  }
+}
+
 int vtkMedUtilities::GetNumberOfSubEntity(med_geometry_type geometry)
 {
   switch(geometry)
@@ -484,7 +542,7 @@ med_entity_type vtkMedUtilities::GetSubType(med_entity_type type)
 }
 
 med_geometry_type vtkMedUtilities::GetSubGeometry(
-		med_geometry_type geometry, int index)
+    med_geometry_type geometry, int index)
 {
   switch(geometry)
   {

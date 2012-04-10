@@ -37,10 +37,11 @@ class QToolBar;
 class vtkPVMain;
 class pqOptions;
 class pqServer;
-class pqViewManager;
+class pqTabbedMultiViewWidget;
 class pqMainWindowCore;
 class vtkEventQtSlotConnect;
 class pqPythonScriptEditor;
+class pqPVApplicationCore;
 
 
 class PVGUI_Module : public SalomeApp_Module
@@ -136,7 +137,7 @@ public:
   virtual void           initialize( CAM_Application* );
   virtual void           windows( QMap<int, int>& ) const;
 
-  pqViewManager*         getMultiViewManager() const;
+  pqTabbedMultiViewWidget*         getMultiViewManager() const;
 
   virtual QString engineIOR() const;
 
@@ -207,7 +208,7 @@ private:
 
 private slots:
 
-  void showHelpForProxy( const QString& proxy );
+  void showHelpForProxy( const QString&, const QString& );
   
   void onPreAccept();
   void onPostAccept();
@@ -215,8 +216,8 @@ private slots:
 
   //  void buildToolbarsMenu();
 
-  void showParaViewHelp();
-  void showHelp(const QString& url);
+  //void showParaViewHelp();
+  //void showHelp(const QString& url);
 
   void onFinishedAddingServer(pqServer*);
 
@@ -269,6 +270,8 @@ private:
   pqPythonScriptEditor* myTraceWindow;
 
   int myStateCounter;
+
+  static pqPVApplicationCore* MyCoreApp;
 };
 
 #endif // PVGUI_Module_H

@@ -40,6 +40,8 @@
 #include "vtkBitArray.h"
 #include "vtkIdList.h"
 
+#include "vtkMultiProcessController.h"
+
 vtkCxxSetObjectMacro(vtkMedFamilyOnEntityOnProfile,FamilyOnEntity, vtkMedFamilyOnEntity);
 vtkCxxSetObjectMacro(vtkMedFamilyOnEntityOnProfile, Profile, vtkMedProfile);
 
@@ -98,17 +100,15 @@ int vtkMedFamilyOnEntityOnProfile::CanMapField(vtkMedFieldOnProfile* fop)
      this->GetFamilyOnEntity()->GetEntity().GeometryType)
     return false;
 
-//   if(this->GetFamilyOnEntity()->GetEntity().EntityType != MED_NODE &&
-//      fop->GetParentFieldOverEntity()->GetEntity().EntityType != MED_NODE &&
-//      fop->GetProfile() != this->Profile)
-//     return false;
-// 
-//   if(this->GetFamilyOnEntity()->GetEntity().EntityType == MED_NODE &&
-//      fop->GetParentFieldOverEntity()->GetEntity().EntityType == MED_NODE &&
-//      fop->GetProfile() != this->Profile)
-//     return false;
+  int numProc = 1;
+  vtkMultiProcessController* controller =
+		  vtkMultiProcessController::GetGlobalController();
+  if (controller != NULL)
+    {
+    numProc = controller->GetNumberOfProcesses();
+    }
 
-  if(this->GetValid() == 0)
+  if ((this->GetValid() == 0) && numProc == 1)
     return false;
 
   this->ComputeIntersection(fop);

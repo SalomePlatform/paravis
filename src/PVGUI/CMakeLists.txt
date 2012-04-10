@@ -50,7 +50,6 @@ INCLUDE(wrap.cmake)
 # Library sources
 SET(dist_libPARAVIS_la_SOURCES
   PVGUI_Module.h
-  PVGUI_Module_impl.h
   PVGUI_Module.cxx
   PVGUI_Module_actions.cxx
   PVGUI_Module_widgets.cxx
@@ -160,6 +159,7 @@ FOREACH(name ${bin_PROGRAMS})
     ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParsePreprocess.c
     ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseHierarchy.c
     ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseMain.c
+    ${CMAKE_SOURCE_DIR}/src/ParaView/vtkParseExtras.c
     ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrap.c
     ${CMAKE_SOURCE_DIR}/src/ParaView/vtkWrapText.c
     ${CMAKE_SOURCE_DIR}/idl/vtkWrapIDL.c)

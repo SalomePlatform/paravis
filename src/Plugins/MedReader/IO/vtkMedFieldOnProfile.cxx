@@ -38,47 +38,48 @@ vtkStandardNewMacro(vtkMedFieldOnProfile)
 
 vtkMedFieldOnProfile::vtkMedFieldOnProfile()
 {
-	this->MedIterator = -1;
-	this->ParentFieldOverEntity = NULL;
-	this->ProfileName = NULL;
-	this->ProfileSize = 0;
-	this->LocalizationName = NULL;
-	this->NumberOfIntegrationPoint = 0;
-	this->NumberOfValues = 0;
-	this->Data = NULL;
-	this->Profile = NULL;
-	this->SetProfileName(MED_NO_PROFILE);
-	this->SetLocalizationName(MED_NO_LOCALIZATION);
+  this->MedIterator = -1;
+  this->ParentFieldOverEntity = NULL;
+  this->ProfileName = NULL;
+  this->ProfileSize = 0;
+  this->LocalizationName = NULL;
+  this->NumberOfIntegrationPoint = 0;
+  this->NumberOfValues = 0;
+  this->Data = NULL;
+  this->Profile = NULL;
+  this->SetProfileName(MED_NO_PROFILE);
+  this->SetLocalizationName(MED_NO_LOCALIZATION);
 }
 
 vtkMedFieldOnProfile::~vtkMedFieldOnProfile()
 {
-	this->SetProfileName(NULL);
-	this->SetLocalizationName(NULL);
-	this->SetParentFieldOverEntity(NULL);
-	this->SetData(NULL);
+  this->SetProfileName(NULL);
+  this->SetLocalizationName(NULL);
+  this->SetParentFieldOverEntity(NULL);
+  this->SetData(NULL);
 }
 
 int vtkMedFieldOnProfile::GetHasProfile()
 {
-	return strcmp(this->ProfileName, MED_NO_PROFILE) != 0;
+  cout << "Profile Name = " << this->ProfileName << endl;
+  return strcmp(this->ProfileName, MED_NO_PROFILE) != 0;
 }
 
-int	vtkMedFieldOnProfile::IsLoaded()
+int vtkMedFieldOnProfile::IsLoaded()
 {
-	return this->Data!=NULL
-			&& this->Data->GetNumberOfTuples() == this->NumberOfValues;
+  return this->Data!=NULL
+      && this->Data->GetNumberOfTuples() == this->NumberOfValues;
 }
 
-void	vtkMedFieldOnProfile::Load(med_storage_mode mode)
+void  vtkMedFieldOnProfile::Load(med_storage_mode mode)
 {
-	this->ParentFieldOverEntity->GetParentStep()->GetParentField()
-			->GetParentFile()->GetMedDriver()->LoadField(this, mode);
+  this->ParentFieldOverEntity->GetParentStep()->GetParentField()
+      ->GetParentFile()->GetMedDriver()->LoadField(this, mode);
 }
 
 void vtkMedFieldOnProfile::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
+  this->Superclass::PrintSelf(os, indent);
 
   PRINT_IVAR(os, indent, MedIterator);
   PRINT_IVAR(os, indent, ProfileSize);

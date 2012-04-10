@@ -35,21 +35,21 @@ public :
   vtkTypeRevisionMacro(vtkMedRegularGrid, vtkMedGrid)
   void PrintSelf(ostream& os, vtkIndent indent);
 
-	// Description:
-	// Container of the families in this mesh
-	vtkGetObjectVectorMacro(AxisCoordinate, vtkDataArray);
-	vtkSetAbstractObjectVectorMacro(AxisCoordinate, vtkDataArray);
+  // Description:
+  // Container of the families in this mesh
+  vtkGetObjectVectorMacro(AxisCoordinate, vtkDataArray);
+  vtkSetAbstractObjectVectorMacro(AxisCoordinate, vtkDataArray);
 
-	// Description:
-	// overloaded to set the number of coordinates arrays.
-	// Do not allocate each array.
-	virtual void	SetDimension(med_int);
-	virtual int	GetDimension();
+  // Description:
+  // overloaded to set the number of coordinates arrays.
+  // Do not allocate each array.
+  virtual void  SetDimension(med_int);
+  virtual int GetDimension();
 
   // Description:
   // the size of each dimension of the grid.
   // SetDimension has to have been called before
-  virtual void	SetAxisSize(int axis, med_int size);
+  virtual void  SetAxisSize(int axis, med_int size);
   virtual med_int GetAxisSize(int dim);
 
   // Description:
@@ -65,7 +65,7 @@ public :
   virtual vtkDataSet* CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile*);
 
 protected:
-	vtkMedRegularGrid();
+  vtkMedRegularGrid();
   virtual ~vtkMedRegularGrid();
 
   double CoordTuple[3];
@@ -76,7 +76,7 @@ protected:
   //ETX
 
 private:
-	vtkMedRegularGrid(const vtkMedRegularGrid&); // Not implemented.
+  vtkMedRegularGrid(const vtkMedRegularGrid&); // Not implemented.
   void operator=(const vtkMedRegularGrid&); // Not implemented.
 
 };

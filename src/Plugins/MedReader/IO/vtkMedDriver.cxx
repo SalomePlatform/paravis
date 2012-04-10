@@ -24,6 +24,13 @@
 #include "vtkMedIntArray.h"
 #include "vtkMedLink.h"
 
+#ifdef MedReader_HAVE_PARALLEL_INFRASTRUCTURE
+#include "vtkMultiProcessController.h"
+#include "vtkMPIController.h"
+#include <vtkMPICommunicator.h>
+#include <vtkMPI.h>
+#endif
+
 vtkCxxSetObjectMacro(vtkMedDriver, MedFile, vtkMedFile);
 
 vtkCxxRevisionMacro(vtkMedDriver, "$Revision$")
@@ -45,6 +52,61 @@ vtkMedDriver::~vtkMedDriver()
     this->Close();
     }
   this->SetMedFile(NULL);
+}
+
+int vtkMedDriver::RestrictedOpen()
+{
+  int res = 0;
+  if (this->MedFile == NULL || this->MedFile->GetFileName() == NULL)
+    {
+    vtkDebugMacro("Error : FileName has not been set ");
+    return -1;
+    }
+
+  if (this->OpenLevel <= 0)
+    {
+
+    med_bool hdfok;
+    med_bool medok;
+
+    med_err conforme = MEDfileCompatibility(this->MedFile->GetFileName(),
+                                            &hdfok, &medok);
+    if (!hdfok)
+      {
+      vtkErrorMacro("The file " << this->MedFile->GetFileName()
+          << " is not a HDF5 file, aborting.");
+      return -1;
+      }
+
+    if (!medok)
+      {
+      vtkErrorMacro("The file " << this->MedFile->GetFileName()
+          << " has not been written with the"
+          << " same version as the one currently used to read it, this may lead"
+          << " to errors. Please use the medimport tool.");
+      return -1;
+      }
+
+    if(conforme < 0)
+      {
+      vtkErrorMacro("The file " << this->MedFile->GetFileName()
+                    << " is not compatible, please import it to the new version using medimport.");
+      return -1;
+      }
+
+    this->FileId = MEDfileOpen(this->MedFile->GetFileName(), MED_ACC_RDONLY);
+    if (this->FileId < 0)
+      {
+      vtkDebugMacro("Error : unable to open file "
+                    << this->MedFile->GetFileName());
+      res = -2;
+      }
+    this->OpenLevel = 0;
+
+    } // OpenLevel
+  this->OpenLevel++;
+  this->ParallelFileId = -1;
+  return res;
 }
 
 int vtkMedDriver::Open()
@@ -87,10 +149,6 @@ int vtkMedDriver::Open()
       return -1;
       }
 
-    // the following line should be
-    //this->FileId = MEDfileOpen(this->MedFile->GetFileName(), MED_ACC_RDONLY);
-    // but there is a bug in med that forces me to use RDWR mode instead.
-
     this->FileId = MEDfileOpen(this->MedFile->GetFileName(), MED_ACC_RDONLY);
     if (this->FileId < 0)
       {
@@ -99,7 +157,69 @@ int vtkMedDriver::Open()
       res = -2;
       }
     this->OpenLevel = 0;
-    }
+
+    this->ParallelFileId = -1;
+
+#ifdef MedReader_HAVE_PARALLEL_INFRASTRUCTURE
+    // the following code opens the file in parallel
+    vtkMultiProcessController* controller =
+    		vtkMultiProcessController::GetGlobalController();
+    int lpID = 0;
+    if (controller == NULL)
+      {
+    return -3;
+      }
+    else
+      {
+      lpID = controller->GetLocalProcessId();
+      }
+
+    vtkMPICommunicator* commu = vtkMPICommunicator::SafeDownCast(
+                  controller->GetCommunicator() );
+    if (commu == NULL)
+      {
+      //vtkErrorMacro("Communicator is NULL in Open");
+      return -3;
+      }
+    MPI_Comm* mpi_com = NULL;
+    mpi_com = commu->GetMPIComm()->GetHandle();
+    if (mpi_com == NULL)
+      {
+      vtkErrorMacro("MPI communicator is NULL in Open");
+      return -3;
+      }
+
+    if (controller->GetNumberOfProcesses() > 1)
+      {
+      int major, minor, release;
+      if (MEDfileNumVersionRd(this->FileId, &major, &minor, &release) < 0)
+        {
+        vtkErrorMacro("Impossible to read the version of this file");
+        return -1;
+        }
+
+    if (major >= 3)
+      {
+        this->ParallelFileId = MEDparFileOpen(this->MedFile->GetFileName(),
+                            MED_ACC_RDONLY,
+                            *mpi_com,
+                            MPI_INFO_NULL);
+        }
+    else
+        {
+        vtkErrorMacro("Parallel access is not allowed in MED files prior to version 3");
+        return -1;
+        }
+      }
+
+    if (this->ParallelFileId < 0)
+      {
+      vtkDebugMacro("Error : unable to parallel-open file "
+                    << this->MedFile->GetFileName());
+      }
+#endif
+
+    } // OpenLevel
   this->OpenLevel++;
   return res;
 }
@@ -114,19 +234,28 @@ void vtkMedDriver::Close()
       vtkErrorMacro("Error: unable to close the current file.");
       }
     this->FileId = -1;
+
+    if (this->ParallelFileId != -1)
+    {
+      if (MEDfileClose(this->ParallelFileId) < 0)
+      {
+      vtkErrorMacro("Error: unable to parallel-close the current file.");
+      }
+    }
+    this->ParallelFileId = -1;
     }
 }
 
 bool vtkMedDriver::CanReadFile()
 {
-  bool canRead = (this->Open() >= 0);
+  bool canRead = (this->RestrictedOpen() >= 0);
   this->Close();
   return canRead;
 }
 
 void vtkMedDriver::ReadFileVersion(int* major, int* minor, int* release)
 {
-  FileOpen open(this);
+  FileRestrictedOpen open(this);
 
   med_int amajor, aminor, arelease;
   if (MEDfileNumVersionRd(this->FileId, &amajor, &aminor, &arelease) < 0)

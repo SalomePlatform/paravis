@@ -24,6 +24,7 @@
 #include "vtkMedSetGet.h"
 #include "vtkMedUtilities.h"
 #include "vtkMed.h"
+#include "vtkMedFilter.h"
 
 class vtkMedIntArray;
 class vtkFamilyIdSet;
@@ -99,12 +100,12 @@ public:
   // the index of each node of each face described in the Index1 array
   // (node connectivity) or the type each face described in the Index1
   // array (hierarchical connectivity)
-  virtual void	SetParentGrid(vtkMedGrid*);
+  virtual void  SetParentGrid(vtkMedGrid*);
   vtkGetObjectMacro(ParentGrid, vtkMedGrid);
 
   // Description:
   // Compute the list of families that are on this array
-  virtual void	ComputeFamilies();
+  virtual void  ComputeFamilies();
 
   // Description:
   // returns true if there are cells of the given family on this entity.
@@ -144,10 +145,14 @@ public:
   virtual void  SetStructElement(vtkMedStructElement*);
   vtkGetObjectMacro(StructElement, vtkMedStructElement);
 
-
   void  SetVariableAttributeValues(vtkMedVariableAttribute*,
                                    vtkAbstractArray*);
   vtkAbstractArray* GetVariableAttributeValue(vtkMedVariableAttribute*);
+
+  // Description:
+  // Get/Set of the MED Filter for parallel reading.
+  void  SetFilter(vtkMedFilter* filter){this->Filter = filter;}
+  vtkMedFilter* GetFilter(){return this->Filter;}
 
 protected:
   vtkMedEntityArray();
@@ -155,6 +160,8 @@ protected:
 
   vtkIdType NumberOfEntity;
   vtkMedEntity Entity;
+
+  vtkMedFilter* Filter;
 
   med_connectivity_mode Connectivity;
   vtkIdType InitialGlobalId;
@@ -177,13 +184,13 @@ protected:
   };
 
   //BTX
-	vtkObjectVector<vtkMedFamilyOnEntity>* FamilyOnEntity;
+  vtkObjectVector<vtkMedFamilyOnEntity>* FamilyOnEntity;
 
-	std::map<vtkMedVariableAttribute*, vtkSmartPointer<vtkAbstractArray> >
-			VariableAttributeValue;
-	//ETX
+  std::map<vtkMedVariableAttribute*, vtkSmartPointer<vtkAbstractArray> >
+      VariableAttributeValue;
+  //ETX
 
-	int Valid;
+  int Valid;
 
 private:
   vtkMedEntityArray(const vtkMedEntityArray&); // Not implemented.

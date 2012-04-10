@@ -137,7 +137,7 @@ public:
   //BTX
   // Description:
   // returns a name for the given med_geometry_type
-  //static const char* GeometryName(med_geometry_type geometry);
+  static const char* GeometryName(med_geometry_type geometry);
 
   // Description:
   // returns a name for the given med_geometry_type
@@ -166,6 +166,9 @@ public:
   // returns the number of sub entity : the number of faces for cells,
   // the number of edges for faces, the number of nodes for edges
   static int GetNumberOfSubEntity(med_geometry_type geometry);
+
+  // returns the number of Nodes
+  static int GetNumberOfNodes(med_geometry_type geometry);
   //ETX
 
   static med_entity_type GetSubType(med_entity_type type);
@@ -404,61 +407,61 @@ struct IsSameTraits<T1, T1>
 };
 
 #define PRINT_IVAR(os, indent, name) \
-	os << indent << #name << " : "  << name << endl;
+  os << indent << #name << " : "  << name << endl;
 
 #define PRINT_STRING(os, indent, name) \
-	os << indent << #name << " : "  << ( name ? name : "(void)") << endl;
+  os << indent << #name << " : "  << ( name ? name : "(void)") << endl;
 
 #define PRINT_OBJECT(os, indent, name) \
-	os << indent << #name << " : " ;\
-	if(name != NULL) \
-	{\
-		os << endl;\
-		name->PrintSelf(os, indent.GetNextIndent());\
-	}\
-	else os << "(NULL)" << endl;
+  os << indent << #name << " : " ;\
+  if(name != NULL) \
+  {\
+    os << endl;\
+    name->PrintSelf(os, indent.GetNextIndent());\
+  }\
+  else os << "(NULL)" << endl;
 
 #define PRINT_VECTOR(os, indent, name, size) \
 {\
-	os << indent << #name << " : (";\
-	for(vtkIdType _index = 0; _index<size; _index++)\
-		{\
-		os << name[_index];\
-		if(_index < size-1)\
-			os << ", ";\
-		}\
-	os << ")" << endl;\
+  os << indent << #name << " : (";\
+  for(vtkIdType _index = 0; _index<size; _index++)\
+    {\
+    os << name[_index];\
+    if(_index < size-1)\
+      os << ", ";\
+    }\
+  os << ")" << endl;\
 }
 
 #define PRINT_OBJECT_VECTOR(os, indent, name) \
 {\
-	os << indent << #name;\
-	os << endl;\
-	vtkIdType _size = name->size();\
-	for(vtkIdType _index = 0; _index < _size; _index++)\
-	{\
-	os << indent << #name << _index << " : " << endl;\
-	if(name->at(_index) != NULL)\
-		name->at(_index)->PrintSelf(os, indent.GetNextIndent());\
-	else\
-		os << indent.GetNextIndent() << "(NULL)" << endl;\
-	}\
+  os << indent << #name;\
+  os << endl;\
+  vtkIdType _size = name->size();\
+  for(vtkIdType _index = 0; _index < _size; _index++)\
+  {\
+  os << indent << #name << _index << " : " << endl;\
+  if(name->at(_index) != NULL)\
+    name->at(_index)->PrintSelf(os, indent.GetNextIndent());\
+  else\
+    os << indent.GetNextIndent() << "(NULL)" << endl;\
+  }\
 }
 
 #define PRINT_STRING_VECTOR(os, indent, name)\
 {\
-	os << indent << #name << ": ";\
-	for(int _comp = 0; _comp<this->name->size(); _comp++)\
-		{\
-		os << this->name->at(_comp)->GetString();\
-		if(_comp < this->name->size()-1)\
-			os << ", ";\
-		}\
-	os << endl;\
+  os << indent << #name << ": ";\
+  for(int _comp = 0; _comp<this->name->size(); _comp++)\
+    {\
+    os << this->name->at(_comp)->GetString();\
+    if(_comp < this->name->size()-1)\
+      os << ", ";\
+    }\
+  os << endl;\
 }
 
 #define PRINT_MED_STRING(os, indent, name)\
-	os << indent << #name << ": " << this->name->GetString() << endl; \
+  os << indent << #name << ": " << this->name->GetString() << endl; \
 
 //ETX
 

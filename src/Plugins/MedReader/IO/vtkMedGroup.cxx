@@ -28,16 +28,16 @@ vtkStandardNewMacro(vtkMedGroup)
 
 vtkMedGroup::vtkMedGroup()
 {
-	this->Name = NULL;
-	this->SetName(vtkMedUtilities::NoGroupName);
+  this->Name = NULL;
+  this->SetName(vtkMedUtilities::NoGroupName);
 }
 
 vtkMedGroup::~vtkMedGroup()
 {
-	this->SetName(NULL);
+  this->SetName(NULL);
 }
 
 void vtkMedGroup::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
+  this->Superclass::PrintSelf(os, indent);
 }

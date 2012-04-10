@@ -28,7 +28,7 @@
 
 class SUIT_Desktop;
 class PVGUI_Viewer;
-class pqViewManager;
+class pqTabbedMultiViewWidget;
 
 class PVGUI_ViewWindow : public SUIT_ViewWindow  
 {
@@ -41,11 +41,11 @@ public:
   virtual QString   getVisualParameters();
   virtual void      setVisualParameters( const QString& );
   
-  pqViewManager*    getMultiViewManager() const;
+  pqTabbedMultiViewWidget*    getMultiViewManager() const;
 
 private:
   PVGUI_Viewer*     myModel;
-  pqViewManager*    myPVMgr;
+  pqTabbedMultiViewWidget*    myPVMgr;
 };
 
 #endif // PLOT2D_VIEWWINDOW_H

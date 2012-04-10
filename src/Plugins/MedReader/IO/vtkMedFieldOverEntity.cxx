@@ -39,15 +39,15 @@ vtkStandardNewMacro(vtkMedFieldOverEntity)
 
 vtkMedFieldOverEntity::vtkMedFieldOverEntity()
 {
-	this->FieldOnProfile = new vtkObjectVector<vtkMedFieldOnProfile>();
-	this->HasProfile = false;
-	this->ParentStep = NULL;
+  this->FieldOnProfile = new vtkObjectVector<vtkMedFieldOnProfile>();
+  this->HasProfile = false;
+  this->ParentStep = NULL;
 }
 
 vtkMedFieldOverEntity::~vtkMedFieldOverEntity()
 {
-	delete this->FieldOnProfile;
-	this->SetParentStep(NULL);
+  delete this->FieldOnProfile;
+  this->SetParentStep(NULL);
 }
 
 void vtkMedFieldOverEntity::PrintSelf(ostream& os, vtkIndent indent)

@@ -65,8 +65,8 @@ public:
 
   // Description:
   // Container of the fields.
-	vtkGetObjectVectorMacro(Field, vtkMedField);
-	vtkSetObjectVectorMacro(Field, vtkMedField);
+  vtkGetObjectVectorMacro(Field, vtkMedField);
+  vtkSetObjectVectorMacro(Field, vtkMedField);
 
   // Description:
   // Container of the fields.
@@ -75,15 +75,15 @@ public:
 
   // Description:
   // Container of the profiles.
-	vtkGetObjectVectorMacro(Profile, vtkMedProfile);
-	vtkSetObjectVectorMacro(Profile, vtkMedProfile);
-	virtual vtkMedProfile*	GetProfile(const char*);
+  vtkGetObjectVectorMacro(Profile, vtkMedProfile);
+  vtkSetObjectVectorMacro(Profile, vtkMedProfile);
+  virtual vtkMedProfile*  GetProfile(const char*);
 
   // Description:
   // Container of the quadrature definitions.
   vtkGetObjectVectorMacro(Localization, vtkMedLocalization);
   vtkSetObjectVectorMacro(Localization, vtkMedLocalization);
-  virtual vtkMedLocalization*	GetLocalization(const char*);
+  virtual vtkMedLocalization* GetLocalization(const char*);
 
   // Description:
   // This is the description of this file as stored in the med file.
@@ -111,7 +111,7 @@ public:
   vtkSetObjectVectorMacro(SupportMesh, vtkMedMesh);
 
 protected:
-	vtkMedFile();
+  vtkMedFile();
   virtual ~vtkMedFile();
 
   char * FileName;
@@ -134,7 +134,7 @@ protected:
   //ETX
 
 private:
-	vtkMedFile(const vtkMedFile&); // Not implemented.
+  vtkMedFile(const vtkMedFile&); // Not implemented.
   void operator=(const vtkMedFile&); // Not implemented.
 };
 

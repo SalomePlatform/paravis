@@ -41,6 +41,8 @@
 #include "vtkMedStructElement.h"
 #include "vtkMedVariableAttribute.h"
 
+#include "vtkMultiProcessController.h"
+
 vtkCxxSetObjectMacro(vtkMedUnstructuredGrid,Coordinates,vtkDataArray);
 
 vtkCxxRevisionMacro(vtkMedUnstructuredGrid, "$Revision$")
@@ -48,13 +50,13 @@ vtkStandardNewMacro(vtkMedUnstructuredGrid)
 
 vtkMedUnstructuredGrid::vtkMedUnstructuredGrid()
 {
-	this->Coordinates = NULL;
-	this->NumberOfPoints = 0;
+  this->Coordinates = NULL;
+  this->NumberOfPoints = 0;
 }
 
 vtkMedUnstructuredGrid::~vtkMedUnstructuredGrid()
 {
-	this->SetCoordinates(NULL);
+  this->SetCoordinates(NULL);
 }
 
 int vtkMedUnstructuredGrid::IsCoordinatesLoaded()
@@ -84,17 +86,17 @@ void  vtkMedUnstructuredGrid::InitializeCellGlobalIds()
 
 void  vtkMedUnstructuredGrid::ClearMedSupports()
 {
-	this->Superclass::ClearMedSupports();
-	for(int id = 0; id < this->EntityArray->size(); id++)
-		{
-		vtkMedEntityArray* array = this->EntityArray->at(id);
-		array->Initialize();
-		}
+  this->Superclass::ClearMedSupports();
+  for(int id = 0; id < this->EntityArray->size(); id++)
+    {
+    vtkMedEntityArray* array = this->EntityArray->at(id);
+    array->Initialize();
+    }
 }
 
 void  vtkMedUnstructuredGrid::LoadCoordinates()
 {
-	this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
+  this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
 }
 
 double* vtkMedUnstructuredGrid::GetCoordTuple(med_int index)
@@ -105,6 +107,9 @@ double* vtkMedUnstructuredGrid::GetCoordTuple(med_int index)
 vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
     vtkMedFamilyOnEntityOnProfile* foep)
 {
+  vtkMultiProcessController* controller =
+      vtkMultiProcessController::GetGlobalController();
+
   vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
   vtkMedEntityArray* array = foe->GetEntityArray();
   if(foep->GetValid() == 0)
@@ -156,7 +161,6 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
     }
   else
     {
-
     vtkIdType currentIndex=0;
     for(vtkIdType index=0; index<this->GetNumberOfPoints(); index++)
       {
@@ -237,18 +241,22 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
                      pids->GetNumberOfTuples():
                      array->GetNumberOfEntity());
 
-  for (vtkIdType pindex = 0; pindex<maxId && foep->GetValid(); pindex++)
+  int valid = foep->GetValid();
+  if (controller != NULL)
+    if (controller->GetNumberOfProcesses() > 1)
+    valid = 1;
+
+  for (vtkIdType pindex = 0; pindex<maxId && valid; pindex++)
     {
     vtkIdType realIndex = (pids!=NULL?
                            pids->GetValue(pindex)-1:
                            pindex);
+
     if (!foep->KeepCell(realIndex))
       continue;
 
     array->GetCellVertices(realIndex, pts);
 
-    // The structural elements can have more than 1 vtk cell for each med cell.
-    // They share the same global id.
     for(int sid = 0; sid < nsupportcell; sid++)
       {
       cellGlobalIds->InsertNextValue(intialGlobalId+pindex);
@@ -282,7 +290,7 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
       {
       vtkpts->Initialize();
       vtkpts->SetNumberOfIds(pts->GetNumberOfIds());
- 
+
       for(vtkIdType node=0; node<pts->GetNumberOfIds(); node++)
         {
         vtkIdType pid = pts->GetId(node);
@@ -291,9 +299,13 @@ vtkDataSet* vtkMedUnstructuredGrid::CreateVTKDataSet(
           {
           vtkDebugMacro("Index error, this cell"  <<
                         " is not on this profile");
+#ifndef MedReader_HAVE_PARALLEL_INFRASTRUCTURE
           vtkugrid->Delete();
           foep->SetValid(0);
           return NULL;
+#else
+          return vtkugrid;
+#endif
           }
         vtkpts->SetId(vtkMedUtilities::MedToVTKIndex(vtkType, node), ptid);
         }

@@ -33,6 +33,7 @@
 #include "pqGlobalRenderViewOptions.h"
 #include "pqPluginManager.h"
 #include "pqViewOptionsInterface.h"
+#include "pqInterfaceTracker.h"
 
 #include <QAbstractItemModel>
 #include <QHeaderView>
@@ -374,8 +375,8 @@ PVGUI_ParaViewSettingsPane::PVGUI_ParaViewSettingsPane(QWidget *widgetParent)
     this, SLOT(pluginLoaded(QObject*)));
 
   // Load panes from already loaded plugins.
-  foreach (QObject* plugin_interface,
-    pqApplicationCore::instance()->getPluginManager()->interfaces())
+  foreach (QObject* plugin_interface, pqApplicationCore::instance()->interfaceTracker()->interfaces())
+           //pqApplicationCore::instance()->getPluginManager()->interfaces())
     {
     this->pluginLoaded(plugin_interface);
     }

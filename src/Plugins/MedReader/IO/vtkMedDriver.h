@@ -55,8 +55,13 @@ public:
   virtual void  SetMedFile(vtkMedFile*);
   vtkGetObjectMacro(MedFile, vtkMedFile);
 
+  // Description :
+  // This gives the File ID to read in parallel.
+  vtkGetMacro(ParallelFileId, med_idt);
+
   // Description:
   // open the file for reading. Returns 0 on success, or error code.
+  virtual int RestrictedOpen();
   virtual int Open();
   virtual void Close();
   virtual bool CanReadFile();
@@ -188,6 +193,25 @@ public:
   };
   //ETX
 
+  //BTX
+  class FileRestrictedOpen
+  {
+  public:
+    FileRestrictedOpen(vtkMedDriver* driver)
+    {
+      this->Driver = driver;
+      this->Driver->RestrictedOpen();
+    }
+    ~FileRestrictedOpen()
+    {
+      this->Driver->Close();
+    }
+  protected:
+    vtkMedDriver* Driver;
+    vtkMedFile* File;
+  };
+  //ETX
+
 protected:
   vtkMedDriver();
   ~vtkMedDriver();
@@ -198,6 +222,7 @@ protected:
   int OpenLevel;
 
   med_idt FileId;
+  med_idt ParallelFileId;
 
 private:
   vtkMedDriver(const vtkMedDriver&); // Not implemented.

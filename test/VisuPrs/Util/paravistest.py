@@ -81,7 +81,7 @@ class SalomeSession(object):
         sys.argv += ["--killall"]
         sys.argv += ["--show-desktop=1"]
         sys.argv += ["--splash=0"]
-        sys.argv += ["--modules=VISU,PARAVIS"]
+        sys.argv += ["--modules=MED,VISU,PARAVIS"]
         clt, d = runSalome.main()
         port = d['port']
         self.port = port

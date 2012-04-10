@@ -41,10 +41,10 @@ public:
   void  SetEntity(const vtkMedEntity& entity){this->Entity = entity;}
   const vtkMedEntity& GetEntity(){return this->Entity;}
 
-	// Description:
-	// This is the vtkMedFieldStep that owns this vtkMedFieldOverEntity
-	virtual void	SetParentStep(vtkMedFieldStep*);
-	vtkGetObjectMacro(ParentStep, vtkMedFieldStep);
+  // Description:
+  // This is the vtkMedFieldStep that owns this vtkMedFieldOverEntity
+  virtual void  SetParentStep(vtkMedFieldStep*);
+  vtkGetObjectMacro(ParentStep, vtkMedFieldStep);
 
   // Description:
   // This array store for each profile the field over this profile
@@ -65,7 +65,7 @@ protected:
 
   vtkMedFieldStep* ParentStep;
 
-  vtkMedEntity	Entity;
+  vtkMedEntity  Entity;
 
   int HasProfile;
 

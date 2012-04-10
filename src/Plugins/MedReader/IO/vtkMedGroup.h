@@ -36,20 +36,20 @@ public :
   vtkGetStringMacro(Name);
   vtkSetStringMacro(Name);
 
-	// Description:
-	// This ivar says if this group contains point or cell families
-	// This value is either vtkMedUtilities::OnPoint or vtkMedUtilities::OnCell
-//	vtkSetMacro(PointOrCell, int);
-//	vtkGetMacro(PointOrCell, int);
+  // Description:
+  // This ivar says if this group contains point or cell families
+  // This value is either vtkMedUtilities::OnPoint or vtkMedUtilities::OnCell
+//  vtkSetMacro(PointOrCell, int);
+//  vtkGetMacro(PointOrCell, int);
 
 protected:
-	vtkMedGroup();
+  vtkMedGroup();
   virtual ~vtkMedGroup();
 
   char* Name;
 
 private:
-	vtkMedGroup(const vtkMedGroup&); // Not implemented.
+  vtkMedGroup(const vtkMedGroup&); // Not implemented.
   void operator=(const vtkMedGroup&); // Not implemented.
 
 };

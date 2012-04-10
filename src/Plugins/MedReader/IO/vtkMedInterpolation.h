@@ -45,15 +45,15 @@ public:
   vtkSetMacro(MedIterator, med_int);
   vtkGetMacro(MedIterator, med_int);
 
-	// Description:
-	// Type geometrique des mailles
-	vtkSetMacro(GeometryType, med_geometry_type);
-	vtkGetMacro(GeometryType, med_geometry_type);
+  // Description:
+  // Type geometrique des mailles
+  vtkSetMacro(GeometryType, med_geometry_type);
+  vtkGetMacro(GeometryType, med_geometry_type);
 
-	// Description:
-	// 1 if the basis functions are relative to the vertices of the cell.
-	vtkSetMacro(IsCellNode, int);
-	vtkGetMacro(IsCellNode, int);
+  // Description:
+  // 1 if the basis functions are relative to the vertices of the cell.
+  vtkSetMacro(IsCellNode, int);
+  vtkGetMacro(IsCellNode, int);
 
   // Description:
   // Maximum degree of any coefficient of any basis function
@@ -76,17 +76,17 @@ public:
   vtkSetObjectVectorMacro(BasisFunction, vtkMedFraction);
 
 protected :
-	vtkMedInterpolation();
-	~vtkMedInterpolation();
+  vtkMedInterpolation();
+  ~vtkMedInterpolation();
 
-	med_int MedIterator;
-	med_geometry_type GeometryType;
-	int IsCellNode;
-	int MaximumNumberOfCoefficient;
-	int MaximumDegree;
-	int NumberOfVariable;
-	char* Name;
-	vtkObjectVector<vtkMedFraction>* BasisFunction;
+  med_int MedIterator;
+  med_geometry_type GeometryType;
+  int IsCellNode;
+  int MaximumNumberOfCoefficient;
+  int MaximumDegree;
+  int NumberOfVariable;
+  char* Name;
+  vtkObjectVector<vtkMedFraction>* BasisFunction;
 };
 
 #endif //__vtkMedInterpolation_h_

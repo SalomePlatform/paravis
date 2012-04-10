@@ -30,11 +30,11 @@ public :
   void PrintSelf(ostream& os, vtkIndent indent);
 
 protected:
-	vtkMedPolarGrid();
+  vtkMedPolarGrid();
   virtual ~vtkMedPolarGrid();
 
 private:
-	vtkMedPolarGrid(const vtkMedPolarGrid&); // Not implemented.
+  vtkMedPolarGrid(const vtkMedPolarGrid&); // Not implemented.
   void operator=(const vtkMedPolarGrid&); // Not implemented.
 
 };

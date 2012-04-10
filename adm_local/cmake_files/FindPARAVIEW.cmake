@@ -24,9 +24,6 @@ SET(PARAVIEW_INCLUDES -I${PARAVIEW_INCLUDE_DIRS})
 FIND_LIBRARY(QtPython QtPython PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(QVTK QVTK PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(vtkClientServer vtkClientServer PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
-FIND_LIBRARY(vtkPVCommandOptions vtkPVCommandOptions PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
-FIND_LIBRARY(vtkPVFilters vtkPVFilters PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
-FIND_LIBRARY(vtkPVServerCommon vtkPVServerCommon PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(vtkPVServerManager vtkPVServerManager PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(pqApplicationComponents pqApplicationComponents PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(pqComponents pqComponents PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
@@ -40,9 +37,6 @@ SET(PARAVIEW_LIBS
   ${vtkGenericFiltering}
   ${vtkInfovis}
   ${vtkVolumeRendering}
-  ${vtkPVCommandOptions}
-  ${vtkPVFilters}
-  ${vtkPVServerCommon}
   ${vtkPVServerManager}
   ${pqApplicationComponents}
   ${pqComponents}

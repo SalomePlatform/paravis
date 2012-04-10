@@ -39,12 +39,12 @@
 
 #include "PV_Tools.h"
 
-#include "PVGUI_Module_impl.h"
 #include "PVGUI_ViewModel.h"
 #include "PVGUI_ViewManager.h"
 #include "PVGUI_ViewWindow.h"
 #include "PVGUI_Tools.h"
 #include "PVGUI_ParaViewSettingsPane.h"
+#include "PVGUI_OutputWindowAdapter.h"
 
 #include <SUIT_DataBrowser.h>
 #include <SUIT_Desktop.h>
@@ -86,8 +86,10 @@
 #include <QTextStream>
 #include <QShortcut>
 #include <QDockWidget>
+#include <QHelpEngine>
 
 #include <pqApplicationCore.h>
+#include <pqPVApplicationCore.h>
 #include <pqActiveView.h>
 #include <pqObjectBuilder.h>
 #include <pqOptions.h>
@@ -95,15 +97,16 @@
 #include <pqServer.h>
 #include <pqUndoStack.h>
 #include <pqVCRController.h>
-#include <pqViewManager.h>
+#include <pqTabbedMultiViewWidget.h>
 #include <pqPipelineSource.h>
-#include <vtkPVMain.h>
+//#include <vtkPVMain.h>
 #include <vtkProcessModule.h>
 #include <pqParaViewBehaviors.h>
 #include <pqHelpReaction.h>
 #include <vtkOutputWindow.h>
 #include <pqPluginManager.h>
-#include <vtkPVPluginInformation.h>
+//#include <vtkPVPluginInformation.h>
+#include "pqInterfaceTracker.h"
 #include <pqSettings.h>
 #include <pqPythonDialog.h>
 #include <pqPythonManager.h>
@@ -112,6 +115,8 @@
 #include <pqLoadDataReaction.h>
 #include <vtkEventQtSlotConnect.h>
 #include <pqPythonScriptEditor.h>
+#include <pqStandardSummaryPanelImplementation.h>
+#include <pqCollaborationBehavior.h>
 
 #include <PARAVIS_version.h>
 
@@ -158,10 +163,11 @@
 #include <pqViewFrameActionsBehavior.h>
 #include <pqServerManagerObserver.h>
 
+
 //----------------------------------------------------------------------------
-pqApplicationCore* PVGUI_Module::pqImplementation::Core = 0;
-PVGUI_OutputWindowAdapter* PVGUI_Module::pqImplementation::OutputWindowAdapter = 0;
-QPointer<pqHelpWindow> PVGUI_Module::pqImplementation::helpWindow = 0;
+pqPVApplicationCore* PVGUI_Module::MyCoreApp = 0;
+//PVGUI_OutputWindowAdapter* PVGUI_Module::pqImplementation::OutputWindowAdapter = 0;
+//QPointer<pqHelpWindow> PVGUI_Module::pqImplementation::helpWindow = 0;
 
 PVGUI_Module* ParavisModule = 0;
 
@@ -238,7 +244,7 @@ PVGUI_Module* ParavisModule = 0;
 PVGUI_Module::PVGUI_Module()
   : SalomeApp_Module( "PARAVIS" ),
     LightApp_Module( "PARAVIS" ),
-    Implementation( 0 ),
+    //    Implementation( 0 ),
     mySelectionControlsTb( -1 ),
     mySourcesMenuId( -1 ),
     myFiltersMenuId( -1 ),
@@ -297,15 +303,17 @@ void PVGUI_Module::initialize( CAM_Application* app )
   pvInit();
 
   // Create GUI elements (menus, toolbars, dock widgets)
-  if ( !Implementation ){
+  //if ( !Implementation ){
     SalomeApp_Application* anApp = getApp();
     SUIT_Desktop* aDesktop = anApp->desktop();
+
+    // connect(aDesktop, SIGNAL()
 
     // Remember current state of desktop toolbars
     QList<QToolBar*> foreignToolbars = aDesktop->findChildren<QToolBar*>();
 
     // Simulate ParaView client main window
-    Implementation = new pqImplementation( aDesktop );
+    //Implementation = new pqImplementation( aDesktop );
 
     setupDockWidgets();
     
@@ -317,10 +325,12 @@ void PVGUI_Module::initialize( CAM_Application* app )
     // Has to be replaced in order to exclude using of pqQtMessageHandlerBehaviour
     //  Start pqParaViewBehaviors
     // Register ParaView interfaces.
-    pqPluginManager* pgm = pqApplicationCore::instance()->getPluginManager();
+    //pqPluginManager* pgm = pqApplicationCore::instance()->getPluginManager();
+    pqInterfaceTracker* pgm = pqApplicationCore::instance()->interfaceTracker();
 
     // * adds support for standard paraview views.
     pgm->addInterface(new pqStandardViewModules(pgm));
+    pgm->addInterface(new pqStandardSummaryPanelImplementation(pgm));
 
     // Load plugins distributed with application.
     pqApplicationCore::instance()->loadDistributedPlugins();
@@ -345,6 +355,7 @@ void PVGUI_Module::initialize( CAM_Application* app )
     new pqCommandLineOptionsBehavior(this);
     new pqPersistentMainWindowStateBehavior(aDesktop);
     new pqObjectPickingBehavior(aDesktop);
+    new pqCollaborationBehavior(this);
 
     // Setup quick-launch shortcuts.
     QShortcut *ctrlSpace = new QShortcut(Qt::CTRL + Qt::Key_Space, aDesktop);
@@ -354,19 +365,17 @@ void PVGUI_Module::initialize( CAM_Application* app )
     QObject::connect(altSpace, SIGNAL(activated()),
       pqApplicationCore::instance(), SLOT(quickLaunch()));
     //  End pqParaViewBehaviors
-    
+
 
     SUIT_ResourceMgr* resMgr = SUIT_Session::session()->resourceMgr();
     QString aPath = resMgr->stringValue("resources", "PARAVIS", QString());
     if (!aPath.isNull()) {
-      pqImplementation::Core->loadConfiguration(aPath + QDir::separator() + "ParaViewFilters.xml");
-      pqImplementation::Core->loadConfiguration(aPath + QDir::separator() + "ParaViewReaders.xml");
-      pqImplementation::Core->loadConfiguration(aPath + QDir::separator() + "ParaViewSources.xml");
-      pqImplementation::Core->loadConfiguration(aPath + QDir::separator() + "ParaViewWriters.xml");
+      MyCoreApp->loadConfiguration(aPath + QDir::separator() + "ParaViewFilters.xml");
+      MyCoreApp->loadConfiguration(aPath + QDir::separator() + "ParaViewReaders.xml");
+      MyCoreApp->loadConfiguration(aPath + QDir::separator() + "ParaViewSources.xml");
+      MyCoreApp->loadConfiguration(aPath + QDir::separator() + "ParaViewWriters.xml");
     }
-    // Now that we're ready, initialize everything ...
-
-
+     
     // Force creation of engine
     PARAVIS::GetParavisGen(this);
     updateObjBrowser();
@@ -379,14 +388,14 @@ void PVGUI_Module::initialize( CAM_Application* app )
       if (!foreignToolbars.contains(aBar)) {
         myToolbars[aBar] = true;
         myToolbarBreaks[aBar] = false;
-	aBar->setVisible(false);
-	aBar->toggleViewAction()->setVisible(false);
+        aBar->setVisible(false);
+        aBar->toggleViewAction()->setVisible(false);
       }
     }
-  }
+    //}
 
   updateMacros();
-  
+ 
   // we need to start trace after connection is done
   connect(pqApplicationCore::instance()->getObjectBuilder(), SIGNAL(finishedAddingServer(pqServer*)), 
 	  this, SLOT(onFinishedAddingServer(pqServer*)));
@@ -489,7 +498,8 @@ void PVGUI_Module::windows( QMap<int, int>& m ) const
 */
 bool PVGUI_Module::pvInit()
 {
-  if ( !pqImplementation::Core ){
+  //  if ( !pqImplementation::Core ){
+  if ( ! MyCoreApp) {
     // Obtain command-line arguments
     int argc = 0;
     char** argv = 0;
@@ -504,14 +514,13 @@ bool PVGUI_Module::pvInit()
       argv[argc] = strdup( aStr.toLatin1().constData() );
       argc++;
     }
-    pqImplementation::Core = new pqPVApplicationCore (argc, argv);
-    if (pqImplementation::Core->getOptions()->GetHelpSelected() ||
-        pqImplementation::Core->getOptions()->GetUnknownArgument() ||
-        pqImplementation::Core->getOptions()->GetErrorMessage() ||
-        pqImplementation::Core->getOptions()->GetTellVersion()) {
+    MyCoreApp = new pqPVApplicationCore (argc, argv);
+    if (MyCoreApp->getOptions()->GetHelpSelected() ||
+        MyCoreApp->getOptions()->GetUnknownArgument() ||
+        MyCoreApp->getOptions()->GetErrorMessage() ||
+        MyCoreApp->getOptions()->GetTellVersion()) {
       return false;
-    }
-    // VSV: Code from Initializer - it seems that it does nothing
+      }
 
     // Not sure why this is needed. Andy added this ages ago with comment saying
     // needed for Mac apps. Need to check that it's indeed still required.
@@ -535,10 +544,9 @@ bool PVGUI_Module::pvInit()
 
     // End of Initializer code
 
-    pqImplementation::OutputWindowAdapter = PVGUI_OutputWindowAdapter::New();
-    vtkOutputWindow::SetInstance(pqImplementation::OutputWindowAdapter);
-
-    new pqViewManager(); // it registers as "MULTIVIEW_MANAGER on creation
+    vtkOutputWindow::SetInstance(PVGUI_OutputWindowAdapter::New());
+    
+    new pqTabbedMultiViewWidget(); // it registers as "MULTIVIEW_WIDGET on creation
     
     for (int i = 0; i < argc; i++)
       free(argv[i]);
@@ -575,46 +583,10 @@ void PVGUI_Module::showView( bool toShow )
 /*!
   \brief Slot to show help for proxy.
 */
-void PVGUI_Module::showHelpForProxy( const QString& proxy )
+void PVGUI_Module::showHelpForProxy( const QString& groupname, const QString& proxyname )
 {
-  showHelp(QString("qthelp://paraview.org/paraview/%1.html").arg(proxy));
+  pqHelpReaction::showProxyHelp(groupname, proxyname);
 }
-
-void PVGUI_Module::showParaViewHelp()
-{
-  showHelp(QString());
-}
-
-void PVGUI_Module::showHelp(const QString& url)
-{
-  if (pqImplementation::helpWindow) {
-   // raise assistant window;
-    pqImplementation::helpWindow->show();
-    pqImplementation::helpWindow->raise();
-    if (!url.isEmpty()) {
-      pqImplementation::helpWindow->showPage(url);
-    }
-    return;
-  }
-
-  QString aFile = getHelpFileName();
-
-  if (!QFile::exists(aFile)) {
-    qWarning("Help file not found");
-    return;
-  }
-  
-  pqImplementation::helpWindow = new pqHelpWindow(QString("ParaView Online Help"), getApp()->desktop());
-  QString namespace_name = pqImplementation::helpWindow->registerDocumentation(aFile);
-
-  pqImplementation::helpWindow->showHomePage(namespace_name);
-  pqImplementation::helpWindow->show();
-  pqImplementation::helpWindow->raise();
-  if (!url.isEmpty()) {
-    pqImplementation::helpWindow->showPage(url);
-  }
-}
-
 
 
 /*!
@@ -646,9 +618,9 @@ void PVGUI_Module::endWaitCursor()
 /*!
   \brief Returns the ParaView multi-view manager.
 */
-pqViewManager* PVGUI_Module::getMultiViewManager() const
+pqTabbedMultiViewWidget* PVGUI_Module::getMultiViewManager() const
 {
-  return qobject_cast<pqViewManager*>(pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
+  return qobject_cast<pqTabbedMultiViewWidget*>(pqApplicationCore::instance()->manager("MULTIVIEW_WIDGET"));
 }
 
 
@@ -714,9 +686,9 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
       myDockWidgets[aView] = aView->isVisible();
   }
 
-  if (pqImplementation::helpWindow) {
+  /*if (pqImplementation::helpWindow) {
     pqImplementation::helpWindow->hide();
-  }
+    }*/
   showView( false );
 
   // hide menus
@@ -751,7 +723,7 @@ void PVGUI_Module::onApplicationClosed( SUIT_Application* theApp )
   int aAppsNb = SUIT_Session::session()->applications().size();
   if (aAppsNb == 1) {
     deleteTemporaryFiles();
-    //pvShutdown();
+    MyCoreApp->deleteLater();
   }
   CAM_Module::onApplicationClosed(theApp);
 }
@@ -898,7 +870,7 @@ void PVGUI_Module::saveTrace(const char* theName)
 */
 void PVGUI_Module::saveParaviewState(const char* theFileName)
 {
-  Implementation->Core->saveState(theFileName);
+  pqApplicationCore::instance()->saveState(theFileName);
 }
 
 /*!
@@ -919,7 +891,7 @@ void PVGUI_Module::clearParaviewState()
 */
 void PVGUI_Module::loadParaviewState(const char* theFileName)
 {
-  Implementation->Core->loadState(theFileName, getActiveServer());
+  pqApplicationCore::instance()->loadState(theFileName, getActiveServer());
 }
 
 /*!
@@ -999,7 +971,7 @@ void PVGUI_Module::deleteTemporaryFiles()
 */
 pqServer* PVGUI_Module::getActiveServer()
 {
-  return Implementation->Core->getActiveServer();
+  return pqApplicationCore::instance()->getActiveServer();
 }
 
 

@@ -24,6 +24,8 @@ include(${MedReader_BINARY_DIR}/IO/vtkMedReader_IOKit.cmake)
 
 include_directories(${VTK_MEDREADER_IO_HEADER_DIR})
 
+add_definitions( -I${CMAKE_CURRENT_BINARY_DIR}/../IO )
+
 foreach(class ${VTK_MEDREADER_IO_CLASSES})
     set(MEDREADER_HDRS ${MEDREADER_HDRS} ${VTK_MEDREADER_IO_HEADER_DIR}/${class}.h)
 endforeach(class)

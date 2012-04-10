@@ -51,6 +51,8 @@ class vtkObjectBase;
 namespace PARAVIS
 {
 
+  const char* checkNullStr(const char* theStr);
+
   /*!
    * Base implementation for all container objects for Paravis serevrmanager API classes
    */
@@ -66,8 +68,14 @@ namespace PARAVIS
     //! Initialises internal pointer on existing Paraview class instance
     virtual void Init(::vtkObjectBase* base);
 
+    virtual ::vtkObjectBase* GetNew() { return NULL; }
+
     //! Returns pointer on internal Paraview class instance
-    virtual ::vtkObjectBase* getVTKObject() { return mySmartPointer.GetPointer(); }
+    virtual ::vtkObjectBase* getVTKObject() 
+    { if (mySmartPointer == NULL)
+        mySmartPointer = GetNew();
+      return mySmartPointer.GetPointer(); 
+    }
 
     //! The same as previous in static context
     static ::vtkObjectBase* getVTKObject(PARAVIS_Base_ptr theBase);

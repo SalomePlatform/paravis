@@ -27,7 +27,7 @@
 #include <SUIT_Session.h>
 #include <SUIT_Desktop.h>
 
-#include <pqViewManager.h>
+#include <pqTabbedMultiViewWidget.h>
 #include <pqApplicationCore.h>
 
 /*!
@@ -44,7 +44,7 @@ PVGUI_ViewWindow::PVGUI_ViewWindow( SUIT_Desktop* theDesktop, PVGUI_Viewer* theM
   : SUIT_ViewWindow( theDesktop ), myPVMgr( 0 )
 {
   myModel = theModel;
-  myPVMgr = qobject_cast<pqViewManager*>(pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
+  myPVMgr = qobject_cast<pqTabbedMultiViewWidget*>(pqApplicationCore::instance()->manager("MULTIVIEW_WIDGET"));
   if (myPVMgr) {
     myPVMgr->setParent( this );
     // This is mandatory, see setParent() method in Qt 4 documentation
@@ -92,7 +92,7 @@ void PVGUI_ViewWindow::setVisualParameters( const QString& parameters )
 /*!
   \brief Returns the ParaView multi-view manager previously set with setMultiViewManager()
 */
-pqViewManager* PVGUI_ViewWindow::getMultiViewManager() const
+pqTabbedMultiViewWidget* PVGUI_ViewWindow::getMultiViewManager() const
 {
   return myPVMgr;
 }

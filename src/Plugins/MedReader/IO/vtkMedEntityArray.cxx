@@ -66,6 +66,7 @@ vtkMedEntityArray::vtkMedEntityArray()
   this->FamilyIdStatus = vtkMedEntityArray::FAMILY_ID_NOT_LOADED;
   this->ParentGrid = NULL;
   this->StructElement = NULL;
+  //this->Filter = NULL;
 }
 
 vtkMedEntityArray::~vtkMedEntityArray()
@@ -78,6 +79,7 @@ vtkMedEntityArray::~vtkMedEntityArray()
   delete this->FamilyOnEntity;
   this->SetParentGrid(NULL);
   this->SetStructElement(NULL);
+  //this->SetFilter(NULL);
 }
 
 void vtkMedEntityArray::Initialize()

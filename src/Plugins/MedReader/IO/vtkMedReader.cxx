@@ -68,6 +68,7 @@
 #include "vtkDoubleArray.h"
 #include "vtkConfigure.h"
 #include "vtkMultiProcessController.h"
+#include "vtkCommunicator.h"
 
 #include "vtkSMDoubleVectorProperty.h"
 #include "vtkInformationDataObjectKey.h"
@@ -295,6 +296,8 @@ int vtkMedReader::RequestInformation(vtkInformation *request,
     vtkInformationVector **inputVector, vtkInformationVector *outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),-1);
+
   if(this->Internal->MetaDataMTime <= this->Internal->FileNameMTime)
     {
     this->ClearCaches(Initialize);
@@ -347,7 +350,6 @@ int vtkMedReader::RequestInformation(vtkInformation *request,
     this->GatherComputeSteps();
 
     this->Internal->MetaDataMTime.Modified();
-
     }
 
   outInfo->Set(vtkDataObject::SIL(), this->Internal->SIL);
@@ -356,9 +358,6 @@ int vtkMedReader::RequestInformation(vtkInformation *request,
   request->AppendUnique(vtkExecutive::KEYS_TO_COPY(),
                         vtkMedUtilities::BLOCK_NAME());
   this->AdvertiseTime(outInfo);
-
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::MAXIMUM_NUMBER_OF_PIECES(),
-      -1);
   return 1;
 }
 
@@ -383,7 +382,8 @@ int vtkMedReader::RequestData(vtkInformation *request,
     }
   else
     {
-    vtkMultiProcessController* controller = vtkMultiProcessController::GetGlobalController();
+    vtkMultiProcessController* controller =
+    		vtkMultiProcessController::GetGlobalController();
     if(controller)
       {
       this->Internal->NumberOfPieces=controller->GetNumberOfProcesses();
@@ -401,6 +401,16 @@ int vtkMedReader::RequestData(vtkInformation *request,
   else
     {
     this->Internal->CurrentPieceNumber=0;
+    vtkMultiProcessController* controller =
+    		vtkMultiProcessController::GetGlobalController();
+    if(controller)
+      {
+      this->Internal->CurrentPieceNumber= controller->GetLocalProcessId();
+      }
+    else
+      {
+      this->Internal->CurrentPieceNumber=0;
+      }
     }
 
   if (info->Has(
@@ -424,6 +434,7 @@ int vtkMedReader::RequestData(vtkInformation *request,
     this->Internal->UpdateTimeStep=0;
     }
 
+  this->InitializeParallelRead();
   output->Initialize();
 
   this->ChooseRealAnimationMode();
@@ -448,6 +459,8 @@ int vtkMedReader::RequestData(vtkInformation *request,
   int supportId = 0;
   int progress=0;
   int maxprogress=2*this->Internal->UsedSupports.size();
+  supportId = 0;
+  int it_counter = 0;
   for(set<vtkMedFamilyOnEntityOnProfile*>::iterator it=
       this->Internal->UsedSupports.begin(); it
       !=this->Internal->UsedSupports.end(); it++)
@@ -457,11 +470,8 @@ int vtkMedReader::RequestData(vtkInformation *request,
     sstr<<"Support : "<<vtkMedUtilities::SimplifyName(
         foep->GetFamilyOnEntity()->GetFamily()->GetName());
     this->SetProgressText(sstr.str().c_str());
-    int doBuildSupportField = 0;
-    if(((supportId - this->Internal->CurrentPieceNumber) % this->Internal->NumberOfPieces) == 0)
-      {
-      doBuildSupportField = 1;
-      }
+    int doBuildSupportField = 1;
+    it_counter++;
     this->BuildVTKSupport(foep, doBuildSupportField);
     this->UpdateProgress((float) progress/((float) maxprogress-1));
     progress++;
@@ -469,24 +479,19 @@ int vtkMedReader::RequestData(vtkInformation *request,
     }
 
   this->ClearCaches(EndBuildVTKSupports);
-  supportId = 0;
   // This call maps the fields to the supports
   for(set<vtkMedFamilyOnEntityOnProfile*>::iterator it=
       this->Internal->UsedSupports.begin(); it
       !=this->Internal->UsedSupports.end(); it++)
     {
     vtkMedFamilyOnEntityOnProfile* foep = *it;
-    if(foep->GetValid() == 0)
+    if((foep->GetValid() == 0) && (this->Internal->NumberOfPieces == 1))
       continue;
     ostringstream sstr;
     sstr<<"Loading fields on "<<vtkMedUtilities::SimplifyName(
         foep->GetFamilyOnEntity()->GetFamily()->GetName());
     this->SetProgressText(sstr.str().c_str());
-    int doMapField = 0;
-    if(((supportId - this->Internal->CurrentPieceNumber) % this->Internal->NumberOfPieces) == 0)
-      {
-      doMapField = 1;
-      }
+    int doMapField = 1;
     this->MapFieldsOnSupport(*it, doMapField);
     this->UpdateProgress((float) progress/((float) maxprogress-1));
     progress++;
@@ -495,7 +500,6 @@ int vtkMedReader::RequestData(vtkInformation *request,
 
   // This call clean up caches (what is actually done depends of the CacheStrategy)
   this->ClearCaches(EndRequest);
-
   return 1;
 }
 
@@ -518,6 +522,135 @@ void vtkMedReader::InitializeCellGlobalIds()
         }
       }
     }
+}
+
+// Method to create the filters for the MED parallel read functions
+// It is defined here as we have all information for initialization
+void vtkMedReader::InitializeParallelRead()
+{
+  // If there is only one process for reading no need to enter here
+  if (this->Internal->NumberOfPieces <= 1)
+    {
+    return;
+    }
+
+  // FIRST: Generate filters for the cells
+
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+  meshfit = this->Internal->MedFiles.begin();
+  while(meshfit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* meshfile = meshfit->second;
+    meshfit++;
+    med_idt pFileID = meshfile->GetMedDriver()->GetParallelFileId();
+
+    for(int mid=0; mid<meshfile->GetNumberOfMesh(); mid++)
+      {
+      vtkMedMesh* mesh = meshfile->GetMesh(mid);
+      for(int gid=0; gid<mesh->GetNumberOfGridStep(); gid++)
+        {
+        vtkMedGrid* grid = mesh->GetGridStep(gid);
+        // read point family data and create EntityArrays
+
+        for(int eid=0; eid < grid->GetNumberOfEntityArray(); eid++)
+         {
+          vtkMedEntityArray* array = grid->GetEntityArray(eid);
+
+          // Next continue is to avoid to create filters for the
+          // points, at the moment we charge the points in all nodes
+          if (array->GetEntity().GeometryType == MED_POINT1) // !MED_NODE
+            continue;
+
+          med_int nbofconstituentpervalue = vtkMedUtilities::GetNumberOfNodes(
+                                            array->GetEntity().GeometryType);
+          if (nbofconstituentpervalue == -1)
+            vtkErrorMacro("Still not implemented for MED_POLYGON and MED_POLYHEDRON"); // à gerer
+
+          // Calculating block sizes
+          int nEntity = array->GetNumberOfEntity();
+          int block_size = ( nEntity / this->Internal->NumberOfPieces );
+          med_size    start  = block_size * this->Internal->CurrentPieceNumber + 1;
+          med_size    stride = block_size;
+          med_size    count  = 1;
+          med_size    blocksize = block_size;
+          med_size    lastblocksize = (nEntity % this->Internal->NumberOfPieces);
+          if ((this->Internal->NumberOfPieces ==
+              this->Internal->CurrentPieceNumber+1) && (lastblocksize != 0))
+            {
+            blocksize += lastblocksize;
+            stride    += lastblocksize;
+            }
+          lastblocksize = 0;
+
+          vtkMedFilter *filter = vtkMedFilter::New();
+          filter->SetFilterSizes( start, stride, count, blocksize, lastblocksize );
+          array->SetFilter(filter);
+         }//entity array
+        }// grid step
+      }//mesh
+    }//mesh file
+
+  // SECOND: Filters for the Fields
+
+  std::map<std::string, vtkSmartPointer<vtkMedFile> >::iterator
+      fieldfileit;
+  // link the FieldOnProfile with the profiles
+  fieldfileit = this->Internal->MedFiles.begin();
+  while(fieldfileit != this->Internal->MedFiles.end())
+    {
+    vtkMedFile* fieldfile = fieldfileit->second;
+    fieldfileit++;
+    med_idt pFileID = fieldfile->GetMedDriver()->GetParallelFileId();
+
+    for(int fid=0; fid<fieldfile->GetNumberOfField(); fid++)
+      {
+      vtkMedField* field = fieldfile->GetField(fid);
+
+      if (field->GetFieldType() == vtkMedField::CellField)
+      {
+      for(int sid = 0; sid< field->GetNumberOfFieldStep(); sid++)
+        {
+        vtkMedFieldStep* step = field->GetFieldStep(sid);
+
+        for(int foeid = 0; foeid < step->GetNumberOfFieldOverEntity(); foeid++)
+        // TODO : seul le premier pas de temps est dispo au debut
+          {
+          vtkMedFieldOverEntity* fieldOverEntity = step->GetFieldOverEntity(foeid);
+
+          for(int fopid = 0; fopid < fieldOverEntity->GetNumberOfFieldOnProfile(); fopid++)
+            {
+            vtkMedFieldOnProfile* fop = fieldOverEntity->GetFieldOnProfile(fopid);
+            // Here implement the filters as before:
+            // 1- Modify vtkMedFieldOnProfile to contain a filter
+            // 2- Create the filters here only if they are on CELLs (use GetFieldType)
+            med_int nbofconstituentpervalue = field->GetNumberOfComponent();
+
+            int nVectors = fop->GetNumberOfValues();
+
+            int block_size = ( nVectors / this->Internal->NumberOfPieces );
+            int    start  = block_size * this->Internal->CurrentPieceNumber + 1;
+            int    stride = block_size;
+            int    count  = 1;
+            int    blocksize = block_size;
+            int    lastblocksize = (nVectors % this->Internal->NumberOfPieces);
+            if ((this->Internal->NumberOfPieces ==
+                 this->Internal->CurrentPieceNumber+1) && (lastblocksize != 0))
+              {
+              blocksize += lastblocksize;
+              stride    += lastblocksize;
+              }
+            lastblocksize = 0;
+
+            vtkMedFilter *filter = vtkMedFilter::New();
+            filter->SetFilterSizes( start, stride, count, blocksize, lastblocksize );
+            fop->SetFilter(filter);
+            }
+          }
+        }
+      } // end IF
+      }
+    }
+
 }
 
 void  vtkMedReader::LinkMedInfo()
@@ -1261,7 +1394,7 @@ void vtkMedReader::AdvertiseTime(vtkInformation* info)
 
     if(iterationsets.size()>0)
       {
-      // remove MED_NO_IT if there are other availble iterations.
+      // remove MED_NO_IT if there are other available iterations.
       if(iterationsets.size()>1)
         iterationsets.erase(MED_NO_IT);
 
@@ -1892,8 +2025,19 @@ bool vtkMedReader::BuildVTKSupport(
 {
 
   vtkMedFamilyOnEntity* foe = foep->GetFamilyOnEntity();
-  if(foep->GetValid() == 0)
+
+  int numProc = 1;
+  vtkMultiProcessController* controller = vtkMultiProcessController::GetGlobalController();
+  if (controller != NULL)
+    {
+    numProc = controller->GetNumberOfProcesses();
+    }
+
+  if ((foep->GetValid() == 0) && numProc == 1)
+    {
     return false;
+    }
+
   vtkMedGrid* grid=foe->GetParentGrid();
 
   vtkMedEntityArray* array=foe->GetEntityArray();
@@ -1939,7 +2083,6 @@ bool vtkMedReader::BuildVTKSupport(
     vtkDataSet* dataset = NULL;
     if(doBuildSupport)
       {
-
       if(foe->GetPointOrCell()==vtkMedUtilities::OnPoint)
         {
         dataset = this->CreateUnstructuredGridForPointSupport(foep);
@@ -1949,6 +2092,11 @@ bool vtkMedReader::BuildVTKSupport(
         dataset = foep->GetFamilyOnEntity()->GetParentGrid()->
                   CreateVTKDataSet(foep);
         }
+      }
+
+    if(dataset == NULL)
+      {
+      return false;
       }
 
     this->Internal->DataSetCache[foep]=dataset;
@@ -2023,6 +2171,11 @@ void vtkMedReader::MapFieldsOnSupport(vtkMedFamilyOnEntityOnProfile* foep,
       {
       vtkMedField* field=file->GetField(fieldId);
     
+      if(strcmp(foep->GetFamilyOnEntity()->
+                GetParentGrid()->GetParentMesh()->GetName(),
+                field->GetMeshName()) != 0)
+        continue;
+
       if(strcmp(foep->GetFamilyOnEntity()->
                 GetParentGrid()->GetParentMesh()->GetName(),
                 field->GetMeshName()) != 0)
@@ -2113,6 +2266,12 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
   const vtkMedComputeStep& cs = step->GetComputeStep();
 
   vtkDataSet* ds=this->Internal->CurrentDataSet[foep];
+  if (ds == NULL)
+    {
+  // ds == NULL could arrive is some cases when working in parallel
+  vtkWarningMacro( "--- vtkMedReader::SetVTKFieldOnSupport: ds is NULL !!");
+  return;
+    }
 
   VTKField& vtkfield=this->Internal->FieldCache[foep][fop];
 
@@ -2146,7 +2305,7 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       {
       if(vtkfield.DataArray->GetNumberOfTuples()!=ds->GetNumberOfPoints())
         {
-        vtkDebugMacro("the data array " << vtkfield.DataArray->GetName()
+    	  vtkDebugMacro("the data array " << vtkfield.DataArray->GetName()
                       << " do not have the good number of tuples");
         return;
         }
@@ -2168,7 +2327,7 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       // if the data set is only composed of VTK_VERTEX cells,
       // and no field called with the same name exist on cells,
       // map this field to cells too
-      if(foe->GetVertexOnly()==1&&ds->GetCellData()->GetArray(
+      if(foe->GetVertexOnly()==1 && ds->GetCellData()->GetArray(
               vtkfield.DataArray->GetName())==NULL)
         {
         ds->GetCellData()->AddArray(vtkfield.DataArray);
@@ -2190,7 +2349,7 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       }
     if(field->GetFieldType()==vtkMedField::CellField)
       {
-      if(vtkfield.DataArray->GetNumberOfTuples()!=ds->GetNumberOfCells())
+      if((this->Internal->NumberOfPieces == 1) && vtkfield.DataArray->GetNumberOfTuples()!=ds->GetNumberOfCells()  )
         {
         vtkDebugMacro("the data array " << vtkfield.DataArray->GetName()
                       << " do not have the good number of tuples"
@@ -2198,7 +2357,13 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
                       << " ntuple=" << vtkfield.DataArray->GetNumberOfTuples());
         return;
         }
+      // In case we are in parallel and our process does not contain the data
+      if(ds->GetNumberOfCells()==0)
+        {
+        return;
+        }
       ds->GetCellData()->AddArray(vtkfield.DataArray);
+
       if(vtkfield.Vectors != NULL && this->GenerateVectors)
         {
         ds->GetCellData()->AddArray(vtkfield.Vectors);
@@ -2241,7 +2406,8 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       {
       vtkIdType ncells=ds->GetNumberOfCells();
       vtkIdType nid=vtkfield.QuadratureIndexArray->GetNumberOfTuples();
-      if(nid!=ncells)
+      vtkIdType nda=vtkfield.DataArray->GetNumberOfTuples();
+      if((nid!=ncells) && (this->Internal->NumberOfPieces == 1))
         {
         vtkDebugMacro(
             "There should be as many quadrature index values as there are cells");
@@ -2249,8 +2415,23 @@ void vtkMedReader::SetVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
         }
       else
         {
+      if (ncells == 0)
+      {
+        vtkfield.DataArray->SetNumberOfTuples( 0 );
+        vtkfield.DataArray->Squeeze();
+      }
+      if (nid>ncells)  // PROBABLY NOT NECESSARY
+      {
+        vtkfield.QuadratureIndexArray->SetNumberOfTuples(ncells);
+        int nquad=fop->GetNumberOfIntegrationPoint();
+        vtkfield.DataArray->SetNumberOfTuples( nquad * ds->GetNumberOfCells() );
+        vtkfield.DataArray->Squeeze();
+      }
         ds->GetFieldData()->AddArray(vtkfield.DataArray);
         ds->GetCellData()->AddArray(vtkfield.QuadratureIndexArray);
+
+        nid=vtkfield.QuadratureIndexArray->GetNumberOfTuples();
+        nda=vtkfield.DataArray->GetNumberOfTuples();
 
         if(vtkfield.Vectors != NULL && this->GenerateVectors)
           {
@@ -2467,13 +2648,11 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
 
   if(shallowok)
     {
-
     // build the quadrature offset array if needed
     if(createOffsets)
       {
       vtkIdType noffsets;
       int nquad=fop->GetNumberOfIntegrationPoint();
-
       noffsets=fop->GetData()->GetNumberOfTuples()/nquad;
 
       vtkDataSet* ds=this->Internal->CurrentDataSet[foep];
@@ -2490,12 +2669,12 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
         vtkfield.QuadratureIndexArray->SetValue(id, nquad*id);
         }
       }
+
     }
   else if(foe->GetPointOrCell() == vtkMedUtilities::OnCell
      && field->GetFieldType() != vtkMedField::PointField)
     {
     // Cell-centered field on cell support
-
     int nquad = 1;
     if (field->GetFieldType()==vtkMedField::QuadratureField ||
         field->GetFieldType()==vtkMedField::ElnoField)
@@ -2514,7 +2693,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
     for (vtkIdType id = 0; id<maxIndex; id++)
       {
       vtkIdType realIndex = (profids!=NULL ? profids->GetValue(id)-1 : id);
-
       if (!foep->KeepCell(realIndex))
         continue;
 
@@ -2539,10 +2717,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       }//copy all tuples
     vtkfield.DataArray->Squeeze();
     vtkDataSet* ds = this->Internal->CurrentDataSet[foep];
-    if(vtkfield.DataArray->GetNumberOfTuples()/nquad != ds->GetNumberOfCells())
-      {
-      vtkDebugMacro("number of tuple invalid!");
-      }
     }
   else if(foe->GetPointOrCell() == vtkMedUtilities::OnCell
      && field->GetFieldType() == vtkMedField::PointField)
@@ -2590,7 +2764,6 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
 
     for(vtkIdType id=0; id<maxId; id++)
       {
-
       vtkIdType realIndex=id;
       if(profids!=NULL)
         {

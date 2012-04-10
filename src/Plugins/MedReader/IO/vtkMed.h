@@ -21,10 +21,25 @@
 #define __vtkMed_h__
 
 #include "hdf5.h"
+#include "config.h"
 
 extern "C"
 {
 #include "med.h"
+#define MESGERR 1
+#include "med_utils.h"
+
+#ifdef MED_HAVE_MPI
+#ifdef MedReader_BUILD_PARALLEL
+#define MedReader_HAVE_PARALLEL_INFRASTRUCTURE
+#endif
+#endif
+
+//#define MED_HAVE_MPI 1
+//#include "mpi.h"
+#ifdef MedReader_HAVE_PARALLEL_INFRASTRUCTURE
+#include "mpi.h"
+#endif
 }
 
 #endif //__vtkMed_h__

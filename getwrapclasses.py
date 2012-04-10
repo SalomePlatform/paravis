@@ -24,8 +24,10 @@ import re
 classeslistsm = []
 classeslistvtk = []
 
-from vtkPVServerCommonPython import *
+from vtkPVClientServerCorePython import *
+from vtkPVServerImplementationPython import *
 from vtkPVServerManagerPython import *
+from vtkPVCommonPython import *
 
 l1 = dir()
 for a in l1:

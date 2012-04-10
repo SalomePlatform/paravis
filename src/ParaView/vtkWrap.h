@@ -29,6 +29,7 @@
 /*@{*/
 #define VTK_WRAP_RETURN  1
 #define VTK_WRAP_ARG     2
+#define VTK_WRAP_NOSEMI  4
 /*@}*/
 
 #ifdef __cplusplus
@@ -97,6 +98,15 @@ int vtkWrap_IsConst(ValueInfo *val);
 /*@}*/
 
 /**
+ * Hints.
+ * NewInstance objects must be freed by the caller.
+ */
+/*@{*/
+int vtkWrap_IsNewInstance(ValueInfo *val);
+/*@}*/
+
+
+/**
  * Check whether the class is derived from vtkObjectBase.
  * If "hinfo" is NULL, this just checks that the class
  * name starts with "vtk".
@@ -128,6 +138,16 @@ int vtkWrap_IsClassWrapped(
   HierarchyInfo *hinfo, const char *classname);
 
 /**
+ * Check whether the destructor is public
+ */
+int vtkWrap_HasPublicDestructor(ClassInfo *data);
+
+/**
+ * Check whether the copy constructor is public
+ */
+int vtkWrap_HasPublicCopyConstructor(ClassInfo *data);
+
+/**
  * Expand all typedef types that are used in function arguments.
  * This should be done before any wrapping is done, to make sure
  * that the wrappers see the real types.
@@ -139,6 +159,14 @@ void vtkWrap_ExpandTypedefs(ClassInfo *data, HierarchyInfo *hinfo);
  * GetNumberOfComponents() method gives the tuple size.
  */
 void vtkWrap_FindCountHints(
+  ClassInfo *data, HierarchyInfo *hinfo);
+
+/**
+ * Apply any hints about methods that return a new object instance,
+ * i.e. factory methods and the like.  Reference counts must be
+ * handled differently for such returned objects.
+ */
+void vtkWrap_FindNewInstanceMethods(
   ClassInfo *data, HierarchyInfo *hinfo);
 
 /**
@@ -189,6 +217,7 @@ int vtkWrap_CountRequiredArgs(FunctionInfo *f);
  * Set "flags" to VTK_WRAP_RETURN to write a return value,
  * or to VTK_WRAP_ARG to write a temp argument variable.
  * The following rules apply:
+ * - if VTK_WRAP_NOSEMI is set, then no semicolon/newline is printed
  * - if VTK_WRAP_RETURN is set, then "&" becomes "*"
  * - if VTK_WRAP_ARG is set, "&" becomes "*" only for object
  *   types, and is removed for all other types.

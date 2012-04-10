@@ -60,7 +60,6 @@ PROJECT( ParaMEDCorba )
       vtkCommon
       vtkFiltering
       vtkGraphics
-      vtkPVFilters
       vtkClientServer
       pqCore
       ${CORBA_LIBS}

@@ -20,7 +20,7 @@
 #include <PVGUI_ViewModel.h>
 #include <PVGUI_ViewWindow.h>
 #include <pqApplicationCore.h>
-#include <pqViewManager.h>
+#include <pqTabbedMultiViewWidget.h>
 
 /*!
   Constructor
@@ -41,7 +41,7 @@ PVGUI_ViewManager::~PVGUI_ViewManager()
 /*!
   \brief Returns the ParaView multi-view manager for the active view window
 */
-pqViewManager* PVGUI_ViewManager::getMultiViewManager()
+pqTabbedMultiViewWidget* PVGUI_ViewManager::getMultiViewManager()
 {
-  return qobject_cast<pqViewManager*>(pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
+  return qobject_cast<pqTabbedMultiViewWidget*>(pqApplicationCore::instance()->manager("MULTIVIEW_WIDGET"));
 }

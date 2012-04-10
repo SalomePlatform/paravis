@@ -22,7 +22,7 @@
 // Author : Margarita KARPUNINA
 //
 
-#include "PVGUI_Module_impl.h"
+#include "PVGUI_Module.h"
 
 #include <QtxAction.h>
 #include <QtxActionMenuMgr.h>
@@ -79,6 +79,7 @@
 #include <pqHelpReaction.h>
 #include <pqViewManager.h>
 #include <pqDataQueryReaction.h>
+#include <pqRecentFilesMenu.h>
 
 #include "PVGUI_Tools.h"
 
@@ -261,8 +262,8 @@ void PVGUI_Module::pvCreateActions()
   new pqViewSettingsReaction(anAction);
 
   // --- Menu "View"
-  pqViewManager* viewManager = qobject_cast<pqViewManager*>(
-                               pqApplicationCore::instance()->manager("MULTIVIEW_MANAGER"));
+  //pqViewManager* viewManager = qobject_cast<pqViewManager*>(
+  //                             pqApplicationCore::instance()->manager("MULTIVIEW_WIDGET"));
 
   //rnv: Commented to implement issue 
   //21318: EDF 1615 ALL: Display in full screen mode
@@ -382,7 +383,11 @@ void PVGUI_Module::pvCreateActions()
   new pqAboutDialogReaction(anAction << pqSetName("actionAbout"));
 
   // Native ParaView user documentation
-  QString aFile = getHelpFileName();
+  anAction = new QAction(tr("MEN_ABOUT"), this);
+  registerAction(ParaViewHelpId, anAction);
+  new pqHelpReaction(anAction);
+  
+  /*QString aFile = getHelpFileName();
   if (QFile::exists(aFile)) {
     aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
     anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
@@ -391,7 +396,7 @@ void PVGUI_Module::pvCreateActions()
     anAction->setShortcut(QKeySequence::HelpContents);
     connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
     registerAction(ParaViewHelpId, anAction);
-  }
+    }*/
 }
 
 /*!
@@ -414,7 +419,7 @@ void PVGUI_Module::pvCreateMenus()
   // Recent Files
    int aMenuId = createMenu( tr( "MEN_RECENT_FILES" ), aPVMnu, -1, 5 );
    QMenu* aMenu = menuMgr()->findMenu( aMenuId );
-   Implementation->RecentFilesMenu = new pqRecentFilesMenu( *aMenu, getApp()->desktop() );
+   pqRecentFilesMenu* aRecentFilesMenu = new pqRecentFilesMenu( *aMenu, getApp()->desktop() );
    QList<QAction*> anActns = aMenu->actions();
    for (int i = 0; i < anActns.size(); ++i)
      createMenu( anActns.at(i), aMenuId );

@@ -41,60 +41,60 @@ vtkStandardNewMacro(vtkMedRegularGrid)
 
 vtkMedRegularGrid::vtkMedRegularGrid()
 {
-	this->AxisCoordinate = new vtkObjectVector<vtkDataArray>();
+  this->AxisCoordinate = new vtkObjectVector<vtkDataArray>();
 }
 
 vtkMedRegularGrid::~vtkMedRegularGrid()
 {
-	delete this->AxisCoordinate;
+  delete this->AxisCoordinate;
 }
 
 void vtkMedRegularGrid::SetDimension(med_int dim)
 {
-	if(dim < 0)
-		dim = 0;
-	this->AxisSize.resize(dim);
-	this->SetNumberOfAxisCoordinate(dim);
+  if(dim < 0)
+    dim = 0;
+  this->AxisSize.resize(dim);
+  this->SetNumberOfAxisCoordinate(dim);
 }
 
-int	vtkMedRegularGrid::GetDimension()
+int vtkMedRegularGrid::GetDimension()
 {
-	return this->AxisSize.size();
+  return this->AxisSize.size();
 }
 
-void	vtkMedRegularGrid::SetAxisSize(int axis, med_int size)
+void  vtkMedRegularGrid::SetAxisSize(int axis, med_int size)
 {
-	if(axis < 0)
-		return;
+  if(axis < 0)
+    return;
 
-	if(axis >= this->GetDimension())
-		{
-		this->SetDimension(axis+1);
-		}
+  if(axis >= this->GetDimension())
+    {
+    this->SetDimension(axis+1);
+    }
 
-	this->AxisSize[axis] = size;
+  this->AxisSize[axis] = size;
 }
 
 med_int vtkMedRegularGrid::GetAxisSize(int dim)
 {
-	if(dim < 0 || dim >= this->AxisSize.size())
-		return 0;
-	return this->AxisSize[dim];
+  if(dim < 0 || dim >= this->AxisSize.size())
+    return 0;
+  return this->AxisSize[dim];
 }
 
 med_int vtkMedRegularGrid::GetNumberOfPoints()
 {
-	med_int npts = 1;
-	for(int dim = 0; dim < this->AxisSize.size(); dim++)
-		{
-		npts *= this->AxisSize[dim];
-		}
-	return npts;
+  med_int npts = 1;
+  for(int dim = 0; dim < this->AxisSize.size(); dim++)
+    {
+    npts *= this->AxisSize[dim];
+    }
+  return npts;
 }
 
-void	vtkMedRegularGrid::LoadCoordinates()
+void  vtkMedRegularGrid::LoadCoordinates()
 {
-	this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
+  this->GetParentMesh()->GetParentFile()->GetMedDriver()->LoadCoordinates(this);
 }
 
 int vtkMedRegularGrid::IsCoordinatesLoaded()
@@ -213,5 +213,5 @@ vtkDataSet* vtkMedRegularGrid::CreateVTKDataSet(vtkMedFamilyOnEntityOnProfile* f
 
 void vtkMedRegularGrid::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
+  this->Superclass::PrintSelf(os, indent);
 }

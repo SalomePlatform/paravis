@@ -52,7 +52,7 @@ char* Copyright[] = {
   ""
 };
 
-#define bs 8192
+#define bs 12288
 
 int numberOfWrappedFunctions = 0;
 FunctionInfo *wrappedFunctions[1000];
@@ -853,7 +853,10 @@ void get_signature(const char* num, ClassInfo *data)
     if(IsClass(aArgVal) && IsPtr(aArgVal)) {
       add_to_sig(result,"*",&currPos);  
     }
-    sprintf(buf,"myParam%d",i);
+    if (IsString(aArgVal) && IsConst(aArgVal))
+      sprintf(buf,"checkNullStr(myParam%d)",i);
+    else
+      sprintf(buf,"myParam%d",i);
     add_to_sig(result,buf,&currPos);
   }
   add_to_sig(result,");\n",&currPos);  
@@ -1479,15 +1482,29 @@ void outputFunction2(FILE *fp, ClassInfo *data)
   fprintf(fp," {");
   fprintf(fp,"\n    public:\n");
   fprintf(fp,"\n        %s_i();\n",data->Name);
+  if(strcmp(data->Name,"vtkSMSessionProxyManager") != 0) {
+    fprintf(fp,"\n        ::vtkObjectBase* GetNew();\n");
+  }
+
 #elif defined(IDL_I_CC)
   fprintf(fp,"extern PARAVIS::PARAVIS_Base_i* CreateInstance(::vtkObjectBase* Inst, const QString&);\n");
   fprintf(fp,"\nnamespace PARAVIS\n{\n");
-  fprintf(fp,"typedef %s_i current_inderface;\n",data->Name);
+  fprintf(fp,"typedef %s_i current_interface;\n",data->Name);
   fprintf(fp,"#define CreateEventName(Function) Event%s ##Function\n",data->Name);
   fprintf(fp,"%s_i::%s_i() {\n",data->Name,data->Name);
-  fprintf(fp,"    Init(::%s::New());\n",data->Name);
+  //fprintf(fp,"    Init(::%s::New());\n",data->Name);
   fprintf(fp,"}\n");
   fprintf(fp,"\n");
+  
+  if(strcmp(data->Name,"vtkSMSessionProxyManager") != 0) {
+    fprintf(fp,"::vtkObjectBase* %s_i::GetNew() {\n", data->Name);
+    if(strcmp(data->Name,"vtkSMProxyManager") == 0) {
+      fprintf(fp,"  return ::%s::GetProxyManager();\n",data->Name);
+    } else {
+      fprintf(fp,"  return ::%s::New();\n",data->Name);
+    }
+    fprintf(fp,"}\n");
+  }
 #else
   fprintf(fp,"\n    interface %s : PARAVIS_Base",data->Name);
   fprintf(fp,"\n    {\n");

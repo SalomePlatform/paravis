@@ -35,7 +35,7 @@ public :
 
   // Description:
   // overloaded to allocate memory for the grid size
-  virtual void	SetDimension(int);
+  virtual void  SetDimension(int);
   virtual int GetDimension();
 
   // Description:
@@ -46,7 +46,7 @@ public :
 
   // Description:
   // this array contains the coordinates of the points used by this grid.
-  virtual void	SetCoordinates(vtkDataArray*);
+  virtual void  SetCoordinates(vtkDataArray*);
   vtkGetObjectMacro(Coordinates, vtkDataArray);
 
   // Description:

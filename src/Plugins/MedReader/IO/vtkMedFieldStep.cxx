@@ -38,35 +38,35 @@ vtkStandardNewMacro(vtkMedFieldStep)
 
 vtkMedFieldStep::vtkMedFieldStep()
 {
-	this->FieldOverEntity = new vtkObjectVector<vtkMedFieldOverEntity>();
-	this->PreviousStep = NULL;
-	this->ParentField = NULL;
-	this->MedIterator = -1;
+  this->FieldOverEntity = new vtkObjectVector<vtkMedFieldOverEntity>();
+  this->PreviousStep = NULL;
+  this->ParentField = NULL;
+  this->MedIterator = -1;
   this->EntityInfoLoaded = 0;
 }
 
 vtkMedFieldStep::~vtkMedFieldStep()
 {
-	delete this->FieldOverEntity;
-	this->SetPreviousStep(NULL);
-	this->SetParentField(NULL);
+  delete this->FieldOverEntity;
+  this->SetPreviousStep(NULL);
+  this->SetParentField(NULL);
 }
 
 vtkMedFieldOverEntity* vtkMedFieldStep::GetFieldOverEntity(
-		const vtkMedEntity& entity)
+    const vtkMedEntity& entity)
 {
-	for(int id=0; id < this->GetNumberOfFieldOverEntity(); id++)
-		{
-		vtkMedFieldOverEntity* fieldOverEntity = this->GetFieldOverEntity(id);
-		if(fieldOverEntity->GetEntity() == entity)
-			return fieldOverEntity;
-		}
-	return NULL;
+  for(int id=0; id < this->GetNumberOfFieldOverEntity(); id++)
+    {
+    vtkMedFieldOverEntity* fieldOverEntity = this->GetFieldOverEntity(id);
+    if(fieldOverEntity->GetEntity() == entity)
+      return fieldOverEntity;
+    }
+  return NULL;
 }
 
-void	vtkMedFieldStep::LoadInformation()
+void  vtkMedFieldStep::LoadInformation()
 {
-	this->GetParentField()->GetParentFile()->GetMedDriver()->
+  this->GetParentField()->GetParentFile()->GetMedDriver()->
       ReadFieldStepInformation(this, true);
 }
 

@@ -75,16 +75,16 @@ public:
   virtual double Evaluate3(double, double, double);
 
 protected :
-	vtkMedFraction();
-	~vtkMedFraction();
+  vtkMedFraction();
+  ~vtkMedFraction();
 
-	vtkIntArray* Powers;
-	vtkDoubleArray* Coefficients;
+  vtkIntArray* Powers;
+  vtkDoubleArray* Coefficients;
 
-	vtkIntArray* DenominatorPowers;
-	vtkDoubleArray* DenominatorCoefficients;
+  vtkIntArray* DenominatorPowers;
+  vtkDoubleArray* DenominatorCoefficients;
 
-	int NumberOfVariable;
+  int NumberOfVariable;
 
 private :
     vtkMedFraction(const vtkMedFraction&); // Not implemented.

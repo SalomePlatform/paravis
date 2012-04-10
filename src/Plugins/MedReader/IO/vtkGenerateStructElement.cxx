@@ -183,7 +183,7 @@ double  vtkGenerateStructElement::GetParameter1(const char* name,
                               vtkGenerateStructElementCache& cache)
 {
 #ifdef WIN32 //rnv : Avoid compliation error in the VS under windows.
-	return 0;
+  return 0;
 #endif
 }
 

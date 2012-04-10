@@ -22,7 +22,7 @@
 // Author : Margarita KARPUNINA
 //
 
-#include "PVGUI_Module_impl.h"
+#include "PVGUI_Module.h"
 
 #include <QtxActionToolMgr.h>
 #include <LightApp_Application.h>
@@ -33,6 +33,8 @@
 #include <QToolBar>
 #include <QStatusBar>
 #include <QShortcut>
+#include <QScrollArea>
+#include <QVBoxLayout>
 
 #include <pqAnimationViewWidget.h> 
 
@@ -40,7 +42,10 @@
 #include <pqComparativeVisPanel.h>
 #include <pqObjectInspectorWidget.h>
 #include <pqPipelineBrowserWidget.h>
-#include <pqProxyTabWidget.h>
+//#include <pqProxyTabWidget.h>
+#include <pqObjectInspectorWidget.h>
+#include <pqProxyInformationWidget.h>
+#include <pqDisplayProxyEditorWidget.h>
 #include <pqSettings.h>
 #include <pqDataInformationWidget.h>
 #include <pqPVAnimationWidget.h>
@@ -65,6 +70,8 @@
 #include <pqUndoRedoBehavior.h>
 #include <pqViewFrameActionsBehavior.h>
 #include <pqParaViewMenuBuilders.h>
+#include <pqCollaborationPanel.h>
+#include <pqMemoryInspector.h>
 
 /*!
   \brief Create dock widgets for ParaView widgets such as object inspector, pipeline browser, etc.
@@ -73,6 +80,9 @@
 void PVGUI_Module::setupDockWidgets()
 {
   SUIT_Desktop* desk = application()->desktop();
+ 
+  desk->setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+  desk->setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
 
   // Pipeline
   QDockWidget* pipelineBrowserDock = new QDockWidget( tr( "TTL_PIPELINE_BROWSER" ), desk );
@@ -84,17 +94,73 @@ void PVGUI_Module::setupDockWidgets()
   pipelineBrowserDock->setWidget(browser);
   myDockWidgets[pipelineBrowserDock] = true;
 
+
+  
+
   //Object inspector
   QDockWidget* objectInspectorDock = new QDockWidget( tr( "TTL_OBJECT_INSPECTOR" ), desk );
   objectInspectorDock->setObjectName("objectInspectorDock");
   objectInspectorDock->setAllowedAreas( Qt::LeftDockWidgetArea|Qt::NoDockWidgetArea|Qt::RightDockWidgetArea );
   desk->addDockWidget( Qt::LeftDockWidgetArea, objectInspectorDock );
-  pqProxyTabWidget* proxyTab = new pqProxyTabWidget(objectInspectorDock);
-  proxyTab->setShowOnAccept(true);
-  objectInspectorDock->setWidget(proxyTab);
-  connect( proxyTab->getObjectInspector(), SIGNAL( helpRequested(QString) ),
-          this, SLOT( showHelpForProxy(QString) ) );
+
+  pqObjectInspectorWidget* objectInspectorWidget = new pqObjectInspectorWidget(objectInspectorDock);
+  objectInspectorDock->setObjectName("objectInspectorWidget");
+  objectInspectorWidget->setShowOnAccept(true);
+  objectInspectorDock->setWidget(objectInspectorWidget);
+  connect( objectInspectorWidget, SIGNAL( helpRequested(const QString&, const QString&) ),  this, SLOT( showHelpForProxy(const QString&, const QString&) ) );
   myDockWidgets[objectInspectorDock] = true;
+
+  //Display Dock
+  QDockWidget* displayDock = new QDockWidget( tr( "TTL_DISPLAY" ), desk );
+  displayDock->setObjectName("displayDock");
+  QWidget* displayWidgetFrame = new QWidget(displayDock);
+  displayWidgetFrame->setObjectName("displayWidgetFrame");
+  displayDock->setWidget(displayWidgetFrame);
+
+  QScrollArea* displayScrollArea = new QScrollArea(displayWidgetFrame);
+  displayScrollArea->setObjectName("displayScrollArea");
+  displayScrollArea->setWidgetResizable(true);
+
+  QVBoxLayout* verticalLayout = new QVBoxLayout(displayWidgetFrame);
+  verticalLayout->setSpacing(0);
+  verticalLayout->setContentsMargins(0, 0, 0, 0);
+
+  pqDisplayProxyEditorWidget* displayWidget = new pqDisplayProxyEditorWidget(displayDock);
+  displayWidget->setObjectName("displayWidget");
+  displayScrollArea->setWidget(displayWidget);
+  verticalLayout->addWidget(displayScrollArea);
+
+  myDockWidgets[displayDock] = true;
+
+  // information dock
+  QDockWidget* informationDock = new QDockWidget(tr( "TTL_INFORMATION" ), desk);
+  informationDock->setObjectName("informationDock");
+
+  QWidget* informationWidgetFrame = new QWidget(informationDock);
+  informationWidgetFrame->setObjectName("informationWidgetFrame");
+  
+  QVBoxLayout* verticalLayout_2 = new QVBoxLayout(informationWidgetFrame);
+  verticalLayout_2->setSpacing(0);
+  verticalLayout_2->setContentsMargins(0, 0, 0, 0);
+
+  QScrollArea* informationScrollArea = new QScrollArea(informationWidgetFrame);
+  informationScrollArea->setObjectName("informationScrollArea") ;
+  informationScrollArea->setWidgetResizable(true);
+
+  pqProxyInformationWidget* informationWidget = new pqProxyInformationWidget();
+  informationWidget->setObjectName("informationWidget");
+  informationWidget->setGeometry(QRect(0, 0, 77, 214));
+  informationScrollArea->setWidget(informationWidget);
+
+  verticalLayout_2->addWidget(informationScrollArea);
+  informationDock->setWidget(informationWidgetFrame);
+
+  myDockWidgets[informationDock] = true;
+
+  desk->setTabPosition(Qt::LeftDockWidgetArea, QTabWidget::North);
+  desk->tabifyDockWidget(objectInspectorDock, displayDock);
+  desk->tabifyDockWidget(objectInspectorDock, informationDock);
+  objectInspectorDock->raise();
 
   // Statistic View
   QDockWidget* statisticsViewDock  = new QDockWidget( tr( "TTL_STATISTICS_VIEW" ), desk );
@@ -114,6 +180,8 @@ void PVGUI_Module::setupDockWidgets()
   animationViewDock->setWidget(animation_panel);
   myDockWidgets[animationViewDock] = false; // hidden by default
 
+  desk->tabifyDockWidget(animationViewDock,  statisticsViewDock);
+
   // Selection view
   QDockWidget* selectionInspectorDock = new QDockWidget( tr( "TTL_SELECTION_INSPECTOR" ), desk );
   selectionInspectorDock->setObjectName("selectionInspectorDock");
@@ -131,6 +199,25 @@ void PVGUI_Module::setupDockWidgets()
   comparativePanelDock->setWidget(cv_panel);
   myDockWidgets[comparativePanelDock] = false; // hidden by default
 
+  // Collaboration view
+  QDockWidget* collaborationPanelDock = new QDockWidget(tr( "TTL_COLLABORATIVE_DOCK" ), desk);
+  collaborationPanelDock->setObjectName("collaborationPanelDock");
+  pqCollaborationPanel* collaborationPanel = new pqCollaborationPanel();
+  collaborationPanel->setObjectName("collaborationPanel");
+  collaborationPanelDock->setWidget(collaborationPanel);
+  desk->addDockWidget(Qt::RightDockWidgetArea, collaborationPanelDock);
+  myDockWidgets[collaborationPanelDock] = false; // hidden by default
+  
+  // Memory inspector dock
+  QDockWidget* memoryInspectorDock = new QDockWidget(tr( "TTL_MEMORY_INSPECTOR" ), desk);
+  memoryInspectorDock->setObjectName("memoryInspectorDock");
+  pqMemoryInspector* dockWidgetContents = new pqMemoryInspector();
+  dockWidgetContents->setObjectName("dockWidgetContents");
+  memoryInspectorDock->setWidget(dockWidgetContents);
+  desk->addDockWidget(Qt::RightDockWidgetArea, memoryInspectorDock);
+  myDockWidgets[memoryInspectorDock] = false; // hidden by default
+
+
   // Setup the statusbar ...
   pqProgressWidget* aProgress = new pqProgressWidget(desk->statusBar());
   desk->statusBar()->addPermanentWidget(aProgress);
@@ -144,6 +231,8 @@ void PVGUI_Module::setupDockWidgets()
   comparativePanelDock->hide();
   animationViewDock->hide();
   selectionInspectorDock->hide();
+  collaborationPanelDock->hide();
+  memoryInspectorDock->hide();
 
 
   // Setup quick-launch shortcuts.

@@ -91,6 +91,11 @@ if(${HDF5_IS_PARALLEL})
   set(VTK_LIBS ${VTK_LIBS} vtkParallel)
 endif(${HDF5_IS_PARALLEL})
 
+# Introducing selection for parallel compilation
+CONFIGURE_FILE( ${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+
+add_definitions( -I${CMAKE_CURRENT_BINARY_DIR} )
+
 target_link_libraries(vtkMedReader ${MED_LIBRARIES} ${VTK_LIBS} ${VTK_PARALLEL} ${vtkPVServerManager})
 
 set(MedReader_BUILD_Testing ${VTK_BUILD_TESTING} CACHE BOOL "Build tests for the MedReader filter")

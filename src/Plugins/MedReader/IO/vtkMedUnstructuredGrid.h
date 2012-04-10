@@ -40,18 +40,18 @@ public :
   virtual void SetCoordinates(vtkDataArray*);
   vtkGetObjectMacro(Coordinates, vtkDataArray);
 
-	// Description:
-	// returns true if the Coordinate array is set and corresponds
-	// to the number of points
-	virtual int IsCoordinatesLoaded();
+  // Description:
+  // returns true if the Coordinate array is set and corresponds
+  // to the number of points
+  virtual int IsCoordinatesLoaded();
 
   // Description:
   // Initialize the global Ids of the first element of each MedEntityArray
   virtual void  InitializeCellGlobalIds();
 
-	// Description:
-	// Free the memory associated with this grid.
-	virtual void	ClearMedSupports();
+  // Description:
+  // Free the memory associated with this grid.
+  virtual void  ClearMedSupports();
 
   // Description:
   // Set the number of points in the grid.

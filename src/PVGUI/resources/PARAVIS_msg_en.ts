@@ -187,7 +187,15 @@
     </message>
     <message>
         <source>TTL_OBJECT_INSPECTOR</source>
-        <translation>Object Inspector</translation>
+        <translation>Properties</translation>
+    </message>
+    <message>
+        <source>TTL_DISPLAY</source>
+        <translation>Display</translation>
+    </message>
+    <message>
+        <source>TTL_INFORMATION</source>
+        <translation>Information</translation>
     </message>
     <message>
         <source>TTL_STATISTICS_VIEW</source>
@@ -217,7 +225,15 @@
         <source>TTL_SELECTION_INSPECTOR</source>
         <translation>Selection Inspector</translation>
     </message>
-    <message>
+     <message>
+        <source>TTL_COLLABORATIVE_DOCK</source>
+        <translation>Collaboration Panel</translation>
+    </message>
+     <message>
+        <source>TTL_MEMORY_INSPECTOR</source>
+        <translation>Memory Inspector</translation>
+    </message>
+   <message>
         <source>TOP_OPEN_FILE</source>
         <translation>Open Paraview File</translation>
     </message>
@@ -1040,6 +1056,10 @@
     <message>
         <source>MEN_ABOUT</source>
         <translation>About ParaView...</translation>
+    </message>
+    <message>
+        <source>MEN_PVHELP</source>
+        <translation>ParaView help</translation>
     </message>
     <message>
         <source>STB_ABOUT</source>

@@ -26,16 +26,38 @@ vtkStandardNewMacro(vtkMedFilter)
 
 vtkMedFilter::vtkMedFilter()
 {
-  med_filter tmp=MED_FILTER_INIT;
-  Filter=tmp;//windows porting
+  _start = 0;
+  _stride = 0;
+  _count = 0;
+  _blocksize = 0;
+  _lastblocksize = 0;
 }
 
 vtkMedFilter::~vtkMedFilter()
 {
-	MEDfilterClose(&this->Filter);
+}
+
+void vtkMedFilter::SetFilterSizes( int start, int stride,
+    int count, int blocksize, int lastblocksize )
+{
+  _start = start;
+  _stride = stride;
+  _count = count;
+  _blocksize = blocksize;
+  _lastblocksize = lastblocksize;
+}
+
+void vtkMedFilter::GetFilterSizes( int& start, int& stride,
+    int& count, int& blocksize, int& lastblocksize )
+{
+  start = _start;
+  stride = _stride;
+  count = _count;
+  blocksize = _blocksize;
+  lastblocksize = _lastblocksize;
 }
 
 void vtkMedFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
-	this->Superclass::PrintSelf(os, indent);
+  this->Superclass::PrintSelf(os, indent);
 }

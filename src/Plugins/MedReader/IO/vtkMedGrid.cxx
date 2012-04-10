@@ -74,13 +74,22 @@ void  vtkMedGrid::ClearMedSupports()
 
 vtkMedEntityArray* vtkMedGrid::GetEntityArray(const vtkMedEntity& entity)
 {
-	for(int id = 0; id < this->EntityArray->size(); id++)
-		{
-		vtkMedEntityArray* array = this->EntityArray->at(id);
-		if(array->GetEntity() == entity)
-			return array;
-		}
-	return NULL;
+  for(int id = 0; id < this->EntityArray->size(); id++)
+    {
+    vtkMedEntityArray* array = this->EntityArray->at(id);
+    if(array->GetEntity() == entity)
+      return array;
+    }
+  return NULL;
+}
+
+void  vtkMedGrid::GatherMedEntities(std::set<vtkMedEntity>& entities)
+{
+  for(int id = 0; id < this->EntityArray->size(); id++)
+    {
+    vtkMedEntityArray* array = this->EntityArray->at(id);
+    entities.insert(array->GetEntity());
+    }
 }
 
 void  vtkMedGrid::GatherMedEntities(std::set<vtkMedEntity>& entities)
