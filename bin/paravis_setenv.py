@@ -1,4 +1,6 @@
-# Copyright (C) 2010-2011  CEA/DEN, EDF R&D
+#! /usr/bin/env python
+#  -*- coding: iso-8859-1 -*-
+# Copyright (C) 2007-2011  CEA/DEN, EDF R&D
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -17,10 +19,18 @@
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SET(input ${CMAKE_CURRENT_SOURCE_DIR}/VERSION.in)
-SET(output ${CMAKE_CURRENT_BINARY_DIR}/VERSION)
+import os, re
 
-MESSAGE(STATUS "Creation of ${output}")
-CONFIGURE_FILE(${input} ${output})
+# -----------------------------------------------------------------------------
 
-INSTALL(FILES paravis_setenv.py ${CMAKE_CURRENT_BINARY_DIR}/VERSION DESTINATION bin/salome)
+def set_env( args ):
+    """Initialize environment of PARAVIS module"""
+    from salome_utils import verbose
+    # set PV_PLUGIN_PATH to PARAVIS plug-ins
+    paravis_plugin_dir = os.path.join( os.getenv( "PARAVIS_ROOT_DIR" ), "lib", "paraview" )
+    plugin_path = re.split( ":|;", os.getenv( 'PV_PLUGIN_PATH', paravis_plugin_dir ) )
+    if paravis_plugin_dir not in plugin_path: plugin_path[0:0] = [paravis_plugin_dir]
+    os.environ['PV_PLUGIN_PATH'] = ";".join(plugin_path)
+    pass
+
+
