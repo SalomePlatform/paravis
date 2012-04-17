@@ -90,6 +90,20 @@ namespace PARAVIS
       return theStr;
   }
 
+  std::string tabify( const std::string& source, bool isTabify )
+  {
+    std::string result = source;
+    if ( isTabify && !result.empty() ) {
+      std::string caret = "\n";
+      int idx = result.rfind( caret );
+      while ( idx != std::string::npos ) {
+	result.replace( idx, caret.size(), "\n\t" );
+	idx = result.rfind( caret, idx-1 );
+      }
+      result.insert(0, "\t" );
+    }
+    return result;
+  }
 
   PARAVIS_Base_i::~PARAVIS_Base_i() {
     if(mySmartPointer != NULL) mySmartPointer->Delete();
@@ -625,11 +639,16 @@ namespace PARAVIS
   //----------------------------------------------------------------------------
   Engines::TMPFile* PARAVIS_Gen_i::DumpPython(CORBA::Object_ptr theStudy,
                                               CORBA::Boolean theIsPublished,
+					      CORBA::Boolean theIsMultiFile,
                                               CORBA::Boolean& theIsValidScript)
   {
     theIsValidScript = true;
-    std::string aResult(ProcessEvent(new TGetTrace(mySalomeApp)));
-    aResult += "\ndef RebuildData(theStudy):\n  pass\n";
+    std::string aResult;
+    if ( theIsMultiFile )
+      aResult += "\ndef RebuildData(theStudy):\n";
+    aResult += tabify(ProcessEvent(new TGetTrace(mySalomeApp)), theIsMultiFile );
+    if ( theIsMultiFile )
+      aResult += "\n\tpass\n";
     CORBA::ULong aSize = aResult.size() + 1;
     char* aBuffer = new char[aSize];
     memset(aBuffer, 0, aSize);

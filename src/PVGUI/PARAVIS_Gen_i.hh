@@ -124,6 +124,7 @@ namespace PARAVIS
     //! inherited methods from Engines::Component
     virtual Engines::TMPFile* DumpPython(CORBA::Object_ptr theStudy,
                                          CORBA::Boolean theIsPublished,
+					 CORBA::Boolean theIsMultiFile,
                                          CORBA::Boolean& theIsValidScript);
 
     //! inherited methods from SALOMEDS::Driver
