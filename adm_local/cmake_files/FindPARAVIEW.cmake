@@ -29,7 +29,12 @@ FIND_LIBRARY(pqApplicationComponents pqApplicationComponents PATHS ${PARAVIEW_LI
 FIND_LIBRARY(pqComponents pqComponents PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(pqCore pqCore PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 FIND_LIBRARY(pqWidgets pqWidgets PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
-
+FIND_LIBRARY(vtkPVClientServerCore vtkPVClientServerCore PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
+FIND_LIBRARY(vtkPVServerImplementation vtkPVServerImplementation  PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
+FIND_LIBRARY(vtkPVCommon vtkPVCommon PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
+FIND_LIBRARY(vtkPVVTKExtensions vtkPVVTKExtensions PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
+FIND_LIBRARY(vtkViews vtkViews PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
+FIND_LIBRARY(pqApplicationComponents pqApplicationComponents  PATHS ${PARAVIEW_LIBRARY_DIRS} NO_DEFAULT_PATH)
 SET(PARAVIEW_LIBS
   ${QtPython}
   ${QVTK}
@@ -42,4 +47,10 @@ SET(PARAVIEW_LIBS
   ${pqComponents}
   ${pqCore}
   ${pqWidgets}
+  ${vtkPVClientServerCore}
+  ${vtkPVServerImplementation}
+  ${vtkPVVTKExtensions}
+  ${vtkPVCommon}
+  ${vtkViews}
+  ${pqApplicationComponents}
   )
