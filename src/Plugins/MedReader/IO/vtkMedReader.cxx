@@ -2773,7 +2773,7 @@ void vtkMedReader::CreateVTKFieldOnSupport(vtkMedFieldOnProfile* fop,
       if(!foep->KeepPoint(realIndex))
         continue;
 
-      vtkfield.DataArray->InsertNextTuple(fop->GetData()->GetTuple(realIndex));
+      vtkfield.DataArray->InsertNextTuple(fop->GetData()->GetTuple(id));
       }
     vtkfield.DataArray->Squeeze();
     }// support on point
