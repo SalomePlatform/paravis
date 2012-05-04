@@ -417,12 +417,13 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( OpenFileId, aPVMnu, 5 );
 
   // Recent Files
-   int aMenuId = createMenu( tr( "MEN_RECENT_FILES" ), aPVMnu, -1, 5 );
-   QMenu* aMenu = menuMgr()->findMenu( aMenuId );
+   myRecentMenuId = createMenu( tr( "MEN_RECENT_FILES" ), aPVMnu, -1, 5 );
+   QMenu* aMenu = menuMgr()->findMenu( myRecentMenuId );
    pqRecentFilesMenu* aRecentFilesMenu = new pqRecentFilesMenu( *aMenu, getApp()->desktop() );
    QList<QAction*> anActns = aMenu->actions();
-   for (int i = 0; i < anActns.size(); ++i)
-     createMenu( anActns.at(i), aMenuId );
+   for (int i = 0; i < anActns.size(); ++i) {
+	createMenu( anActns.at(i), myRecentMenuId );
+   }
 
 
   createMenu( separator(), aPVMnu, -1, 5 );

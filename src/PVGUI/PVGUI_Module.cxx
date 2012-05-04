@@ -250,6 +250,7 @@ PVGUI_Module::PVGUI_Module()
     myFiltersMenuId( -1 ),
     myMacrosMenuId(-1),
     myToolbarsMenuId(-1),
+    myRecentMenuId(-1),
     myOldMsgHandler(0),
     myTraceWindow(0),
     myStateCounter(0)
@@ -668,6 +669,18 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
 
   restoreDockWidgetsState();
 
+   QMenu* aMenu = menuMgr()->findMenu( myRecentMenuId );
+   if(aMenu) {
+      QList<QAction*> anActns = aMenu->actions();
+      for (int i = 0; i < anActns.size(); ++i) {
+	      QAction* a = anActns.at(i);
+        if(a)
+           a->setVisible(true);
+      }
+    }
+
+  if ( myRecentMenuId != -1 ) menuMgr()->show(myRecentMenuId);
+
   return isDone;
 }
 
@@ -680,6 +693,16 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
 */
 bool PVGUI_Module::deactivateModule( SUIT_Study* study )
 {
+   QMenu* aMenu = menuMgr()->findMenu( myRecentMenuId );
+   if(aMenu) {
+      QList<QAction*> anActns = aMenu->actions();
+      for (int i = 0; i < anActns.size(); ++i) {
+	      QAction* a = anActns.at(i);
+        if(a)
+          a->setVisible(false);
+      }
+    }
+
   QList<QDockWidget*> aStreamingViews = application()->desktop()->findChildren<QDockWidget*>("pqStreamingControls");
   foreach(QDockWidget* aView, aStreamingViews) {
     if (!myDockWidgets.contains(aView))
@@ -690,8 +713,8 @@ bool PVGUI_Module::deactivateModule( SUIT_Study* study )
     pqImplementation::helpWindow->hide();
     }*/
   showView( false );
-
   // hide menus
+  menuMgr()->hide(myRecentMenuId);
   menuMgr()->hide(mySourcesMenuId);
   menuMgr()->hide(myFiltersMenuId);
   menuMgr()->hide(myMacrosMenuId);
