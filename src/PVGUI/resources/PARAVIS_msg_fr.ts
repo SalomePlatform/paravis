@@ -225,11 +225,11 @@
         <source>TTL_SELECTION_INSPECTOR</source>
         <translation>Navigateur de sélection</translation>
     </message>
-     <message>
+    <message>
         <source>TTL_COLLABORATIVE_DOCK</source>
         <translation>Panneau collaboratif</translation>
     </message>
-     <message>
+    <message>
         <source>TTL_MEMORY_INSPECTOR</source>
         <translation>Utilisation de la mémoire</translation>
     </message>
@@ -883,7 +883,7 @@
     </message>
     <message>
         <source>STB_CREATE_CUSTOM_FILTER</source>
-        <translation>Créer un filtre pPersonnalisé</translation>
+        <translation>Créer un filtre Personnalisé</translation>
     </message>
     <message>
         <source>TOP_MANAGE_CUSTOM_FILTERS</source>
