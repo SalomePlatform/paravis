@@ -1030,7 +1030,7 @@ void vtkMedDriver30::ReadFieldInformation(vtkMedField* field)
     vtkMedFieldStep* step = vtkMedFieldStep::New();
     step->SetMedIterator(csit + 1);
     step->SetParentField(field);
-    this->ReadFieldStepInformation(step, csit == 0);
+    this->ReadFieldStepInformation(step, true);
     field->AddFieldStep(step);
     step->SetPreviousStep(previousStep);
     previousStep = step;
