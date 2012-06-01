@@ -76,6 +76,22 @@ SET(dist_libPARAVIS_la_SOURCES
   PARAVIS_CreateClass.cxx
   )
 
+# Check ParaView documentation file existence
+# if it exists add it to the resources (compile into binary form)
+# otherwise print warning message
+SET(PV_DOC_FILE ${ParaView_INSTALL_PREFIX}/share/doc/paraview-${PARAVIEW_VERSION_MAJOR}.${PARAVIEW_VERSION_MINOR}/paraview.qch)
+IF (EXISTS ${PV_DOC_FILE})
+  SET(RC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/PVGUI.qrc.in)
+  SET(RC_GENERATED ${CMAKE_CURRENT_BINARY_DIR}/PVGUI.qrc)
+  MESSAGE(STATUS "Creation of ${RC_GENERATED}")
+  CONFIGURE_FILE(${RC_SOURCE} ${RC_GENERATED})
+  QT4_ADD_RESOURCES(RCS_SOURCES ${RC_GENERATED})
+  SET(dist_libPARAVIS_la_SOURCES ${dist_libPARAVIS_la_SOURCES} ${RCS_SOURCES})
+  ADD_DEFINITIONS(-DHAS_PV_DOC)
+ELSE (EXISTS ${PV_DOC_FILE})
+  MESSAGE(WARNING "Help file for ParaView has not been found! ParaView documentation will not be available.")
+ENDIF (EXISTS ${PV_DOC_FILE})
+
 # MOC pre-processing
 SET(MOC_FILES
   PVGUI_Module_moc.cxx

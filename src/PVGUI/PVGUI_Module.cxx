@@ -255,6 +255,9 @@ PVGUI_Module::PVGUI_Module()
     myTraceWindow(0),
     myStateCounter(0)
 {
+#ifdef HAS_PV_DOC
+  Q_INIT_RESOURCE( PVGUI );
+#endif
   ParavisModule = this;
 
   // Clear old macros
