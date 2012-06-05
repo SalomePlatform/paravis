@@ -1,4 +1,4 @@
-# Copyright (C) 2010-2011  CEA/DEN, EDF R&D
+# Copyright (C) 2010-2012  CEA/DEN, EDF R&D
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,6 +18,11 @@
 #
 
 PROJECT(PARAVIS)
+
+IF(WINDOWS)
+  STRING( REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replacementFlags ${CMAKE_SHARED_LINKER_FLAGS_DEBUG} )
+  SET( CMAKE_SHARED_LINKER_FLAGS_DEBUG "${replacementFlags}" )
+ENDIF(WINDOWS)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.4.7 FATAL_ERROR)
 IF(COMMAND cmake_policy)
@@ -53,7 +58,7 @@ INCLUDE(${GUI_ROOT_DIR}/adm_local/cmake_files/FindSIPPYQT.cmake)
 INCLUDE(${GUI_ROOT_DIR}/adm_local/cmake_files/FindGUI.cmake)
 
 SET(VERSION_MAJOR       6)
-SET(VERSION_MINOR       4)
+SET(VERSION_MINOR       5)
 SET(VERSION_MAINTENANCE 0)
 SET(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_MAINTENANCE}")
 SET(XVERSION 0x0${VERSION_MAJOR}0${VERSION_MINOR}0${VERSION_MAINTENANCE})

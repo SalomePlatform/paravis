@@ -1,6 +1,6 @@
 // PARAVIS : ParaView wrapper SALOME module
 //
-// Copyright (C) 2010-2011  CEA/DEN, EDF R&D
+// Copyright (C) 2010-2012  CEA/DEN, EDF R&D
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -417,12 +417,13 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( OpenFileId, aPVMnu, 5 );
 
   // Recent Files
-   int aMenuId = createMenu( tr( "MEN_RECENT_FILES" ), aPVMnu, -1, 5 );
-   QMenu* aMenu = menuMgr()->findMenu( aMenuId );
+   myRecentMenuId = createMenu( tr( "MEN_RECENT_FILES" ), aPVMnu, -1, 5 );
+   QMenu* aMenu = menuMgr()->findMenu( myRecentMenuId );
    pqRecentFilesMenu* aRecentFilesMenu = new pqRecentFilesMenu( *aMenu, getApp()->desktop() );
    QList<QAction*> anActns = aMenu->actions();
-   for (int i = 0; i < anActns.size(); ++i)
-     createMenu( anActns.at(i), aMenuId );
+   for (int i = 0; i < anActns.size(); ++i) {
+	createMenu( anActns.at(i), myRecentMenuId );
+   }
 
 
   createMenu( separator(), aPVMnu, -1, 5 );

@@ -1,4 +1,4 @@
-// Copyright (C) 2010-2011  CEA/DEN, EDF R&D
+// Copyright (C) 2010-2012  CEA/DEN, EDF R&D
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -124,6 +124,7 @@ namespace PARAVIS
     //! inherited methods from Engines::Component
     virtual Engines::TMPFile* DumpPython(CORBA::Object_ptr theStudy,
                                          CORBA::Boolean theIsPublished,
+					 CORBA::Boolean theIsMultiFile,
                                          CORBA::Boolean& theIsValidScript);
 
     //! inherited methods from SALOMEDS::Driver
