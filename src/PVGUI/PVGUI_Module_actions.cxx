@@ -382,21 +382,15 @@ void PVGUI_Module::pvCreateActions()
   registerAction(AboutParaViewId, anAction);
   new pqAboutDialogReaction(anAction << pqSetName("actionAbout"));
 
+#ifdef HAS_PV_DOC
   // Native ParaView user documentation
-  anAction = new QAction(tr("MEN_ABOUT"), this);
+  aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
+  anAction = new QAction(tr("MEN_PARAVIEW_HELP"), this);
+  anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
+  anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
   registerAction(ParaViewHelpId, anAction);
   new pqHelpReaction(anAction);
-  
-  /*QString aFile = getHelpFileName();
-  if (QFile::exists(aFile)) {
-    aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_PARAVIEW_HELP"), false );
-    anAction = new QAction(QIcon(aPixmap), tr("MEN_PARAVIEW_HELP"), this);
-    anAction->setToolTip(tr("TOP_PARAVIEW_HELP"));
-    anAction->setStatusTip(tr("STB_PARAVIEW_HELP"));
-    anAction->setShortcut(QKeySequence::HelpContents);
-    connect(anAction, SIGNAL(triggered()), this, SLOT(showParaViewHelp()));
-    registerAction(ParaViewHelpId, anAction);
-    }*/
+#endif
 }
 
 /*!
@@ -531,10 +525,12 @@ void PVGUI_Module::pvCreateMenus()
   // --- Menu "Help"
 
   int aHelpMnu = createMenu( tr( "MEN_DESK_HELP" ), -1, -1 );
-  createMenu( AboutParaViewId, aHelpMnu );
-
-  int aHelpModule = createMenu( LightApp_Application::tr( "MEN_DESK_MODULE_HELP" ), aHelpMnu, -1 );
-  createMenu( ParaViewHelpId, aHelpModule );
+  int aPVHelpMnu = createMenu( tr( "ParaViS module" ), aHelpMnu, -1, 0 );
+#ifdef HAS_PV_DOC
+  createMenu( ParaViewHelpId,  aPVHelpMnu );
+  createMenu( separator(),     aPVHelpMnu );
+#endif
+  createMenu( AboutParaViewId, aPVHelpMnu );
 }
 
 /*!
