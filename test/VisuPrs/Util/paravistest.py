@@ -89,7 +89,9 @@ class SalomeSession(object):
 
     def __del__(self):
         #os.system('killSalomeWithPort.py {0}'.format(self.port))
-        os.system('killSalomeWithPort.py ' + self.port)
+        #os.system('killSalomeWithPort.py ' + self.port)
+        import killSalomeWithPort
+        killSalomeWithPort.killMyPort(self.port)
         return
     pass
 
