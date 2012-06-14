@@ -25,7 +25,6 @@ import os, re
 
 def set_env( args ):
     """Initialize environment of PARAVIS module"""
-    from salome_utils import verbose
     # set PV_PLUGIN_PATH to PARAVIS plug-ins
     paravis_plugin_dir = os.path.join( os.getenv( "PARAVIS_ROOT_DIR" ), "lib", "paraview" )
     plugin_path = re.split( ":|;", os.getenv( 'PV_PLUGIN_PATH', paravis_plugin_dir ) )
