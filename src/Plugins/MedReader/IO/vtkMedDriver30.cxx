@@ -1074,15 +1074,32 @@ void vtkMedDriver30::ReadFieldStepInformation(vtkMedFieldStep* step, bool readAl
   if(mesh == NULL)
     return;
   
+  std::set<vtkMedEntity> tmp_entities;
   std::set<vtkMedEntity> entities;
-  mesh->GatherMedEntities(entities);
+  mesh->GatherMedEntities(tmp_entities);
+  
+  std::set<vtkMedEntity>::iterator tmp_entity_it = tmp_entities.begin();
+  while(tmp_entity_it != tmp_entities.end())
+    {
+    vtkMedEntity entity = *tmp_entity_it;
+    tmp_entity_it++;
+    entities.insert(entity);
+    if(entity.EntityType == MED_CELL)
+      {
+      vtkMedEntity newEntity;
+      newEntity.EntityType = MED_NODE_ELEMENT;
+      newEntity.GeometryType = entity.GeometryType;
+      newEntity.GeometryName = entity.GeometryName;
+      entities.insert(newEntity);
+      }
+    }
   
   vtkMedEntity pointEntity;
   pointEntity.EntityType = MED_NODE;
   pointEntity.GeometryType = MED_NONE;
   pointEntity.GeometryName = MED_NAME_BLANK;
   entities.insert(pointEntity);
-  
+
   std::set<vtkMedEntity>::iterator entity_it = entities.begin();
   while(entity_it != entities.end())
     {
