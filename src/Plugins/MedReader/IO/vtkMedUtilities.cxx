@@ -629,7 +629,7 @@ int vtkMedUtilities::FormatPolyhedronForVTK(
 
   if (array->GetConnectivity()==MED_NODAL)
     {
-    ids->InsertNextId(end-start-1);
+    ids->InsertNextId(end-start);
     for (int ff = start; ff<end; ff++)
       {
       med_int fstart = nodeIndex->GetValue(ff)-1;
