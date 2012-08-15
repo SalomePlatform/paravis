@@ -163,6 +163,8 @@
 #include <pqViewFrameActionsBehavior.h>
 #include <pqServerManagerObserver.h>
 
+#include <vtkClientServerInterpreterInitializer.h>
+
 
 //----------------------------------------------------------------------------
 pqPVApplicationCore* PVGUI_Module::MyCoreApp = 0;
@@ -237,6 +239,24 @@ PVGUI_Module* ParavisModule = 0;
   \brief Implementation 
          SALOME module wrapping ParaView GUI.
 */
+
+
+/*
+  Fix for the issue 21730: [CEA 596] Slice of polyhedron in PARAVIS returns no cell.
+  Wrap vtkEDFCutter filter.
+*/
+
+extern "C" void vtkEDFCutterCS_Initialize(vtkClientServerInterpreter*);
+static void vtkEDFHelperInit();
+
+void vtkEDFHelperInit(vtkClientServerInterpreter* interp){
+    vtkEDFCutterCS_Initialize(interp);
+}
+
+void vtkEDFHelperInit() {
+    vtkClientServerInterpreterInitializer::GetInitializer()->
+        RegisterCallback(&vtkEDFHelperInit);
+}
 
 /*!
   \brief Constructor. Sets the default name for the module.
@@ -1384,7 +1404,13 @@ void PVGUI_Module::loadSelectedState(bool toClear)
 #endif  // WNT
 
 extern "C" {
+
+  bool flag = false;
   PVGUI_EXPORT CAM_Module* createModule() {
+    if(!flag) {
+        vtkEDFHelperInit();
+        flag = true;
+    }      
     return new PVGUI_Module();
   }
   
