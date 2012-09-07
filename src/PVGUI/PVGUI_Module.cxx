@@ -122,6 +122,8 @@
 
 #include <vtkPVConfig.h>
 
+#include CORBA_SERVER_HEADER(SALOME_ModuleCatalog)
+
 /*
  * Make sure all the kits register their classes with vtkInstantiator.
  * Since ParaView uses Tcl wrapping, all of VTK is already compiled in
@@ -257,6 +259,48 @@ void vtkEDFHelperInit() {
     vtkClientServerInterpreterInitializer::GetInitializer()->
         RegisterCallback(&vtkEDFHelperInit);
 }
+
+
+  _PTR(SComponent)
+  ClientFindOrCreateParavisComponent(_PTR(Study) theStudyDocument)
+  {
+    _PTR(SComponent) aSComponent = theStudyDocument->FindComponent("PARAVIS");
+    if (!aSComponent) {
+      _PTR(StudyBuilder) aStudyBuilder = theStudyDocument->NewBuilder();
+      aStudyBuilder->NewCommand();
+      int aLocked = theStudyDocument->GetProperties()->IsLocked();
+      if (aLocked) theStudyDocument->GetProperties()->SetLocked(false);
+      aSComponent = aStudyBuilder->NewComponent("PARAVIS");
+      _PTR(GenericAttribute) anAttr =
+        aStudyBuilder->FindOrCreateAttribute(aSComponent, "AttributeName");
+      _PTR(AttributeName) aName (anAttr);
+
+      CORBA::ORB_var anORB = PARAVIS::PARAVIS_Gen_i::GetORB();
+      SALOME_NamingService *NamingService = new SALOME_NamingService( anORB );
+      CORBA::Object_var objVarN = NamingService->Resolve("/Kernel/ModulCatalog");
+      SALOME_ModuleCatalog::ModuleCatalog_var Catalogue =
+        SALOME_ModuleCatalog::ModuleCatalog::_narrow(objVarN);
+      SALOME_ModuleCatalog::Acomponent_var Comp = Catalogue->GetComponent( "PARAVIS" );
+      if (!Comp->_is_nil()) {
+        aName->SetValue(Comp->componentusername());
+      }
+
+      anAttr = aStudyBuilder->FindOrCreateAttribute(aSComponent, "AttributePixMap");
+      _PTR(AttributePixMap) aPixmap (anAttr);
+      aPixmap->SetPixMap( "pqAppIcon16.png" );
+
+      // Create Attribute parameters for future using
+      anAttr = aStudyBuilder->FindOrCreateAttribute(aSComponent, "AttributeParameter");
+
+
+      PARAVIS::PARAVIS_Gen_var aPARAVIS = PARAVIS::PARAVIS_Gen_i::GetParavisGenImpl()->_this();
+
+      aStudyBuilder->DefineComponentInstance(aSComponent, aPARAVIS->GetIOR());
+      if (aLocked) theStudyDocument->GetProperties()->SetLocked(true);
+      aStudyBuilder->CommitCommand();
+    }
+    return aSComponent;
+  }
 
 /*!
   \brief Constructor. Sets the default name for the module.
@@ -703,6 +747,8 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
     }
 
   if ( myRecentMenuId != -1 ) menuMgr()->show(myRecentMenuId);
+
+  ClientFindOrCreateParavisComponent(PARAVIS::GetCStudy(this));
 
   return isDone;
 }
