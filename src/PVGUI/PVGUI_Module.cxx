@@ -117,6 +117,8 @@
 #include <pqPythonScriptEditor.h>
 #include <pqStandardSummaryPanelImplementation.h>
 #include <pqCollaborationBehavior.h>
+#include <pqDataRepresentation.h>
+#include <pqLookupTableManager.h>
 
 #include <PARAVIS_version.h>
 
@@ -468,6 +470,10 @@ void PVGUI_Module::initialize( CAM_Application* app )
   connect(pqApplicationCore::instance()->getObjectBuilder(), SIGNAL(finishedAddingServer(pqServer*)), 
 	  this, SLOT(onFinishedAddingServer(pqServer*)));
 
+  connect(pqApplicationCore::instance()->getObjectBuilder(), SIGNAL(dataRepresentationCreated(pqDataRepresentation*)), 
+          this, SLOT(onDataRepresentationCreated(pqDataRepresentation*)));
+
+
   SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
   bool isStop = aResourceMgr->booleanValue( "PARAVIS", "stop_trace", false );
   // start timer to activate trace in a proper moment
@@ -500,6 +506,23 @@ void PVGUI_Module::onFinishedAddingServer(pqServer* /*server*/)
   if(!isStop) 
     startTimer( 50 );
 }
+
+void PVGUI_Module::onDataRepresentationCreated(pqDataRepresentation* data) {
+  if(!data)
+    return;
+
+  SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
+  if(!aResourceMgr)
+    return;
+
+  bool visible = aResourceMgr->booleanValue( "PARAVIS", "show_color_legend", false );
+  pqLookupTableManager* lut_mgr =pqApplicationCore::instance()->getLookupTableManager();
+
+  if(lut_mgr) {
+    lut_mgr->setScalarBarVisibility(data,visible);
+  }
+}
+
 
 /*!
   \brief Launches a tracing of current server
@@ -1092,6 +1115,10 @@ void PVGUI_Module::createPreferences()
   aStrings<<tr("PREF_SAVE_TYPE_2");
   setPreferenceProperty(aSaveType, "strings", aStrings);
   setPreferenceProperty(aSaveType, "indexes", aIndices);
+
+  //rnv: imp 21712: [CEA 581] Preference to display legend by default 
+  int aDispColoreLegend = addPreference( tr( "PREF_SHOW_COLOR_LEGEND" ), aParaVisSettingsTab,
+					 LightApp_Preferences::Bool, "PARAVIS", "show_color_legend");
 }
 
 /*!

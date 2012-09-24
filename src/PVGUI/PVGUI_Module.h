@@ -42,6 +42,7 @@ class pqMainWindowCore;
 class vtkEventQtSlotConnect;
 class pqPythonScriptEditor;
 class pqPVApplicationCore;
+class pqDataRepresentation;
 
 
 class PVGUI_Module : public SalomeApp_Module
@@ -220,6 +221,7 @@ private slots:
   //void showHelp(const QString& url);
 
   void onFinishedAddingServer(pqServer*);
+  void onDataRepresentationCreated(pqDataRepresentation*);
 
   void onStartProgress();
   void onEndProgress();
