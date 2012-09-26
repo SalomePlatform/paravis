@@ -99,7 +99,7 @@
 #include <pqVCRController.h>
 #include <pqTabbedMultiViewWidget.h>
 #include <pqPipelineSource.h>
-//#include <vtkPVMain.h>
+#include <pqActiveObjects.h>
 #include <vtkProcessModule.h>
 #include <pqParaViewBehaviors.h>
 #include <pqHelpReaction.h>
@@ -118,7 +118,9 @@
 #include <pqStandardSummaryPanelImplementation.h>
 #include <pqCollaborationBehavior.h>
 #include <pqDataRepresentation.h>
+#include <pqPipelineRepresentation.h>
 #include <pqLookupTableManager.h>
+#include <pqDisplayColorWidget.h>
 
 #include <PARAVIS_version.h>
 
@@ -487,6 +489,10 @@ void PVGUI_Module::initialize( CAM_Application* app )
     this, SLOT(onStartProgress()));
   this->VTKConnect->Connect(pm, vtkCommand::EndEvent,
     this, SLOT(onEndProgress()));
+
+  connect(&pqActiveObjects::instance(),
+	  SIGNAL(representationChanged(pqRepresentation*)),
+	  this, SLOT(onRepresentationChanged(pqRepresentation*)));
 }
 
 void PVGUI_Module::onStartProgress()
@@ -510,17 +516,52 @@ void PVGUI_Module::onFinishedAddingServer(pqServer* /*server*/)
 void PVGUI_Module::onDataRepresentationCreated(pqDataRepresentation* data) {
   if(!data)
     return;
-
+  
+  if(!data->getLookupTable())
+    return;
+  
   SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
   if(!aResourceMgr)
     return;
 
   bool visible = aResourceMgr->booleanValue( "PARAVIS", "show_color_legend", false );
-  pqLookupTableManager* lut_mgr =pqApplicationCore::instance()->getLookupTableManager();
+  pqLookupTableManager* lut_mgr = pqApplicationCore::instance()->getLookupTableManager();
+  
+  if(lut_mgr) {
+    lut_mgr->setScalarBarVisibility(data,visible);
+  }
+}
+
+void PVGUI_Module::onVariableChanged(pqVariableType t, const QString) {
+  
+  pqDisplayColorWidget* colorWidget = qobject_cast<pqDisplayColorWidget*>(sender());
+  if( !colorWidget )
+    return;
+
+  if( t == VARIABLE_TYPE_NONE )
+    return;
+
+  pqDataRepresentation* data  = colorWidget->getRepresentation();
+
+  if( !data->getLookupTable() )
+    return;
+
+  SUIT_ResourceMgr* aResourceMgr = SUIT_Session::session()->resourceMgr();
+  
+  if(!aResourceMgr)
+    return;
+
+  bool visible = aResourceMgr->booleanValue( "PARAVIS", "show_color_legend", false );
+  
+  if(!visible)
+    return;
+  
+  pqLookupTableManager* lut_mgr = pqApplicationCore::instance()->getLookupTableManager();
 
   if(lut_mgr) {
     lut_mgr->setScalarBarVisibility(data,visible);
   }
+  
 }
 
 
@@ -1463,6 +1504,24 @@ void PVGUI_Module::loadSelectedState(bool toClear)
 			      tr("ERR_STATE_CANNOT_BE_RESTORED"));
   }
 }
+
+void PVGUI_Module::onRepresentationChanged(pqRepresentation*) {
+
+
+  //rnv: to fix the issue "21712: [CEA 581] Preference to display legend by default"
+  //     find the pqDisplayColorWidget instances and connect the variableChanged SIGNAL on the 
+  //     onVariableChanged slot of this class. This connection needs to change visibility 
+  //     of the "Colored Legend" after change the "Color By" array.
+  QList<pqDisplayColorWidget*> aWidget = getApp()->desktop()->findChildren<pqDisplayColorWidget*>();
+  
+  for (int i = 0; i < aWidget.size() ; i++ ) {
+    if( aWidget[i] ) {
+      connect( aWidget[i], SIGNAL ( variableChanged ( pqVariableType, const QString ) ), 
+	       this, SLOT(onVariableChanged( pqVariableType, const QString) ), Qt::UniqueConnection );
+    }    
+  }
+}
+
 
 /*!
   \fn CAM_Module* createModule();
