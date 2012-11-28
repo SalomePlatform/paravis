@@ -1749,7 +1749,9 @@ void vtkMedReader::AddQuadratureSchemeDefinition(vtkInformation* info,
   // Control to avoid crahs when loading a file with structural elements.
   // This should be removed in version 7.1.0 of SALOME.
   // See mantis issue 21990
-  if(loc->GetGeometryType() >= MED_STRUCT_ELEMENT)
+  std::cout<<"geometry type ================ "<<loc->GetGeometryType()<<std::endl;
+  std::cout<<"MED_STRUCT_GEO ================ "<<MED_STRUCT_GEO_INTERNAL<<std::endl;
+  if(loc->GetGeometryType() >= MED_STRUCT_GEO_INTERNAL)    
     {
     vtkErrorMacro("You are loading a file containing structural elements BUT they are still not supported");
     return;
