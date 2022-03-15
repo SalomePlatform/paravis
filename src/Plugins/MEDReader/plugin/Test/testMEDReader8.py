@@ -81,8 +81,8 @@ def test(baseline_file):
 
     extractCT=ExtractCellType(Input=myMedReader)
     extractCT.UpdatePipelineInformation()
-    assert(list(extractCT.GetProperty("GeoTypesInfo"))==['TRI3','0','QUAD4','0'])
-    extractCT.AllGeoTypes=['TRI3']
+    assert(list(extractCT.GetProperty("GeoTypesInfo"))==['Triangle', '0', 'Quad', '0'])
+    extractCT.AllGeoTypes=['Triangle']
 
     extGrp=ExtractGroup(Input=extractCT)
     #extGrp.UpdatePipelineInformation()

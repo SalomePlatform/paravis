@@ -78,7 +78,7 @@ def test(baseline_file):
         extractCellType1.AllGeoTypes = []
 
         # Properties modified on extractCellType1
-        extractCellType1.AllGeoTypes = ['TRI3']
+        extractCellType1.AllGeoTypes = ['Triangle']
 
         # show data in view
         extractCellType1Display = Show(extractCellType1, renderView1)
