@@ -20,13 +20,14 @@
 cmake_minimum_required(VERSION 3.8)
 project(MEDReader)
 
-find_package(ParaView REQUIRED)
-
-IF(SALOME_USE_MPI)
-  ADD_DEFINITIONS(-DMEDREADER_USE_MPI)
-ENDIF(SALOME_USE_MPI)
-
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(MEDREADER_USE_MPI "Activate parallel reading for MEDREADER" OFF)
+
+find_package(ParaView REQUIRED)
+if(MEDREADER_USE_MPI)
+  add_definitions(-DMEDREADER_USE_MPI)
+endif(MEDREADER_USE_MPI)
+
 enable_testing()
 
 include(GNUInstallDirs)

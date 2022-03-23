@@ -48,6 +48,12 @@ IF(SALOME_PARAVIS_USE_SMESH_SOURCE)
   LIST(APPEND _subdirs ParaSMESHCorba)
 ENDIF()
 
+if(SALOME_USE_MPI)
+  # see https://stackoverflow.com/questions/20239334/cmake-set-subdirectory-options
+  # force to ON MEDREADER option instead of a simple set(MEDREADER_USE_MPI ON)
+  set(MEDREADER_USE_MPI ON CACHE BOOL "Activate parallel reading for MEDREADER" FORCE)
+endif(SALOME_USE_MPI)
+
 FOREACH(_dir ${_subdirs})
   ADD_SUBDIRECTORY(${_dir})
 ENDFOREACH()
