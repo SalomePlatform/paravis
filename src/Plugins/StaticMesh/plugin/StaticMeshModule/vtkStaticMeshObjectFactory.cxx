@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkStaticDataSetSurfaceFilter.cxx
+  Module:    vtkStaticMeshObjectFactory.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -43,22 +43,21 @@ VTK_CREATE_CREATE_FUNCTION(vtkStaticEnSightGoldBinaryReader);
 VTK_CREATE_CREATE_FUNCTION(vtkStaticPUnstructuredGridGhostCellsGenerator);
 #endif
 
+//-----------------------------------------------------------------------------
 vtkStaticMeshObjectFactory::vtkStaticMeshObjectFactory()
 {
-  vtkDebugMacro("Create vtkStaticMeshObjectFactory");
-
   this->RegisterOverride("vtkDataSetSurfaceFilter", "vtkStaticDataSetSurfaceFilter",
     "StaticDataSetSurfaceFilter", 1, vtkObjectFactoryCreatevtkStaticDataSetSurfaceFilter);
   this->RegisterOverride("vtkPlaneCutter", "vtkStaticPlaneCutter", "StaticPlaneCutter", 1,
     vtkObjectFactoryCreatevtkStaticPlaneCutter);
-  this->RegisterOverride("vtkEnSight6BinaryReader", "vtkStaticEnSight6BinaryReader", "StaticEnSight6BinaryReader", 1,
-    vtkObjectFactoryCreatevtkStaticEnSight6BinaryReader);
+  this->RegisterOverride("vtkEnSight6BinaryReader", "vtkStaticEnSight6BinaryReader",
+    "StaticEnSight6BinaryReader", 1, vtkObjectFactoryCreatevtkStaticEnSight6BinaryReader);
   this->RegisterOverride("vtkEnSight6Reader", "vtkStaticEnSight6Reader", "StaticEnSight6Reader", 1,
     vtkObjectFactoryCreatevtkStaticEnSight6Reader);
-  this->RegisterOverride("vtkEnSightGoldReader", "vtkStaticEnSight6BinaryReader", "StaticEnSight6BinaryReader", 1,
-    vtkObjectFactoryCreatevtkStaticEnSightGoldReader);
-  this->RegisterOverride("vtkEnSightGoldBinaryReader", "vtkStaticEnSightGoldBinaryReader", "StaticEnSightGoldBinaryReader", 1,
-    vtkObjectFactoryCreatevtkStaticEnSightGoldBinaryReader);
+  this->RegisterOverride("vtkEnSightGoldReader", "vtkStaticEnSight6BinaryReader",
+    "StaticEnSight6BinaryReader", 1, vtkObjectFactoryCreatevtkStaticEnSightGoldReader);
+  this->RegisterOverride("vtkEnSightGoldBinaryReader", "vtkStaticEnSightGoldBinaryReader",
+    "StaticEnSightGoldBinaryReader", 1, vtkObjectFactoryCreatevtkStaticEnSightGoldBinaryReader);
 
 #ifdef PARAVIEW_USE_MPI
   this->RegisterOverride("vtkPUnstructuredGridGhostCellsGenerator",
@@ -67,26 +66,25 @@ vtkStaticMeshObjectFactory::vtkStaticMeshObjectFactory()
 #endif
 }
 
-vtkStaticMeshObjectFactory::~vtkStaticMeshObjectFactory()
-{
-  vtkDebugMacro("Delete vtkStaticMeshObjectFactory");
-}
-
+//-----------------------------------------------------------------------------
 void vtkStaticMeshObjectFactory::PrintSelf(ostream& os, vtkIndent indent)
 {
-  os << indent << "VTK Static Mesh Extension Factory" << endl;
+  os << indent << this->GetDescription() << endl;
 }
 
+//-----------------------------------------------------------------------------
 const char* vtkStaticMeshObjectFactory::GetVTKSourceVersion()
 {
   return VTK_SOURCE_VERSION;
 }
 
+//-----------------------------------------------------------------------------
 const char* vtkStaticMeshObjectFactory::GetDescription()
 {
   return "VTK Static Mesh Extension Factory";
 }
 
+//-----------------------------------------------------------------------------
 class StaticFactoryInitialize
 {
 public:
@@ -95,21 +93,19 @@ public:
     bool hasStaticPluginFactory = false;
     vtkObjectFactoryCollection* collection = vtkObjectFactory::GetRegisteredFactories();
     collection->InitTraversal();
-    vtkObjectFactory* f = collection->GetNextItem();
-    while (f)
+    vtkObjectFactory* f;
+    while ((f = collection->GetNextItem()))
     {
       if (f->IsA("vtkStaticMeshObjectFactory"))
       {
         hasStaticPluginFactory = true;
         break;
       }
-      f = collection->GetNextItem();
     }
     if (!hasStaticPluginFactory)
     {
-      vtkStaticMeshObjectFactory* instance = vtkStaticMeshObjectFactory::New();
+      vtkNew<vtkStaticMeshObjectFactory> instance;
       vtkObjectFactory::RegisterFactory(instance);
-      instance->Delete();
     }
   }
 

@@ -27,6 +27,8 @@ set(private_classes
 )
 
 set(classes
+  vtkForceStaticMesh
+  vtkGenericStaticEnSightReader
   vtkTemporalUGWavelet
   vtkStaticMeshObjectFactory
 )

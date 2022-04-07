@@ -18,18 +18,21 @@
  *
  * vtkTemporalUGWavelet specialize vtkRTAnalyticSource to create
  * a wavelet converted to vtkUnstructuredGrid, with timesteps.
- * The "tPoint" and "tCell" arrays are the only data actually changing over time
- * make the output a static mesh with data evolving over time.
-*/
+ * The "tPoint" and "tCell" arrays are the only data actually changing
+ * over time, the geometry is generated once and then not modified.
+ */
 
 #ifndef vtkTemporalUGWavelet_h
 #define vtkTemporalUGWavelet_h
 
+#include <vtkNew.h>
 #include <vtkRTAnalyticSource.h>
+
+#include "StaticMeshModuleModule.h"
 
 class vtkUnstructuredGrid;
 
-class vtkTemporalUGWavelet : public vtkRTAnalyticSource
+class STATICMESHMODULE_EXPORT vtkTemporalUGWavelet : public vtkRTAnalyticSource
 {
 public:
   static vtkTemporalUGWavelet* New();
@@ -45,23 +48,26 @@ public:
   //@}
 
 protected:
-  vtkTemporalUGWavelet();
-  ~vtkTemporalUGWavelet();
+  vtkTemporalUGWavelet() = default;
+  ~vtkTemporalUGWavelet() override = default;
 
+  //@{
+  /**
+   * see vtkDataSetAlgorithm
+   */
   int FillOutputPortInformation(int vtkNotUsed(port), vtkInformation* info) override;
-
   int RequestInformation(vtkInformation* request, vtkInformationVector** inputVector,
     vtkInformationVector* outputVector) override;
-
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
-
-  int NumberOfTimeSteps;
-  vtkUnstructuredGrid* Cache;
-  vtkTimeStamp CacheMTime;
+  //@}
 
 private:
   vtkTemporalUGWavelet(const vtkTemporalUGWavelet&) = delete;
   void operator=(const vtkTemporalUGWavelet&) = delete;
+
+  int NumberOfTimeSteps = 10;
+  vtkNew<vtkUnstructuredGrid> Cache;
+  vtkTimeStamp CacheMTime;
 };
 
 #endif

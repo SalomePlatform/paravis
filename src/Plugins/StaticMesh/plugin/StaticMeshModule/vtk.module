@@ -5,13 +5,14 @@ DEPENDS
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::FiltersCore
-  VTK::FiltersModeling
   VTK::FiltersGeometry
-  VTK::FiltersParallelGeometry
+  VTK::FiltersModeling
   VTK::ImagingCore
   VTK::IOCore
   VTK::IOGeometry
   VTK::IOEnSight
+OPTIONAL_DEPENDS
+  VTK::FiltersParallelGeometry
 PRIVATE_DEPENDS
   VTK::CommonMisc
   VTK::CommonSystem

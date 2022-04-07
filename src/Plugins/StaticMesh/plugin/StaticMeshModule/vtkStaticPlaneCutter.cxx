@@ -16,6 +16,7 @@
 
 #include <vtkCellData.h>
 #include <vtkCompositeDataIterator.h>
+#include <vtkGenericCell.h>
 #include <vtkIdFilter.h>
 #include <vtkIdList.h>
 #include <vtkInformation.h>
@@ -26,36 +27,21 @@
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkUnstructuredGrid.h>
-#include <vtkGenericCell.h>
+#include <vtksys/SystemTools.hxx>
 
 vtkStandardNewMacro(vtkStaticPlaneCutter);
 
 static const char* IdsArrayName = "__vtkSPC_Ids";
-
-//----------------------------------------------------------------------------
-vtkStaticPlaneCutter::vtkStaticPlaneCutter()
-{
-  this->InputMeshTime = 0;
-  this->FilterMTime = 0;
-}
-
-//----------------------------------------------------------------------------
-vtkStaticPlaneCutter::~vtkStaticPlaneCutter()
-{
-  this->ClearWeightsVector();
-}
 
 //-----------------------------------------------------------------------------
 int vtkStaticPlaneCutter::RequestData(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the inputs and outputs
-  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkUnstructuredGrid* input = vtkUnstructuredGrid::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkMultiBlockDataSet* inputMB = vtkMultiBlockDataSet::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkMultiBlockDataSet* mb =
-    vtkMultiBlockDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  vtkUnstructuredGrid* input = vtkUnstructuredGrid::GetData(inputVector[0]);
+  vtkMultiBlockDataSet* inputMB = vtkMultiBlockDataSet::GetData(inputVector[0]);
+  vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::GetData(outputVector);
   if (!mb)
   {
     vtkErrorMacro("Ouput information does not contain expected type of data object");
@@ -79,6 +65,11 @@ int vtkStaticPlaneCutter::RequestData(
   if (this->InputMeshTime == input->GetMeshMTime() && this->FilterMTime == this->GetMTime())
   {
     // Cache mesh is up to date, use it to generate data
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Using static mesh cache");
+    }
+
     if (this->InterpolateAttributes)
     {
       // Update the cache data
@@ -86,23 +77,28 @@ int vtkStaticPlaneCutter::RequestData(
     }
 
     // Copy the updated cache into the output
-    mb->SetBlock(0, this->Cache.Get());
+    mb->SetBlock(0, this->Cache);
     return 1;
   }
   else
   {
     // Cache is invalid
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Building static mesh cache");
+    }
+
     // Add needed Arrays
     vtkNew<vtkUnstructuredGrid> tmpInput;
-    this->AddIdsArray(input, tmpInput.Get());
+    this->AddIdsArray(input, tmpInput);
 
     // Create an input vector to pass the completed input to the superclass
     // RequestData method
     vtkNew<vtkInformationVector> tmpInputVec;
     tmpInputVec->Copy(inputVector[0], 1);
     vtkInformation* tmpInInfo = tmpInputVec->GetInformationObject(0);
-    tmpInInfo->Set(vtkDataObject::DATA_OBJECT(), tmpInput.Get());
-    vtkInformationVector* tmpInputVecPt = tmpInputVec.Get();
+    tmpInInfo->Set(vtkDataObject::DATA_OBJECT(), tmpInput);
+    vtkInformationVector* tmpInputVecPt = tmpInputVec;
     int ret = this->Superclass::RequestData(request, &tmpInputVecPt, outputVector);
 
     // Update the cache with superclass output
@@ -131,12 +127,16 @@ void vtkStaticPlaneCutter::AddIdsArray(vtkDataSet* input, vtkDataSet* output)
   vtkNew<vtkIdFilter> generateIdScalars;
 
   // Check for Ids array
-  vtkIdTypeArray *cellIdsTmp = vtkIdTypeArray::SafeDownCast(input->GetCellData()->GetAbstractArray(IdsArrayName));
+  vtkIdTypeArray* cellIdsTmp =
+    vtkIdTypeArray::SafeDownCast(input->GetCellData()->GetAbstractArray(IdsArrayName));
   if (!cellIdsTmp)
   {
     // Create Ids array
     generateIdScalars->SetInputData(tmpInput);
-    generateIdScalars->SetIdsArrayName(IdsArrayName);
+    generateIdScalars->SetPointIds(true);
+    generateIdScalars->SetCellIds(true);
+    generateIdScalars->SetPointIdsArrayName(IdsArrayName);
+    generateIdScalars->SetCellIdsArrayName(IdsArrayName);
     generateIdScalars->FieldDataOn();
     generateIdScalars->Update();
     tmpInput = generateIdScalars->GetOutput();
@@ -161,26 +161,19 @@ void vtkStaticPlaneCutter::RemoveIdsArray(vtkMultiPieceDataSet* output)
 }
 
 //-----------------------------------------------------------------------------
-void vtkStaticPlaneCutter::ClearWeightsVector()
-{
-  for(auto& weightsVector : this->WeightsVectorCompo)
-  {
-    delete[] weightsVector[0].second;
-  }
-  this->WeightsVectorCompo.clear();
-}
-
-//-----------------------------------------------------------------------------
 void vtkStaticPlaneCutter::ComputeIds(vtkUnstructuredGrid* input)
 {
   this->CellToCopyFrom.clear();
   this->CellToCopyTo.clear();
-  this->ClearWeightsVector();
+  this->WeightsVectorCompo.clear();
+
+  const vtkIdType nbPieces = this->Cache->GetNumberOfPieces();
+  this->WeightsVectorCompo.reserve(nbPieces);
 
   // Iterate over each piece of the multipiece output
   vtkNew<vtkGenericCell> tmpCell;
-  vtkSmartPointer<vtkCompositeDataIterator> iter;
-  iter.TakeReference(this->Cache->NewIterator());
+  vtkSmartPointer<vtkCompositeDataIterator> iter =
+    vtkSmartPointer<vtkCompositeDataIterator>::Take(this->Cache->NewIterator());
   iter->SkipEmptyNodesOn();
   for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
   {
@@ -190,12 +183,13 @@ void vtkStaticPlaneCutter::ComputeIds(vtkUnstructuredGrid* input)
     {
       // For each piece, recover the Ids of the cells sliced and the corresponding
       // cellId in the slice
-      vtkSmartPointer<vtkIdList> cellIdsFrom = vtkSmartPointer<vtkIdList>::New();
-      vtkSmartPointer<vtkIdList> cellIdsTo = vtkSmartPointer<vtkIdList>::New();
-      this->CellToCopyFrom.push_back(cellIdsFrom);
-      this->CellToCopyTo.push_back(cellIdsTo);
+      this->CellToCopyFrom.emplace_back();
+      this->CellToCopyTo.emplace_back();
+      auto& cellIdsFrom = this->CellToCopyFrom.back();
+      auto& cellIdsTo = this->CellToCopyTo.back();
 
-      vtkIdTypeArray* ids = vtkIdTypeArray::SafeDownCast(slice->GetCellData()->GetArray(IdsArrayName));
+      vtkIdTypeArray* ids =
+        vtkIdTypeArray::SafeDownCast(slice->GetCellData()->GetArray(IdsArrayName));
       assert(ids);
       cellIdsFrom->SetNumberOfIds(ids->GetNumberOfValues());
       cellIdsTo->SetNumberOfIds(ids->GetNumberOfValues());
@@ -208,27 +202,27 @@ void vtkStaticPlaneCutter::ComputeIds(vtkUnstructuredGrid* input)
       {
         slice->BuildLinks();
         vtkIdType maxCellSize = input->GetMaxCellSize();
-        std::vector<std::pair<vtkSmartPointer<vtkIdList>, double*>> weightsVector;
+        std::vector<WeightsVectorElmt> weightsVector;
         weightsVector.resize(sliceNbPoints);
-        double *allWeights = new double[maxCellSize * sliceNbPoints];
         for (vtkIdType i = 0; i < sliceNbPoints; i++)
         {
           vtkNew<vtkIdList> ptIds;
-          double *weights = &allWeights[maxCellSize * i];
-          unsigned short ncells;
-          vtkIdType *cells;
+          weightsVector[i].pointsWeights.resize(maxCellSize);
+          vtkIdType ncells;
+          vtkIdType* cells;
           slice->GetPointCells(i, ncells, cells);
           vtkIdType cellId = cellIdsFrom->GetId(cells[0]);
           assert(cellId < input->GetNumberOfCells());
           input->GetCell(cellId, tmpCell);
           input->GetCellPoints(cellId, ptIds);
           double dist, pcoords[3], x[3], p[3];
-          int subId = 0;
+          int subId;
           slice->GetPoint(i, p);
-          tmpCell->EvaluatePosition(p, x, subId, pcoords, dist, weights);
-          weightsVector[i] = { ptIds, weights };
+          tmpCell->EvaluatePosition(
+            p, x, subId, pcoords, dist, weightsVector[i].pointsWeights.data());
+          weightsVector[i].pointsList = ptIds;
         }
-        this->WeightsVectorCompo.push_back(weightsVector);
+        this->WeightsVectorCompo.emplace_back(std::move(weightsVector));
       }
     }
   }
@@ -249,10 +243,10 @@ void vtkStaticPlaneCutter::UpdateCacheData(vtkDataSet* input)
   vtkCellData* inCD = input->GetCellData();
   vtkPointData* inPD = input->GetPointData();
 
+  int blockId = 0;
   vtkSmartPointer<vtkCompositeDataIterator> iter;
   iter.TakeReference(this->Cache->NewIterator());
   iter->SkipEmptyNodesOn();
-  int blockId = 0;
   for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
   {
     vtkPolyData* slice = vtkPolyData::SafeDownCast(iter->GetCurrentDataObject());
@@ -266,7 +260,7 @@ void vtkStaticPlaneCutter::UpdateCacheData(vtkDataSet* input)
         if (arrayToCopyIn)
         {
           // Copy the tuples from the input cell ids to the slice cell ids
-          arrayToCopyIn->InsertTuples(this->CellToCopyTo[blockId].Get(), this->CellToCopyFrom[blockId].Get(),
+          arrayToCopyIn->InsertTuples(this->CellToCopyTo[blockId], this->CellToCopyFrom[blockId],
             inCD->GetAbstractArray(iArr));
         }
       }
@@ -279,7 +273,8 @@ void vtkStaticPlaneCutter::UpdateCacheData(vtkDataSet* input)
         auto& weightsVector = this->WeightsVectorCompo[blockId];
         for (vtkIdType ptIdx = 0; ptIdx < sliceNbPoints; ptIdx++)
         {
-          slicePD->InterpolatePoint(inPD, ptIdx, weightsVector[ptIdx].first, weightsVector[ptIdx].second);
+          slicePD->InterpolatePoint(inPD, ptIdx, weightsVector[ptIdx].pointsList,
+            weightsVector[ptIdx].pointsWeights.data());
         }
       }
 

@@ -26,21 +26,23 @@
  *
  * @sa
  * vtkPUnstructuredGridGhostCellsGenerator
-*/
+ */
 
 #ifndef vtkStaticPUnstructuredGridGhostCellsGenerator_h
 #define vtkStaticPUnstructuredGridGhostCellsGenerator_h
 
-#include <vtkIdList.h>
 #include <vtkNew.h>
 #include <vtkPUnstructuredGridGhostCellsGenerator.h>
-#include <vtkSmartPointer.h>
 
 #include <vector>
 
+#include "StaticMeshModuleModule.h"
+
+class vtkIdList;
 class vtkUnstructuredGrid;
 
-class vtkStaticPUnstructuredGridGhostCellsGenerator : public vtkPUnstructuredGridGhostCellsGenerator
+class STATICMESHMODULE_EXPORT vtkStaticPUnstructuredGridGhostCellsGenerator
+  : public vtkPUnstructuredGridGhostCellsGenerator
 {
 public:
   static vtkStaticPUnstructuredGridGhostCellsGenerator* New();
@@ -52,7 +54,7 @@ public:
 
 protected:
   vtkStaticPUnstructuredGridGhostCellsGenerator();
-  ~vtkStaticPUnstructuredGridGhostCellsGenerator() override;
+  ~vtkStaticPUnstructuredGridGhostCellsGenerator() override = default;
 
   /**
    * Check input for "ProcessId" and "Ids" point and cell array,
@@ -83,20 +85,19 @@ protected:
    */
   virtual void UpdateCacheGhostCellAndPointData(vtkDataSet* input);
 
-  vtkNew<vtkUnstructuredGrid> Cache;
-  vtkMTimeType InputMeshTime;
-  vtkMTimeType FilterMTime;
-
-  std::vector<vtkSmartPointer<vtkIdList> > GhostCellsToReceive;
-  std::vector<vtkSmartPointer<vtkIdList> > GhostCellsToSend;
-  std::vector<vtkSmartPointer<vtkIdList> > GhostPointsToReceive;
-  std::vector<vtkSmartPointer<vtkIdList> > GhostPointsToSend;
-
 private:
-  // Hide these from the user and the compiler.
   vtkStaticPUnstructuredGridGhostCellsGenerator(
     const vtkStaticPUnstructuredGridGhostCellsGenerator&) = delete;
   void operator=(const vtkStaticPUnstructuredGridGhostCellsGenerator&) = delete;
+
+  vtkNew<vtkUnstructuredGrid> Cache;
+  vtkMTimeType InputMeshTime = 0;
+  vtkMTimeType FilterMTime = 0;
+
+  std::vector<vtkNew<vtkIdList> > GhostCellsToReceive;
+  std::vector<vtkNew<vtkIdList> > GhostCellsToSend;
+  std::vector<vtkNew<vtkIdList> > GhostPointsToReceive;
+  std::vector<vtkNew<vtkIdList> > GhostPointsToSend;
 };
 
 #endif

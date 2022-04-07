@@ -1,5 +1,6 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="sources">
+
     <SourceProxy class="vtkTemporalUGWavelet"
                  label="Temporal Unstructured Grid Wavelet"
                  name="TemporalUGWavelet">
@@ -8,9 +9,10 @@
       <Documentation long_help="Create a unstructured grid in up to three dimensions with values varying according to a periodic function as well as temporal varying point and cell data."
                      short_help="Create a temporal unstructured grid containing a wavelet">
                      See Wavelet documentation.
-                     This is a wavelet converted into an unstructured grid.
-                     It contains timesteps yet the mesh is statis over time.
-                     It also contains tPoint and tCell wich are scalar array varying over time.</Documentation>
+                     The output is a wavelet converted into an unstructured grid.
+                     It contains timesteps yet the mesh is static over time.
+                     It also contains "tPoint" and "tCell", wich are scalar arrays varying over time.
+      </Documentation>
       <DoubleVectorProperty information_only="1"
                             name="TimestepValues"
                             repeatable="1">

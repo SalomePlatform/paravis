@@ -20,20 +20,9 @@
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtksys/SystemTools.hxx>
 
 vtkStandardNewMacro(vtkStaticDataSetSurfaceFilter);
-
-//----------------------------------------------------------------------------
-vtkStaticDataSetSurfaceFilter::vtkStaticDataSetSurfaceFilter()
-{
-  this->InputMeshTime = 0;
-  this->FilterMTime = 0;
-}
-
-//----------------------------------------------------------------------------
-vtkStaticDataSetSurfaceFilter::~vtkStaticDataSetSurfaceFilter()
-{
-}
 
 //-----------------------------------------------------------------------------
 int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vtkPolyData* output)
@@ -45,9 +34,14 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
     return this->Superclass::UnstructuredGridExecute(input, output);
   }
 
-  // Check is cache is still valid
+  // Check if cache is still valid
   if (this->InputMeshTime == inputUG->GetMeshMTime() && this->FilterMTime == this->GetMTime())
   {
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Using static mesh cache");
+    }
+
     // Use cache as base
     output->ShallowCopy(this->Cache.Get());
 
@@ -70,11 +64,13 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
     vtkCellData* inCD = input->GetCellData();
 
     // Update output point data
-    vtkIdType* tmpIds = new vtkIdType[origPointArray->GetNumberOfTuples()];
-    memcpy(tmpIds, reinterpret_cast<vtkIdType*>(origPointArray->GetVoidPointer(0)),
-      sizeof(vtkIdType) * origPointArray->GetNumberOfTuples());
     vtkNew<vtkIdList> pointIds;
-    pointIds->SetArray(tmpIds, origPointArray->GetNumberOfTuples());
+    const vtkIdType origPANbTuples = origPointArray->GetNumberOfTuples();
+    pointIds->SetNumberOfIds(origPANbTuples);
+    for (vtkIdType i = 0; i < origPANbTuples; i++)
+    {
+      pointIds->SetId(i, origPointArray->GetTuple1(i));
+    }
 
     // Remove array that have disappeared from input
     for (int iArr = outPD->GetNumberOfArrays() - 1; iArr >= 0; iArr--)
@@ -104,15 +100,18 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
         outArr->SetNumberOfTuples(output->GetNumberOfPoints());
         inArr->GetTuples(pointIds.Get(), outArr);
         outPD->AddArray(outArr);
+        outArr->Delete();
       }
     }
 
     // Update output cell data
-    tmpIds = new vtkIdType[origCellArray->GetNumberOfTuples()];
-    memcpy(tmpIds, reinterpret_cast<vtkIdType*>(origCellArray->GetVoidPointer(0)),
-      sizeof(vtkIdType) * origCellArray->GetNumberOfTuples());
     vtkNew<vtkIdList> cellIds;
-    cellIds->SetArray(tmpIds, origCellArray->GetNumberOfTuples());
+    const vtkIdType origCANbTuples = origCellArray->GetNumberOfTuples();
+    cellIds->SetNumberOfIds(origCANbTuples);
+    for (vtkIdType i = 0; i < origCANbTuples; i++)
+    {
+      cellIds->SetId(i, origCellArray->GetTuple1(i));
+    }
 
     // Remove array that have disappeared from input
     for (int iArr = outCD->GetNumberOfArrays() - 1; iArr >= 0; iArr--)
@@ -141,8 +140,8 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
         outArr->SetNumberOfTuples(output->GetNumberOfCells());
         inArr->GetTuples(cellIds.Get(), outArr);
         outCD->AddArray(outArr);
+        outArr->Delete();
       }
-
     }
 
     // Update output field data
@@ -152,6 +151,11 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
   else
   {
     // Cache is not valid, Execute supercall algorithm
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Building static mesh cache");
+    }
+
     int ret = this->Superclass::UnstructuredGridExecute(input, output);
 
     // Update the cache with superclass output

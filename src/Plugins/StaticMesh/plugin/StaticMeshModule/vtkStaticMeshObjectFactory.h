@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkStaticDataSetSurfaceFilter.h
+  Module:    vtkStaticMeshObjectFactor.h
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -14,18 +14,20 @@
 =========================================================================*/
 /**
  * @class   vtkStaticMeshObjectFactory
- * @brief   Generate static version of dataset and filter for statix mesh plugin
+ * @brief   Generate static version of dataset and filter for static mesh plugin
  *
  * vtkStaticMeshObjectFactory is a vtk object factory, instantiating static version
- * of some dataset and filters.
-*/
+ * of some readers and filters.
+ */
 
 #ifndef vtkStaticMeshObjectFactory_h
 #define vtkStaticMeshObjectFactory_h
 
 #include <vtkObjectFactory.h> // Must be included before singletons
 
-class vtkStaticMeshObjectFactory : public vtkObjectFactory
+#include "StaticMeshModuleModule.h"
+
+class STATICMESHMODULE_EXPORT vtkStaticMeshObjectFactory : public vtkObjectFactory
 {
 public:
   vtkTypeMacro(vtkStaticMeshObjectFactory, vtkObjectFactory);
@@ -48,7 +50,7 @@ public:
 
 protected:
   vtkStaticMeshObjectFactory();
-  ~vtkStaticMeshObjectFactory() override;
+  ~vtkStaticMeshObjectFactory() override = default;
 
 private:
   vtkStaticMeshObjectFactory(const vtkStaticMeshObjectFactory&) = delete;

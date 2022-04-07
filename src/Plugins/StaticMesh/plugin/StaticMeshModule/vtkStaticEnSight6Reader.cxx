@@ -23,60 +23,48 @@
 #include <vtkMultiBlockDataSet.h>
 #include <vtkObjectFactory.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtksys/SystemTools.hxx>
 
 vtkStandardNewMacro(vtkStaticEnSight6Reader);
 
 //----------------------------------------------------------------------------
-int vtkStaticEnSight6Reader::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **vtkNotUsed(inputVector),
-  vtkInformationVector *outputVector)
+int vtkStaticEnSight6Reader::RequestData(vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector), vtkInformationVector* outputVector)
 {
-  vtkDebugMacro("In execute ");
+  vtkMultiBlockDataSet* output = vtkMultiBlockDataSet::GetData(outputVector);
 
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  vtkMultiBlockDataSet *output = vtkMultiBlockDataSet::SafeDownCast(
-    outInfo->Get(vtkDataObject::DATA_OBJECT()));
-
-  int tsLength =
-    outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
-  double* steps =
-    outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  int tsLength = outInfo->Length(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
+  double* steps = outInfo->Get(vtkStreamingDemandDrivenPipeline::TIME_STEPS());
 
   this->ActualTimeValue = this->TimeValue;
 
   // Check if a particular time was requested by the pipeline.
   // This overrides the ivar.
-  if(outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()) && tsLength>0)
+  if (outInfo->Has(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP()) && tsLength > 0)
   {
     // Get the requested time step. We only support requests of a single time
     // step in this reader right now
-    double requestedTimeStep =
-      outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
+    double requestedTimeStep = outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_TIME_STEP());
 
     // find the first time value larger than requested time value
     // this logic could be improved
     int cnt = 0;
-    while (cnt < tsLength-1 && steps[cnt] < requestedTimeStep)
+    while (cnt < tsLength - 1 && steps[cnt] < requestedTimeStep)
     {
       cnt++;
     }
     this->ActualTimeValue = steps[cnt];
   }
 
-  vtkDebugMacro("Executing with: " << this->ActualTimeValue);
-
-  if (this->CacheMTime < this->GetMTime())
+  if (!this->UseStaticMesh || this->CacheMTime < this->GetMTime())
   {
-    int i, timeSet, fileSet, timeStep, timeStepInFile, fileNum;
-    vtkDataArray *times;
-    vtkIdList *numStepsList, *filenameNumbers;
-    float newTime;
-    int numSteps;
-    char* fileName;
-    int filenameNum;
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Building static mesh cache");
+    }
 
-    if ( ! this->CaseFileRead)
+    if (!this->CaseFileRead)
     {
       vtkErrorMacro("error reading case file");
       return 0;
@@ -86,23 +74,23 @@ int vtkStaticEnSight6Reader::RequestData(
     this->NumberOfGeometryParts = 0;
     if (this->GeometryFileName)
     {
-      timeStep = timeStepInFile = 1;
-      fileNum = 1;
-      fileName = new char[strlen(this->GeometryFileName) + 10];
-      strcpy(fileName, this->GeometryFileName);
+      vtkIdType timeStep = 1;
+      vtkIdType timeStepInFile = 1;
+      int fileNum = 1;
+      std::string fileName(this->GeometryFileName);
+      fileName.resize(fileName.size() + 10);
 
       if (this->UseTimeSets)
       {
-        timeSet = this->TimeSetIds->IsId(this->GeometryTimeSet);
+        vtkIdType timeSet = this->TimeSetIds->IsId(this->GeometryTimeSet);
         if (timeSet >= 0)
         {
-          times = this->TimeSets->GetItem(timeSet);
+          vtkDataArray* times = this->TimeSets->GetItem(timeSet);
           this->GeometryTimeValue = times->GetComponent(0, 0);
-          for (i = 1; i < times->GetNumberOfTuples(); i++)
+          for (vtkIdType i = 1; i < times->GetNumberOfTuples(); i++)
           {
-            newTime = times->GetComponent(i, 0);
-            if (newTime <= this->ActualTimeValue &&
-                newTime > this->GeometryTimeValue)
+            double newTime = times->GetComponent(i, 0);
+            if (newTime <= this->ActualTimeValue && newTime > this->GeometryTimeValue)
             {
               this->GeometryTimeValue = newTime;
               timeStep++;
@@ -111,16 +99,14 @@ int vtkStaticEnSight6Reader::RequestData(
           }
           if (this->TimeSetFileNameNumbers->GetNumberOfItems() > 0)
           {
-            int collectionNum = this->TimeSetsWithFilenameNumbers->
-              IsId(this->GeometryTimeSet);
+            int collectionNum = this->TimeSetsWithFilenameNumbers->IsId(this->GeometryTimeSet);
             if (collectionNum > -1)
             {
-              filenameNumbers =
-                this->TimeSetFileNameNumbers->GetItem(collectionNum);
-              filenameNum = filenameNumbers->GetId(timeStep-1);
-              if (! this->UseFileSets)
+              vtkIdList* filenameNumbers = this->TimeSetFileNameNumbers->GetItem(collectionNum);
+              int filenameNum = filenameNumbers->GetId(timeStep - 1);
+              if (!this->UseFileSets)
               {
-                this->ReplaceWildcards(fileName, filenameNum);
+                this->ReplaceWildcards(&fileName[0], filenameNum);
               }
             }
           }
@@ -128,16 +114,16 @@ int vtkStaticEnSight6Reader::RequestData(
           // There can only be file sets if there are also time sets.
           if (this->UseFileSets)
           {
-            fileSet = this->FileSets->IsId(this->GeometryFileSet);
-            numStepsList = static_cast<vtkIdList*>(this->FileSetNumberOfSteps->
-                                                   GetItemAsObject(fileSet));
+            vtkIdType fileSet = this->FileSets->IsId(this->GeometryFileSet);
+            vtkIdList* numStepsList =
+              static_cast<vtkIdList*>(this->FileSetNumberOfSteps->GetItemAsObject(fileSet));
 
             if (timeStep > numStepsList->GetId(0))
             {
-              numSteps = numStepsList->GetId(0);
+              vtkIdType numSteps = numStepsList->GetId(0);
               timeStepInFile -= numSteps;
               fileNum = 2;
-              for (i = 1; i < numStepsList->GetNumberOfIds(); i++)
+              for (vtkIdType i = 1; i < numStepsList->GetNumberOfIds(); i++)
               {
                 numSteps += numStepsList->GetId(i);
                 if (timeStep > numSteps)
@@ -149,48 +135,43 @@ int vtkStaticEnSight6Reader::RequestData(
             }
             if (this->FileSetFileNameNumbers->GetNumberOfItems() > 0)
             {
-              int collectionNum = this->FileSetsWithFilenameNumbers->
-                IsId(this->GeometryFileSet);
+              int collectionNum = this->FileSetsWithFilenameNumbers->IsId(this->GeometryFileSet);
               if (collectionNum > -1)
               {
-                filenameNumbers = this->FileSetFileNameNumbers->
-                  GetItem(collectionNum);
-                filenameNum = filenameNumbers->GetId(fileNum-1);
-                this->ReplaceWildcards(fileName, filenameNum);
+                vtkIdList* filenameNumbers = this->FileSetFileNameNumbers->GetItem(collectionNum);
+                int filenameNum = filenameNumbers->GetId(fileNum - 1);
+                this->ReplaceWildcards(&fileName[0], filenameNum);
               }
             }
           }
         }
       }
 
-      if (!this->ReadGeometryFile(fileName, timeStepInFile, this->Cache))
+      if (!this->ReadGeometryFile(fileName.data(), timeStepInFile, this->Cache))
       {
         vtkErrorMacro("error reading geometry file");
-        delete [] fileName;
         return 0;
       }
-
-      delete [] fileName;
     }
     if (this->MeasuredFileName)
     {
-      timeStep = timeStepInFile = 1;
-      fileNum = 1;
-      fileName = new char[strlen(this->MeasuredFileName) + 10];
-      strcpy(fileName, this->MeasuredFileName);
+      vtkIdType timeStep = 1;
+      vtkIdType timeStepInFile = 1;
+      int fileNum = 1;
+      std::string fileName(this->MeasuredFileName);
+      fileName.resize(fileName.size() + 10);
 
       if (this->UseTimeSets)
       {
-        timeSet = this->TimeSetIds->IsId(this->MeasuredTimeSet);
+        vtkIdType timeSet = this->TimeSetIds->IsId(this->MeasuredTimeSet);
         if (timeSet >= 0)
         {
-          times = this->TimeSets->GetItem(timeSet);
+          vtkDataArray* times = this->TimeSets->GetItem(timeSet);
           this->MeasuredTimeValue = times->GetComponent(0, 0);
-          for (i = 1; i < times->GetNumberOfTuples(); i++)
+          for (vtkIdType i = 1; i < times->GetNumberOfTuples(); i++)
           {
-            newTime = times->GetComponent(i, 0);
-            if (newTime <= this->ActualTimeValue &&
-                newTime > this->MeasuredTimeValue)
+            double newTime = times->GetComponent(i, 0);
+            if (newTime <= this->ActualTimeValue && newTime > this->MeasuredTimeValue)
             {
               this->MeasuredTimeValue = newTime;
               timeStep++;
@@ -199,16 +180,14 @@ int vtkStaticEnSight6Reader::RequestData(
           }
           if (this->TimeSetFileNameNumbers->GetNumberOfItems() > 0)
           {
-            int collectionNum = this->TimeSetsWithFilenameNumbers->
-              IsId(this->MeasuredTimeSet);
+            int collectionNum = this->TimeSetsWithFilenameNumbers->IsId(this->MeasuredTimeSet);
             if (collectionNum > -1)
             {
-              filenameNumbers = this->TimeSetFileNameNumbers->
-                GetItem(collectionNum);
-              filenameNum = filenameNumbers->GetId(timeStep-1);
-              if (! this->UseFileSets)
+              vtkIdList* filenameNumbers = this->TimeSetFileNameNumbers->GetItem(collectionNum);
+              int filenameNum = filenameNumbers->GetId(timeStep - 1);
+              if (!this->UseFileSets)
               {
-                this->ReplaceWildcards(fileName, filenameNum);
+                this->ReplaceWildcards(&fileName[0], filenameNum);
               }
             }
           }
@@ -216,16 +195,16 @@ int vtkStaticEnSight6Reader::RequestData(
           // There can only be file sets if there are also time sets.
           if (this->UseFileSets)
           {
-            fileSet = this->FileSets->IsId(this->MeasuredFileSet);
-            numStepsList = static_cast<vtkIdList*>(this->FileSetNumberOfSteps->
-                                                   GetItemAsObject(fileSet));
+            vtkIdType fileSet = this->FileSets->IsId(this->MeasuredFileSet);
+            vtkIdList* numStepsList =
+              static_cast<vtkIdList*>(this->FileSetNumberOfSteps->GetItemAsObject(fileSet));
 
             if (timeStep > numStepsList->GetId(0))
             {
-              numSteps = numStepsList->GetId(0);
+              vtkIdType numSteps = numStepsList->GetId(0);
               timeStepInFile -= numSteps;
               fileNum = 2;
-              for (i = 1; i < numStepsList->GetNumberOfIds(); i++)
+              for (vtkIdType i = 1; i < numStepsList->GetNumberOfIds(); i++)
               {
                 numSteps += numStepsList->GetId(i);
                 if (timeStep > numSteps)
@@ -237,26 +216,22 @@ int vtkStaticEnSight6Reader::RequestData(
             }
             if (this->FileSetFileNameNumbers->GetNumberOfItems() > 0)
             {
-              int collectionNum = this->FileSetsWithFilenameNumbers->
-                IsId(this->MeasuredFileSet);
+              int collectionNum = this->FileSetsWithFilenameNumbers->IsId(this->MeasuredFileSet);
               if (collectionNum > -1)
               {
-                filenameNumbers = this->FileSetFileNameNumbers->
-                  GetItem(fileSet);
-                filenameNum = filenameNumbers->GetId(fileNum-1);
-                this->ReplaceWildcards(fileName, filenameNum);
+                vtkIdList* filenameNumbers = this->FileSetFileNameNumbers->GetItem(fileSet);
+                int filenameNum = filenameNumbers->GetId(fileNum - 1);
+                this->ReplaceWildcards(&fileName[0], filenameNum);
               }
             }
           }
         }
       }
-      if (!this->ReadMeasuredGeometryFile(fileName, timeStepInFile, this->Cache))
+      if (!this->ReadMeasuredGeometryFile(fileName.data(), timeStepInFile, this->Cache))
       {
         vtkErrorMacro("error reading measured geometry file");
-        delete [] fileName;
         return 0;
       }
-      delete [] fileName;
     }
     this->CacheMTime.Modified();
   }

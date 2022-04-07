@@ -28,6 +28,7 @@
 #include <vtkTable.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtksys/SystemTools.hxx>
 
 static const int SUGGCG_SIZE_EXCHANGE_TAG = 9002;
 static const int SUGGCG_DATA_EXCHANGE_TAG = 9003;
@@ -37,9 +38,6 @@ vtkStandardNewMacro(vtkStaticPUnstructuredGridGhostCellsGenerator);
 //----------------------------------------------------------------------------
 vtkStaticPUnstructuredGridGhostCellsGenerator::vtkStaticPUnstructuredGridGhostCellsGenerator()
 {
-  this->InputMeshTime = 0;
-  this->FilterMTime = 0;
-
   vtkMPIController* controller =
     vtkMPIController::SafeDownCast(vtkMultiProcessController::GetGlobalController());
   if (controller)
@@ -49,22 +47,7 @@ vtkStaticPUnstructuredGridGhostCellsGenerator::vtkStaticPUnstructuredGridGhostCe
     this->GhostPointsToSend.resize(controller->GetNumberOfProcesses());
     this->GhostCellsToReceive.resize(controller->GetNumberOfProcesses());
     this->GhostCellsToSend.resize(controller->GetNumberOfProcesses());
-
-    int nProc = controller->GetNumberOfProcesses();
-
-    for (int i = 0; i < nProc; i++)
-    {
-      this->GhostCellsToReceive[i] = vtkSmartPointer<vtkIdList>::New();
-      this->GhostCellsToSend[i] = vtkSmartPointer<vtkIdList>::New();
-      this->GhostPointsToReceive[i] = vtkSmartPointer<vtkIdList>::New();
-      this->GhostPointsToSend[i] = vtkSmartPointer<vtkIdList>::New();
-    }
   }
-}
-
-//----------------------------------------------------------------------------
-vtkStaticPUnstructuredGridGhostCellsGenerator::~vtkStaticPUnstructuredGridGhostCellsGenerator()
-{
 }
 
 //-----------------------------------------------------------------------------
@@ -72,12 +55,8 @@ int vtkStaticPUnstructuredGridGhostCellsGenerator::RequestData(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the inputs and outputs
-  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
-  vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  vtkUnstructuredGridBase* input =
-    vtkUnstructuredGridBase::SafeDownCast(inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  vtkUnstructuredGrid* output =
-    vtkUnstructuredGrid::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkUnstructuredGridBase* input = vtkUnstructuredGridBase::GetData(inputVector[0]);
+  vtkUnstructuredGrid* output = vtkUnstructuredGrid::GetData(outputVector);
 
   // Recover the static unstructured grid
   vtkUnstructuredGrid* inputUG = vtkUnstructuredGrid::SafeDownCast(input);
@@ -91,6 +70,11 @@ int vtkStaticPUnstructuredGridGhostCellsGenerator::RequestData(
   if (this->InputMeshTime == inputUG->GetMeshMTime() && this->FilterMTime == this->GetMTime())
   {
     // Cache mesh is up to date, use it to generate data
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Using static mesh cache");
+    }
+
     // Update the cache data
     this->UpdateCacheData(input);
 
@@ -100,6 +84,12 @@ int vtkStaticPUnstructuredGridGhostCellsGenerator::RequestData(
   }
   else
   {
+    // Cache is outdated, build it.
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Building static mesh cache");
+    }
+
     // Add Arrays Ids needed
     vtkNew<vtkUnstructuredGrid> tmpInput;
     this->AddIdsArrays(input, tmpInput.Get());
@@ -159,92 +149,92 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::ProcessGhostIds()
       vtkWarningMacro("Arrays are missing from cache, cache is discarded");
       this->InputMeshTime = 0;
       this->FilterMTime = 0;
+      return;
     }
-    else
+
+    // Compute list of remote ghost point ids
+    // and corresponding local point ids.
+    std::vector<std::vector<vtkIdType> > remoteGhostPoints;
+    remoteGhostPoints.resize(nProc);
+    for (vtkIdType i = 0; i < pointGhostArray->GetNumberOfTuples(); i++)
     {
-      // Compute list of remote ghost point ids
-      // and corresponding local point ids.
-      std::vector<std::vector<vtkIdType> > remoteGhostPoints;
-      remoteGhostPoints.resize(nProc);
-      for (vtkIdType i = 0; i < pointGhostArray->GetNumberOfTuples(); i++)
+      if (pointGhostArray->GetValue(i) != 0)
       {
-        if (pointGhostArray->GetValue(i) != 0)
-        {
-          this->GhostPointsToReceive[pointProcIds->GetValue(i)]->InsertNextId(i);
-          remoteGhostPoints[pointProcIds->GetValue(i)].push_back(pointIds->GetValue(i));
-        }
+        this->GhostPointsToReceive[pointProcIds->GetValue(i)]->InsertNextId(i);
+        remoteGhostPoints[pointProcIds->GetValue(i)].emplace_back(pointIds->GetValue(i));
       }
-
-      // Compute list of remote ghost cell ids
-      // and corresponding local cell ids.
-      std::vector<std::vector<vtkIdType> > remoteGhostCells;
-      remoteGhostCells.resize(nProc);
-      for (vtkIdType i = 0; i < cellGhostArray->GetNumberOfTuples(); i++)
-      {
-        if (cellGhostArray->GetValue(i) != 0)
-        {
-          this->GhostCellsToReceive[cellProcIds->GetValue(i)]->InsertNextId(i);
-          remoteGhostCells[cellProcIds->GetValue(i)].push_back(cellIds->GetValue(i));
-        }
-      }
-
-      // Send requested ghost point ids to their own rank
-      vtkMPICommunicator::Request pointSizeReqs[nProc];
-      vtkMPICommunicator::Request pointIdsReqs[nProc];
-      vtkIdType lengths[nProc];
-      for (int i = 0; i < nProc; i++)
-      {
-        if (i != rank)
-        {
-          lengths[i] = remoteGhostPoints[i].size();
-          controller->NoBlockSend(&lengths[i], 1, i, SUGGCG_SIZE_EXCHANGE_TAG, pointSizeReqs[i]);
-          controller->NoBlockSend(&remoteGhostPoints[i][0], remoteGhostPoints[i].size(), i,
-            SUGGCG_DATA_EXCHANGE_TAG, pointIdsReqs[i]);
-        }
-      }
-
-      // Receive and store requested ghost point ids.
-      for (int i = 0; i < nProc; i++)
-      {
-        if (i != rank)
-        {
-          vtkIdType length;
-          controller->Receive(&length, 1, i, SUGGCG_SIZE_EXCHANGE_TAG);
-          this->GhostPointsToSend[i]->SetNumberOfIds(length);
-          controller->Receive(
-            this->GhostPointsToSend[i]->GetPointer(0), length, i, SUGGCG_DATA_EXCHANGE_TAG);
-        }
-      }
-      controller->Barrier();
-
-      // Send requested ghost cell ids to their own rank
-      vtkMPICommunicator::Request cellSizeReqs[nProc];
-      vtkMPICommunicator::Request cellIdsReqs[nProc];
-      for (int i = 0; i < nProc; i++)
-      {
-        if (i != rank)
-        {
-          lengths[i] = remoteGhostCells[i].size();
-          controller->NoBlockSend(&lengths[i], 1, i, SUGGCG_SIZE_EXCHANGE_TAG, cellSizeReqs[i]);
-          controller->NoBlockSend(
-            &remoteGhostCells[i][0], lengths[i], i, SUGGCG_DATA_EXCHANGE_TAG, cellIdsReqs[i]);
-        }
-      }
-      // Receive and store requested ghost cell ids.
-      for (int i = 0; i < nProc; i++)
-      {
-        if (i != rank)
-        {
-          vtkIdType length;
-          controller->Receive(&length, 1, i, SUGGCG_SIZE_EXCHANGE_TAG);
-          this->GhostCellsToSend[i]->SetNumberOfIds(length);
-          controller->Receive(
-            this->GhostCellsToSend[i]->GetPointer(0), length, i, SUGGCG_DATA_EXCHANGE_TAG);
-        }
-      }
-      controller->Barrier();
     }
-  }
+
+    // Compute list of remote ghost cell ids
+    // and corresponding local cell ids.
+    std::vector<std::vector<vtkIdType> > remoteGhostCells;
+    remoteGhostCells.resize(nProc);
+    for (vtkIdType i = 0; i < cellGhostArray->GetNumberOfTuples(); i++)
+    {
+      if (cellGhostArray->GetValue(i) != 0)
+      {
+        this->GhostCellsToReceive[cellProcIds->GetValue(i)]->InsertNextId(i);
+        remoteGhostCells[cellProcIds->GetValue(i)].emplace_back(cellIds->GetValue(i));
+      }
+    }
+
+    // Send requested ghost point ids to their own rank
+    vtkMPICommunicator::Request pointSizeReqs[nProc];
+    vtkMPICommunicator::Request pointIdsReqs[nProc];
+    vtkIdType lengths[nProc];
+    for (int i = 0; i < nProc; i++)
+    {
+      if (i != rank)
+      {
+        lengths[i] = remoteGhostPoints[i].size();
+        controller->NoBlockSend(&lengths[i], 1, i, SUGGCG_SIZE_EXCHANGE_TAG, pointSizeReqs[i]);
+        controller->NoBlockSend(&remoteGhostPoints[i][0], remoteGhostPoints[i].size(), i,
+          SUGGCG_DATA_EXCHANGE_TAG, pointIdsReqs[i]);
+      }
+    }
+
+    // Receive and store requested ghost point ids.
+    for (int i = 0; i < nProc; i++)
+    {
+      if (i != rank)
+      {
+        vtkIdType length;
+        controller->Receive(&length, 1, i, SUGGCG_SIZE_EXCHANGE_TAG);
+        this->GhostPointsToSend[i]->SetNumberOfIds(length);
+        controller->Receive(
+          this->GhostPointsToSend[i]->GetPointer(0), length, i, SUGGCG_DATA_EXCHANGE_TAG);
+      }
+    }
+    controller->Barrier();
+
+    // Send requested ghost cell ids to their own rank
+    vtkMPICommunicator::Request cellSizeReqs[nProc];
+    vtkMPICommunicator::Request cellIdsReqs[nProc];
+    for (int i = 0; i < nProc; i++)
+    {
+      if (i != rank)
+      {
+        lengths[i] = remoteGhostCells[i].size();
+        controller->NoBlockSend(&lengths[i], 1, i, SUGGCG_SIZE_EXCHANGE_TAG, cellSizeReqs[i]);
+        controller->NoBlockSend(
+          &remoteGhostCells[i][0], lengths[i], i, SUGGCG_DATA_EXCHANGE_TAG, cellIdsReqs[i]);
+      }
+    }
+    // Receive and store requested ghost cell ids.
+    for (int i = 0; i < nProc; i++)
+    {
+      if (i != rank)
+      {
+        vtkIdType length;
+        controller->Receive(&length, 1, i, SUGGCG_SIZE_EXCHANGE_TAG);
+        this->GhostCellsToSend[i]->SetNumberOfIds(length);
+        controller->Receive(
+          this->GhostCellsToSend[i]->GetPointer(0), length, i, SUGGCG_DATA_EXCHANGE_TAG);
+      }
+    }
+    controller->Barrier();
+
+  } // end if (controller)
 }
 
 //-----------------------------------------------------------------------------
@@ -264,7 +254,10 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::AddIdsArrays(
   {
     // Create Ids array
     generateIdScalars->SetInputData(tmpInput);
-    generateIdScalars->SetIdsArrayName("Ids");
+    generateIdScalars->SetPointIds(true);
+    generateIdScalars->SetCellIds(true);
+    generateIdScalars->SetPointIdsArrayName("Ids");
+    generateIdScalars->SetCellIdsArrayName("Ids");
     generateIdScalars->Update();
     tmpInput = generateIdScalars->GetOutput();
   }
@@ -391,7 +384,7 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::UpdateCacheGhostCellAndPoint
           SUGGCG_DATA_EXCHANGE_TAG, dataReqs[i]);
       }
     }
-    // Foe each rank
+    // For each rank
     for (int i = 0; i < nProc; i++)
     {
       if (i != rank && this->GhostPointsToReceive[i]->GetNumberOfIds() > 0)

@@ -14,7 +14,7 @@
 =========================================================================*/
 /**
  * @class   vtkStaticPlaneCutter
- * @brief   StaticMesh aware implementation of vtkPlaneCutter vtk vtkUnstructuredGrid
+ * @brief   StaticMesh aware implementation of vtkPlaneCutter for vtkUnstructuredGrid
  *
  * This class specialize vtkPlaneCutter for vtkUnstructuredGrid input.
  * It uses a cache when the associated data chage over time but not the geometry.
@@ -23,10 +23,9 @@
  * Contrary to its parent, this class does not interpolate point data,
  * only transmit cell data.
  *
- *
  * @sa
  * vtkPlaneCutter
-*/
+ */
 
 #ifndef vtkStaticPlaneCutter_h
 #define vtkStaticPlaneCutter_h
@@ -38,20 +37,25 @@
 
 #include <vector>
 
+#include "StaticMeshModuleModule.h"
+
 class vtkMultiPieceDataSet;
 
-class vtkStaticPlaneCutter : public vtkPlaneCutter
+class STATICMESHMODULE_EXPORT vtkStaticPlaneCutter : public vtkPlaneCutter
 {
 public:
   static vtkStaticPlaneCutter* New();
   typedef vtkPlaneCutter Superclass; // vtkTypeMacro can't be used with a factory built object
-  void PrintSelf(ostream &os, vtkIndent indent) override;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  /**
+   * see vtkDataSetAlgorithm
+   */
   int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 protected:
-  vtkStaticPlaneCutter();
-  ~vtkStaticPlaneCutter() override;
+  vtkStaticPlaneCutter() = default;
+  ~vtkStaticPlaneCutter() override = default;
 
   /**
    * Check input for Ids cell array, if absent, compute and add them.
@@ -73,19 +77,23 @@ protected:
    */
   void ComputeIds(vtkUnstructuredGrid* input);
 
-  void ClearWeightsVector();
-
-  vtkNew<vtkMultiPieceDataSet> Cache;
-  std::vector<vtkSmartPointer<vtkIdList> > CellToCopyFrom;
-  std::vector<vtkSmartPointer<vtkIdList> > CellToCopyTo;
-  std::vector<std::vector<std::pair<vtkSmartPointer<vtkIdList>, double*>>> WeightsVectorCompo;
-  vtkMTimeType InputMeshTime;
-  vtkMTimeType FilterMTime;
-
 private:
   // Hide these from the user and the compiler.
   vtkStaticPlaneCutter(const vtkStaticPlaneCutter&) = delete;
   void operator=(const vtkStaticPlaneCutter&) = delete;
+
+  struct WeightsVectorElmt
+  {
+    vtkSmartPointer<vtkIdList> pointsList;
+    std::vector<double> pointsWeights;
+  };
+
+  vtkNew<vtkMultiPieceDataSet> Cache;
+  std::vector<vtkNew<vtkIdList> > CellToCopyFrom;
+  std::vector<vtkNew<vtkIdList> > CellToCopyTo;
+  std::vector<std::vector<WeightsVectorElmt> > WeightsVectorCompo;
+  vtkMTimeType InputMeshTime = 0;
+  vtkMTimeType FilterMTime = 0;
 };
 
 #endif

@@ -31,9 +31,9 @@
  * of the pipeline because (due to the nature of the file format) it is
  * not possible to know ahead of time how many outputs you will have or
  * what types they will be.
- * This reader can only handle static EnSight datasets (both static geometry
- * and variables).
-*/
+ * If UseStaticMesh is true, this reader generates an unstructured grid
+ * with static geometry.
+ */
 
 #ifndef vtkStaticEnSightGoldReader_h
 #define vtkStaticEnSightGoldReader_h
@@ -41,29 +41,43 @@
 #include <vtkEnSightGoldReader.h>
 #include <vtkNew.h>
 
+#include "StaticMeshModuleModule.h"
+
 class vtkMultiBlockDataSet;
 
-class vtkStaticEnSightGoldReader : public vtkEnSightGoldReader
+class STATICMESHMODULE_EXPORT vtkStaticEnSightGoldReader : public vtkEnSightGoldReader
 {
 public:
-  static vtkStaticEnSightGoldReader *New();
+  static vtkStaticEnSightGoldReader* New();
   vtkTypeMacro(vtkStaticEnSightGoldReader, vtkEnSightGoldReader);
+
+  // @{
+  /**
+   * This boolean control whether or not the output
+   * should be considered a static mesh.
+   */
+  vtkGetMacro(UseStaticMesh, bool);
+  vtkSetMacro(UseStaticMesh, bool);
+  vtkBooleanMacro(UseStaticMesh, bool);
+  // @}
 
 protected:
   vtkStaticEnSightGoldReader() = default;
   ~vtkStaticEnSightGoldReader() override = default;
 
-  int RequestData(vtkInformation*,
-                  vtkInformationVector**,
-                  vtkInformationVector*) override;
-
-  vtkNew<vtkMultiBlockDataSet> Cache;
-  vtkTimeStamp CacheMTime;
+  /**
+   * see vtkDataSetAlgorithm
+   */
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
   vtkStaticEnSightGoldReader(const vtkStaticEnSightGoldReader&) = delete;
   void operator=(const vtkStaticEnSightGoldReader&) = delete;
+
+  bool UseStaticMesh = false;
+
+  vtkNew<vtkMultiBlockDataSet> Cache;
+  vtkTimeStamp CacheMTime;
 };
 
 #endif
-

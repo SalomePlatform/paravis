@@ -1,7 +1,7 @@
 /*=========================================================================
 
   Program:   Visualization Toolkit
-  Module:    vtkRTAnalyticSource.cxx
+  Module:    vtkTemporalUGWavelet.cxx
 
   Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
   All rights reserved.
@@ -20,28 +20,16 @@
 #include <vtkImageData.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
-#include <vtkMultiProcessController.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkRTAnalyticSource.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkUnstructuredGrid.h>
+#include <vtksys/SystemTools.hxx>
+
+#include <numeric>
 
 vtkStandardNewMacro(vtkTemporalUGWavelet);
-
-// ----------------------------------------------------------------------------
-vtkTemporalUGWavelet::vtkTemporalUGWavelet()
-{
-  this->Cache = vtkUnstructuredGrid::New();
-  this->NumberOfTimeSteps = 10;
-}
-
-// ----------------------------------------------------------------------------
-vtkTemporalUGWavelet::~vtkTemporalUGWavelet()
-{
-  this->Cache->Delete();
-}
 
 //----------------------------------------------------------------------------
 int vtkTemporalUGWavelet::FillOutputPortInformation(int vtkNotUsed(port), vtkInformation* info)
@@ -55,15 +43,15 @@ int vtkTemporalUGWavelet::RequestInformation(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   vtkInformation* outInfo = outputVector->GetInformationObject(0);
-  double range[2] = { 0, static_cast<double>(this->NumberOfTimeSteps - 1) };
+  double range[2] = { 0., static_cast<double>(this->NumberOfTimeSteps - 1) };
   outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_RANGE(), range, 2);
-  double* outTimes = new double[this->NumberOfTimeSteps];
-  for (int i = 0; i < this->NumberOfTimeSteps; i++)
-  {
-    outTimes[i] = i;
-  }
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(), outTimes, this->NumberOfTimeSteps);
+
+  std::vector<double> outTimes(this->NumberOfTimeSteps);
+  std::iota(outTimes.begin(), outTimes.end(), 0);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::TIME_STEPS(), outTimes.data(), outTimes.size());
+
   outInfo->Set(CAN_HANDLE_PIECE_REQUEST(), 1);
+
   return Superclass::RequestInformation(request, inputVector, outputVector);
 }
 
@@ -75,16 +63,21 @@ int vtkTemporalUGWavelet::RequestData(
   vtkUnstructuredGrid* data = vtkUnstructuredGrid::GetData(outInfo);
   if (this->CacheMTime < this->GetMTime())
   {
+    if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
+    {
+      vtkWarningMacro("Building static mesh cache");
+    }
+
     // Create an output vector to recover the output image data
     // RequestData method
     vtkNew<vtkInformationVector> tmpOutputVec;
     vtkNew<vtkImageData> image;
     tmpOutputVec->Copy(outputVector, 1);
     vtkInformation* tmpOutInfo = tmpOutputVec->GetInformationObject(0);
-    tmpOutInfo->Set(vtkDataObject::DATA_OBJECT(), image.Get());
+    tmpOutInfo->Set(vtkDataObject::DATA_OBJECT(), image);
 
     // Generate wavelet
-    int ret = this->Superclass::RequestData(request, inputVector, tmpOutputVec.Get());
+    int ret = this->Superclass::RequestData(request, inputVector, tmpOutputVec);
     if (ret == 0)
     {
       return ret;
@@ -92,7 +85,7 @@ int vtkTemporalUGWavelet::RequestData(
 
     // Transform it to unstructured grid
     vtkNew<vtkDataSetTriangleFilter> tetra;
-    tetra->SetInputData(image.Get());
+    tetra->SetInputData(image);
     tetra->Update();
 
     // Create the cache
@@ -110,7 +103,7 @@ int vtkTemporalUGWavelet::RequestData(
   vtkNew<vtkFloatArray> pointArray;
   pointArray->SetName("tPoint");
   pointArray->SetNumberOfValues(nbPoints);
-  data->GetPointData()->AddArray(pointArray.Get());
+  data->GetPointData()->AddArray(pointArray);
   for (vtkIdType i = 0; i < nbPoints; i++)
   {
     pointArray->SetValue(
@@ -122,8 +115,7 @@ int vtkTemporalUGWavelet::RequestData(
   vtkNew<vtkFloatArray> cellArray;
   cellArray->SetName("tCell");
   cellArray->SetNumberOfValues(nbCells);
-  data->GetCellData()->AddArray(cellArray.Get());
-
+  data->GetCellData()->AddArray(cellArray);
   for (vtkIdType i = 0; i < nbCells; i++)
   {
     cellArray->SetValue(i, static_cast<int>(i + t * (nbCells / this->NumberOfTimeSteps)) % nbCells);

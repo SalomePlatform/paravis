@@ -25,7 +25,7 @@
  *
  * @sa
  * vtkStaticMeshObjectFactory
-*/
+ */
 
 #ifndef vtkStaticDataSetSurfaceFilter_h
 #define vtkStaticDataSetSurfaceFilter_h
@@ -33,30 +33,36 @@
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkNew.h>
 
+#include "StaticMeshModuleModule.h"
+
 class vtkPolyData;
 
-class vtkStaticDataSetSurfaceFilter : public vtkDataSetSurfaceFilter
+class STATICMESHMODULE_EXPORT vtkStaticDataSetSurfaceFilter : public vtkDataSetSurfaceFilter
 {
 public:
   static vtkStaticDataSetSurfaceFilter* New();
-  typedef vtkDataSetSurfaceFilter
-    Superclass; // vtkTypeMacro can't be used with a factory built object
+  // vtkTypeMacro can't be used with a factory built object
+  using Superclass = vtkDataSetSurfaceFilter;
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
+  /**
+   * if the input is an unstructured grid and the cache is valid, this
+   * method only updates attributes (points, cells and field data)
+   */
   int UnstructuredGridExecute(vtkDataSet* input, vtkPolyData* output) override;
 
 protected:
-  vtkStaticDataSetSurfaceFilter();
-  ~vtkStaticDataSetSurfaceFilter() override;
-
-  vtkNew<vtkPolyData> Cache;
-  vtkMTimeType InputMeshTime;
-  vtkMTimeType FilterMTime;
+  vtkStaticDataSetSurfaceFilter() = default;
+  ~vtkStaticDataSetSurfaceFilter() override = default;
 
 private:
   // Hide these from the user and the compiler.
   vtkStaticDataSetSurfaceFilter(const vtkStaticDataSetSurfaceFilter&) = delete;
   void operator=(const vtkStaticDataSetSurfaceFilter&) = delete;
+
+  vtkNew<vtkPolyData> Cache;
+  vtkMTimeType InputMeshTime = 0;
+  vtkMTimeType FilterMTime = 0;
 };
 
 #endif

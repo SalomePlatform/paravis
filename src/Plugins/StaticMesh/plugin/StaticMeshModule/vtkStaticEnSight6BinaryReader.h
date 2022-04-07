@@ -31,9 +31,9 @@
  * of the pipeline because (due to the nature of the file format) it is
  * not possible to know ahead of time how many outputs you will have or
  * what types they will be.
- * This reader can only handle static EnSight datasets (both static geometry
- * and variables).
-*/
+ * If UseStaticMesh is true, this reader generates an unstructured grid
+ * with static geometry.
+ */
 
 #ifndef vtkStaticEnSight6BinaryReader_h
 #define vtkStaticEnSight6BinaryReader_h
@@ -41,29 +41,42 @@
 #include <vtkEnSight6BinaryReader.h>
 #include <vtkNew.h>
 
+#include "StaticMeshModuleModule.h"
+
 class vtkMultiBlockDataSet;
 
-class vtkStaticEnSight6BinaryReader : public vtkEnSight6BinaryReader
+class STATICMESHMODULE_EXPORT vtkStaticEnSight6BinaryReader : public vtkEnSight6BinaryReader
 {
 public:
-  static vtkStaticEnSight6BinaryReader *New();
+  static vtkStaticEnSight6BinaryReader* New();
   vtkTypeMacro(vtkStaticEnSight6BinaryReader, vtkEnSight6BinaryReader);
+
+  // @{
+  /**
+   * This boolean control whether or not the output
+   * should be considered a static mesh.
+   */
+  vtkGetMacro(UseStaticMesh, bool);
+  vtkSetMacro(UseStaticMesh, bool);
+  vtkBooleanMacro(UseStaticMesh, bool);
+  // @}
 
 protected:
   vtkStaticEnSight6BinaryReader() = default;
   ~vtkStaticEnSight6BinaryReader() override = default;
 
-  int RequestData(vtkInformation*,
-                  vtkInformationVector**,
-                  vtkInformationVector*) override;
-
-  vtkNew<vtkMultiBlockDataSet> Cache;
-  vtkTimeStamp CacheMTime;
+  /**
+   * see vtkDataSetAlgorithm
+   */
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 private:
   vtkStaticEnSight6BinaryReader(const vtkStaticEnSight6BinaryReader&) = delete;
   void operator=(const vtkStaticEnSight6BinaryReader&) = delete;
+
+  bool UseStaticMesh = false;
+  vtkNew<vtkMultiBlockDataSet> Cache;
+  vtkTimeStamp CacheMTime;
 };
 
 #endif
-
