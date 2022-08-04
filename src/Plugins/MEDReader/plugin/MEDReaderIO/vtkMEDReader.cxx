@@ -340,21 +340,25 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
 #ifndef MEDREADER_USE_MPI
       this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #else
-      if(this->Internal->GCGCP)
-	{
-	  vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator> gcg(vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator>::New());
-	  {
-	    vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
-	    gcg->SetInputData(ret);
-	    ret->Delete();
-	  }
-	  gcg->SetUseGlobalPointIds(true);
-	  gcg->SetBuildIfRequired(false);
-	  gcg->Update();
-	  output->SetBlock(0,gcg->GetOutput());
-	}
+      int nbParts(0);
+      vtkMultiProcessController *vmpc(vtkMultiProcessController::GetGlobalController());
+      if( vmpc )
+        nbParts = vmpc->GetNumberOfProcesses();
+      if(this->Internal->GCGCP && nbParts>1)
+      {
+        vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator> gcg(vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator>::New());
+        {
+          vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
+          gcg->SetInputData(ret);
+          ret->Delete();
+        }
+        gcg->SetUseGlobalPointIds(true);
+        gcg->SetBuildIfRequired(false);
+        gcg->Update();
+        output->SetBlock(0,gcg->GetOutput());
+      }
       else
-	this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
+        this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #endif
       if(!ti.empty())
         {
