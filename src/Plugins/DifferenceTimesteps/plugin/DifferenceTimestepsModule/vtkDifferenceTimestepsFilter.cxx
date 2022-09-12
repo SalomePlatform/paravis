@@ -280,7 +280,7 @@ int vtkDifferenceTimestepsFilter::RequestUpdateExtent(vtkInformation* /*theReque
 }
 
 //--------------------------------------------------------------------------------------------------
-int vtkDifferenceTimestepsFilter::RequestData(vtkInformation* vtkNotUsed(theRequest),
+/*int vtkDifferenceTimestepsFilter::RequestData(vtkInformation* vtkNotUsed(theRequest),
   vtkInformationVector** theInputVector, vtkInformationVector* theOutputVector)
 {
   // Get the information objects
@@ -317,7 +317,7 @@ int vtkDifferenceTimestepsFilter::RequestData(vtkInformation* vtkNotUsed(theRequ
   }
 
   return 1;
-}
+}*/
 
 //--------------------------------------------------------------------------------------------------
 vtkDataObject* vtkDifferenceTimestepsFilter::DifferenceDataObject(

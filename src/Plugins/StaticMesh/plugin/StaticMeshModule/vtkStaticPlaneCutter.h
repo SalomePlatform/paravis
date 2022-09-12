@@ -34,6 +34,7 @@
 #include <vtkNew.h>
 #include <vtkPlaneCutter.h>
 #include <vtkSmartPointer.h>
+#include <vtkUnstructuredGrid.h>
 
 #include <vector>
 

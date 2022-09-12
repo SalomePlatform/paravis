@@ -62,11 +62,12 @@ def GenerateCase():
 def test(baseline_file):
   fname = GenerateCase()
   ################### MED write is done -> Go to MEDReader
-  testMEDReader1=MEDReader(FileName=fname)
+  testMEDReader1=MEDReader(FileName=fname,registrationName='testMEDReader2.med')
   testMEDReader1.AllArrays=['TS0/mesh/ComSup0/ACellField@@][@@P0']
-  testMEDReader2=MEDReader(FileName=fname)
+  testMEDReader2=MEDReader(FileName=fname,registrationName='testMEDReader2_bis.med')
   testMEDReader2.AllArrays=['TS0/mesh/ComSup1/mesh@@][@@P0']
   GroupDatasets1=GroupDatasets(Input=[testMEDReader1,testMEDReader2])
+  #GroupDatasets1.BlockNames = ['testMEDReader2.med', 'testMEDReader2_bis.med']
 
   Clip1 = Clip(ClipType="Plane",Input=GroupDatasets1)
   Clip1.Scalars=['FamilyIdCell']
@@ -79,13 +80,12 @@ def test(baseline_file):
   DataRepresentation4.EdgeColor = [0.0, 0.0, 0.5000076295109483]
   DataRepresentation4.SelectionCellFieldDataArrayName = 'ACellField'
   DataRepresentation4.ScalarOpacityUnitDistance = 1.61104723630366
-  DataRepresentation4.ExtractedBlockIndex = 2
+  DataRepresentation4.BlockSelectors = ['/Root']
   DataRepresentation4.ScaleFactor = 0.6000000000000001
   DataRepresentation4.Visibility = 1
   DataRepresentation4.Representation = 'Wireframe'
-
   ExtractBlock1 = ExtractBlock(Input=Clip1)
-  ExtractBlock1.BlockIndices=[1, 2]
+  ExtractBlock1.Selectors = ['/Root/testMEDReader2med']
 
   DataRepresentation5 = Show()
   DataRepresentation5.EdgeColor = [0.0, 0.0, 0.5000076295109483]

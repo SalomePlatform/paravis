@@ -78,7 +78,7 @@ protected:
 
   int RequestUpdateExtent(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
-  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+  //int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
   // Description:
   // General computation differences routine for any type on input data. This
