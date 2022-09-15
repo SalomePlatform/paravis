@@ -49,6 +49,7 @@
 #include <pqExportReaction.h>
 #include <pqSaveAnimationReaction.h>
 #include <pqSaveAnimationGeometryReaction.h>
+#include <pqLoadMaterialsReaction.h>
 #include <pqServerConnectReaction.h>
 #include <pqServerDisconnectReaction.h>
 #include <pqCameraUndoRedoReaction.h>
@@ -151,6 +152,14 @@ void PVGUI_Module::pvCreateActions()
   anAction->setStatusTip(tr("STB_SAVE_GEOMETRY"));
   registerAction(SaveGeometryId, anAction);
   new pqSaveAnimationGeometryReaction(anAction);
+
+  // Load Path Tracer Materials
+  aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_LOAD_MATERIAL"), false );
+  anAction = new QAction(QIcon(aPixmap), tr("MEN_LOAD_MATERIAL"), this);
+  anAction->setToolTip(tr("TOP_LOAD_MATERIAL"));
+  anAction->setStatusTip(tr("STB_LOAD_MATERIAL"));
+  registerAction(LoadMaterialsId, anAction);
+  new pqLoadMaterialsReaction(anAction);
 
   // Connect
   aPixmap = resMgr->loadPixmap( "ParaView", tr("ICON_CONNECT"), false );
@@ -429,9 +438,12 @@ void PVGUI_Module::pvCreateMenus()
   createMenu( SaveGeometryId, aPVMnu, 35 );
   createMenu( separator(), aPVMnu, -1, 35 );
 
-  createMenu( ConnectId, aPVMnu, 45 );
-  createMenu( DisconnectId, aPVMnu, 45 );
+  createMenu( LoadMaterialsId, aPVMnu, 45);
   createMenu( separator(), aPVMnu, -1, 45 );
+
+  createMenu( ConnectId, aPVMnu, 55 );
+  createMenu( DisconnectId, aPVMnu, 55 );
+  createMenu( separator(), aPVMnu, -1, 55 );
 
   // --- Menu "Edit"
   aPVMnu = createMenu( tr( "MEN_DESK_EDIT" ), -1, -1 );

@@ -358,6 +358,18 @@
         <translation>Save Geometry</translation>
     </message>
     <message>
+        <source>TOP_LOAD_MATERIAL</source>
+        <translation>Load Path Tracer Materials...</translation>
+    </message>
+    <message>
+        <source>MEN_LOAD_MATERIAL</source>
+        <translation>Load Path Tracer Materials...</translation>
+    </message>
+    <message>
+        <source>STB_LOAD_MATERIAL</source>
+        <translation>Load Path Tracer Materials...</translation>
+    </message>
+    <message>
         <source>TOP_CONNECT</source>
         <translation>Connect</translation>
     </message>

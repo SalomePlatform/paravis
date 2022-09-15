@@ -362,6 +362,18 @@
         <translation>Enregistrer la Géométrie</translation>
     </message>
     <message>
+        <source>TOP_LOAD_MATERIAL</source>
+        <translation>Charger le ficher de matériau d&apos;Ospray...</translation>
+    </message>
+    <message>
+        <source>MEN_LOAD_MATERIAL</source>
+        <translation>Charger le ficher de matériau d&apos;Ospray...</translation>
+    </message>
+    <message>
+        <source>STB_LOAD_MATERIAL</source>
+        <translation>Charger le ficher de matériau d&apos;Ospray...</translation>
+    </message>
+    <message>
         <source>TOP_CONNECT</source>
         <translation>Connecter</translation>
     </message>

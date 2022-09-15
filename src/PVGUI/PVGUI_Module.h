@@ -58,6 +58,8 @@ class PVGUI_Module: public LightApp_Module
     SaveAnimationId,
     SaveGeometryId,
     //-
+    LoadMaterialsId,
+    //-
     ConnectId,
     DisconnectId,
     //-----------
