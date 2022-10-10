@@ -61,7 +61,7 @@
 #include "vtkWarpScalar.h"
 #include "vtkQuadratureSchemeDefinition.h"
 #include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
-#include "vtkCompositeDataToUnstructuredGridFilter.h"
+#include "vtkMergeBlocks.h"
 #include "vtkMultiBlockDataGroupFilter.h"
 
 #include "MEDCouplingMemArray.hxx"

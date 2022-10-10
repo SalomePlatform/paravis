@@ -30,7 +30,7 @@
 #include <vtkCellData.h>
 #include "vtkMutableDirectedGraph.h"
 #include "vtkInformationDataObjectMetaDataKey.h"
-#include <vtkCompositeDataToUnstructuredGridFilter.h>
+#include <vtkMergeBlocks.h>
 #include <vtkMultiBlockDataGroupFilter.h>
 #include <vtkDoubleArray.h>
 #include <vtkInformation.h>

@@ -50,7 +50,7 @@
 
 #ifdef MEDREADER_USE_MPI
 #include "vtkMultiProcessController.h"
-#include "vtkPUnstructuredGridGhostCellsGenerator.h"
+#include "vtkGhostCellsGenerator.h"
 #endif
 
 #include "MEDFileFieldRepresentationTree.hxx"
@@ -346,13 +346,14 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
         nbParts = vmpc->GetNumberOfProcesses();
       if(this->Internal->GCGCP && nbParts>1)
       {
-        vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator> gcg(vtkSmartPointer<vtkPUnstructuredGridGhostCellsGenerator>::New());
+        vtkSmartPointer<vtkGhostCellsGenerator> gcg(vtkSmartPointer<vtkGhostCellsGenerator>::New());
         {
           vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
           gcg->SetInputData(ret);
           ret->Delete();
         }
-        gcg->SetUseGlobalPointIds(true);
+        // To be checked
+        // gcg->SetUseGlobalPointIds(true);
         gcg->SetBuildIfRequired(false);
         gcg->Update();
         output->SetBlock(0,gcg->GetOutput());

@@ -110,7 +110,7 @@ def test(baseline_file):
     DataRepresentation2.SelectionPointFieldDataArrayName='ANodeField'
     DataRepresentation2.SelectionCellFieldDataArrayName='FamilyIdCell'
     DataRepresentation2.ScalarOpacityUnitDistance=1.4142135623730951
-    DataRepresentation2.ExtractedBlockIndex=1
+    #DataRepresentation2.ExtractedBlockIndex=1
     DataRepresentation2.ScaleFactor=0.1
 
     a1_ANodeField_PVLookupTable=GetLookupTableForArray("ANodeField",1,RGBPoints=[0.0,0.23,0.299,0.754,4.0,0.706,0.016,0.15],VectorMode='Magnitude',NanColor=[0.25,0.0,0.0],

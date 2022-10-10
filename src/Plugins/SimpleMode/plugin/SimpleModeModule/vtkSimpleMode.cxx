@@ -24,7 +24,7 @@
 #include <vtkAlgorithmOutput.h>
 #include <vtkCellData.h>
 #include <vtkCharArray.h>
-#include <vtkCompositeDataToUnstructuredGridFilter.h>
+#include <vtkMergeBlocks.h>
 #include <vtkDataArraySelection.h>
 #include <vtkDataObjectTreeIterator.h>
 #include <vtkDataSet.h>

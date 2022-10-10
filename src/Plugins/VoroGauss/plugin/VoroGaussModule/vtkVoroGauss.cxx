@@ -61,7 +61,7 @@
 #include "vtkWarpScalar.h"
 #include "vtkQuadratureSchemeDefinition.h"
 #include "vtkInformationQuadratureSchemeDefinitionVectorKey.h"
-#include "vtkCompositeDataToUnstructuredGridFilter.h"
+#include "vtkMergeBlocks.h"
 #include "vtkMultiBlockDataGroupFilter.h"
 
 #include "MEDCouplingMemArray.hxx"
@@ -815,14 +815,14 @@ vtkSmartPointer<vtkUnstructuredGrid> ComputeVoroGauss(vtkUnstructuredGrid *usgIn
   if(res.empty())
     throw INTERP_KERNEL::Exception("Dataset is empty !");
   vtkSmartPointer<vtkMultiBlockDataGroupFilter> mb(vtkSmartPointer<vtkMultiBlockDataGroupFilter>::New());
-  vtkSmartPointer<vtkCompositeDataToUnstructuredGridFilter> cd(vtkSmartPointer<vtkCompositeDataToUnstructuredGridFilter>::New());
+  vtkSmartPointer<vtkMergeBlocks> cd(vtkSmartPointer<vtkMergeBlocks>::New());
   for(std::vector< vtkSmartPointer<vtkUnstructuredGrid> >::const_iterator it=res.begin();it!=res.end();it++)
     mb->AddInputData(*it);
   cd->SetInputConnection(mb->GetOutputPort());
   cd->SetMergePoints(0);
   cd->Update();
   vtkSmartPointer<vtkUnstructuredGrid> ret;
-  ret=cd->GetOutput();
+  ret=static_cast<vtkUnstructuredGrid*>(cd->GetOutput());
   return ret;
 }
 

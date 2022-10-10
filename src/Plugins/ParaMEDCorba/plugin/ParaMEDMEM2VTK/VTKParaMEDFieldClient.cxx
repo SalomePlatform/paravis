@@ -24,7 +24,7 @@
 #include "vtkUnstructuredGrid.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkMultiBlockDataGroupFilter.h"
-#include "vtkCompositeDataToUnstructuredGridFilter.h"
+#include "vtkMergeBlocks.h"
 
 std::vector<double> ParaMEDMEM2VTK::FillMEDCouplingParaFieldDoubleInstanceFrom(SALOME_MED::ParaMEDCouplingFieldDoubleCorbaInterface_ptr fieldPtr, int begin, int end,
                                                                                vtkMultiBlockDataSet *ret)
@@ -43,11 +43,11 @@ std::vector<double> ParaMEDMEM2VTK::FillMEDCouplingParaFieldDoubleInstanceFrom(S
       part->Delete();
     }
   tmp->Update();
-  vtkCompositeDataToUnstructuredGridFilter *tmp2=vtkCompositeDataToUnstructuredGridFilter::New();
+  vtkMergeBlocks *tmp2=vtkMergeBlocks::New();
   tmp2->SetInputData(tmp->GetOutput());
   tmp2->Update();
   //
-  vtkUnstructuredGrid *ret3=tmp2->GetOutput();
+  vtkUnstructuredGrid *ret3=static_cast<vtkUnstructuredGrid*>(tmp2->GetOutput());
   ret->SetBlock(0,ret3);
   //
   tmp->Delete();

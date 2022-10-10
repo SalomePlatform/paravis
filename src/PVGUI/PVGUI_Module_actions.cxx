@@ -245,7 +245,7 @@ void PVGUI_Module::pvCreateActions()
   anAction->setToolTip(tr("TOP_DELETE_ALL"));
   anAction->setStatusTip(tr("STB_DELETE_ALL"));
   registerAction(DeleteAllId, anAction);
-  new pqDeleteReaction(anAction, true);
+  new pqDeleteReaction(anAction, pqDeleteReaction::DeleteModes::ALL);
 
 
   // Setting
