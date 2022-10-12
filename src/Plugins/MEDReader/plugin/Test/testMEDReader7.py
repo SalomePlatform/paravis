@@ -75,8 +75,8 @@ def GenerateCase():
 def test(baseline_file):
     fname = GenerateCase()
     ################### MED write is done -> Go to MEDReader
-    myMedReader=MEDReader(FileName=fname)
-    myMedReader.AllArrays = ['TS0/mesh/ComSup0/fNode@@][@@P1']
+    myMedReader=MEDReader(FileNames=[fname])
+    myMedReader.FieldsStatus = ['TS0/mesh/ComSup0/fNode@@][@@P1']
     assert(list(myMedReader.TimestepValues)==[0.,1.,2.,3.])
 
     if '-D' not in sys.argv:

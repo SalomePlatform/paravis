@@ -62,10 +62,10 @@ def GenerateCase():
 def test(baseline_file):
   fname = GenerateCase()
   ################### MED write is done -> Go to MEDReader
-  testMEDReader1=MEDReader(FileName=fname,registrationName='testMEDReader2.med')
-  testMEDReader1.AllArrays=['TS0/mesh/ComSup0/ACellField@@][@@P0']
-  testMEDReader2=MEDReader(FileName=fname,registrationName='testMEDReader2_bis.med')
-  testMEDReader2.AllArrays=['TS0/mesh/ComSup1/mesh@@][@@P0']
+  testMEDReader1=MEDReader(FileNames=[fname],registrationName='testMEDReader2.med')
+  testMEDReader1.FieldsStatus=['TS0/mesh/ComSup0/ACellField@@][@@P0']
+  testMEDReader2=MEDReader(FileNames=[fname],registrationName='testMEDReader2_bis.med')
+  testMEDReader2.FieldsStatus=['TS0/mesh/ComSup1/mesh@@][@@P0']
   GroupDatasets1=GroupDatasets(Input=[testMEDReader1,testMEDReader2])
   #GroupDatasets1.BlockNames = ['testMEDReader2.med', 'testMEDReader2_bis.med']
 

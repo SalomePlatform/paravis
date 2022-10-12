@@ -55,11 +55,11 @@ def GenerateCase():
 def test(baseline_file):
     fname = GenerateCase()
     # create a new 'MED Reader'
-    testMEDReader19med = MEDReader(FileName=fname)
-    testMEDReader19med.AllArrays = ['TS0/mesh/ComSup0/mesh@@][@@P0']
-    testMEDReader19med.AllTimeSteps = ['0000']
+    testMEDReader19med = MEDReader(FileNames=[fname])
+    testMEDReader19med.FieldsStatus = ['TS0/mesh/ComSup0/mesh@@][@@P0']
+    testMEDReader19med.TimesFlagsStatus = ['0000']
     # Properties modified on testMEDReader19med
-    testMEDReader19med.AllArrays = ['TS0/mesh/ComSup0/mesh@@][@@P0']
+    testMEDReader19med.FieldsStatus = ['TS0/mesh/ComSup0/mesh@@][@@P0']
 
     if '-D' not in sys.argv:
         # get active view

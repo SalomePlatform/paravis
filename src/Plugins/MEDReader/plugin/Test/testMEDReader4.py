@@ -71,9 +71,9 @@ def test(baseline_file):
 ################### MED write is done -> Go to MEDReader
   fname = GenerateCase()
 
-  testMEDReader4_med=MEDReader(FileName=fname)
+  testMEDReader4_med=MEDReader(FileNames=[fname])
 
-  testMEDReader4_med.AllArrays=['TS0/mesh/ComSup0/f0NoPfl@@][@@P1','TS0/mesh/ComSup0/mesh@@][@@P1']
+  testMEDReader4_med.FieldsStatus=['TS0/mesh/ComSup0/f0NoPfl@@][@@P1','TS0/mesh/ComSup0/mesh@@][@@P1']
   #testMEDReader4_med.AllTimeSteps=['0000']
 
   Glyph1=Glyph(Input=testMEDReader4_med,GlyphType='Sphere')

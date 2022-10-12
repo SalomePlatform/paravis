@@ -47,12 +47,12 @@ def GenerateCase():
 def test():
     fname = GenerateCase()
     ################### MED write is done -> Go to MEDReader
-    myMedReader=MEDReader(FileName=fname)
-    myMedReader.AllArrays=['TS0/m1/ComSup0/f1@@][@@P0']
+    myMedReader=MEDReader(FileNames=[fname])
+    myMedReader.FieldsStatus=['TS0/m1/ComSup0/f1@@][@@P0']
     ExtractGroup1=ExtractGroup(Input=myMedReader)
     ExtractGroup1.UpdatePipeline()
     assert(ExtractGroup1.GetProperty("MeshName")[0]=="m1")
-    myMedReader.AllArrays=['TS0/m2/ComSup0/f2@@][@@P0']
+    myMedReader.FieldsStatus=['TS0/m2/ComSup0/f2@@][@@P0']
     ExtractGroup2=ExtractGroup(Input=myMedReader)
     ExtractGroup2.UpdatePipeline()
     assert(ExtractGroup2.GetProperty("MeshName")[0]=="m2")

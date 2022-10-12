@@ -131,15 +131,15 @@ def GenerateCase():
 @WriteInTmpDir
 def test(baseline_file):
     fname = GenerateCase()
-    reader=MEDReader(FileName=fname)
+    reader=MEDReader(FileNames=[fname])
     ExpectedEntries=['TS0/Mesh/ComSup0/zeField0_MM0@@][@@GAUSS', 'TS0/Mesh/ComSup1/zeField0_MM1@@][@@GAUSS', 'TS0/Mesh/ComSup2/zeField0_MM2@@][@@GAUSS', 'TS0/Mesh/ComSup2/zeField1_MM0@@][@@GAUSS', 'TS0/Mesh/ComSup3/zeField1_MM1@@][@@GAUSS', 'TS0/Mesh/ComSup4/zeField2@@][@@P1', 'TS1/Mesh/ComSup0/Mesh@@][@@P0']
     assert(reader.GetProperty("FieldsTreeInfo")[::2]==ExpectedEntries)
 
     if '-D' not in sys.argv:
         renderView1=GetActiveViewOrCreate('RenderView')
         for entry in [[ExpectedEntries[0]],[ExpectedEntries[1]],[ExpectedEntries[2],ExpectedEntries[3]],[ExpectedEntries[4]]]:
-            reader=MEDReader(FileName=fname)
-            reader.AllArrays=entry
+            reader=MEDReader(FileNames=[fname])
+            reader.FieldsStatus=entry
             gaussPoints=ELGAfieldToPointGaussian(Input=reader)
             gaussPoints.SelectSourceArray=['CELLS', 'ELGA@0']
             Show(gaussPoints,renderView1)
@@ -147,8 +147,8 @@ def test(baseline_file):
 
         #
 
-        readerNodeField=MEDReader(FileName=fname)
-        readerNodeField.AllArrays=[ExpectedEntries[5]]
+        readerNodeField=MEDReader(FileNames=[fname])
+        readerNodeField.FieldsStatus=[ExpectedEntries[5]]
         nodeFieldDisplay=Show(readerNodeField,renderView1)
         ColorBy(nodeFieldDisplay,('POINTS','zeField2'))
         nodeFieldDisplay.RescaleTransferFunctionToDataRange(True)

@@ -137,12 +137,12 @@ fs.write(fname,0)
 
 from paraview.simple import *
 
-testMEDReader24_med = MEDReader( FileName=fname )
-testMEDReader24_med.AllArrays = ['TS0/Maillage_THYC/ComSup0/ENERGIE RECUE@@][@@P0', 'TS0/Maillage_THYC/ComSup0/ENTHALPIE@@][@@P0', 'TS0/Maillage_THYC/ComSup0/PRESSION@@][@@P0', 'TS0/Maillage_THYC/ComSup0/TEMPERATURE@@][@@P0']
+testMEDReader24_med = MEDReader( FileNames=[fname] )
+testMEDReader24_med.FieldsStatus = ['TS0/Maillage_THYC/ComSup0/ENERGIE RECUE@@][@@P0', 'TS0/Maillage_THYC/ComSup0/ENTHALPIE@@][@@P0', 'TS0/Maillage_THYC/ComSup0/PRESSION@@][@@P0', 'TS0/Maillage_THYC/ComSup0/TEMPERATURE@@][@@P0']
 testMEDReader24_med.UpdatePipeline()
 ds0 = servermanager.Fetch(testMEDReader24_med).GetBlock(0)
 assert( ds0.GetNumberOfCells() == 224 )
-testMEDReader24_med.AllArrays = ['TS2/Maillage_THYC/ComSup0/Maillage_THYC@@][@@P0'] # test  is here. A rectilinear dataset is expected here
+testMEDReader24_med.FieldsStatus = ['TS2/Maillage_THYC/ComSup0/Maillage_THYC@@][@@P0'] # test  is here. A rectilinear dataset is expected here
 testMEDReader24_med.UpdatePipeline()
 ds0 = servermanager.Fetch(testMEDReader24_med).GetBlock(0)
 assert( ds0.GetNumberOfCells() == 256 ) # test is here 0 means problem in the management of rectilineargrid into MEDReader

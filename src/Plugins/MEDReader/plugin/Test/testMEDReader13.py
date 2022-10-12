@@ -47,10 +47,10 @@ def GenerateCase():
 def test(baseline_file):
   fname = GenerateCase()
   ################### MED write is done -> Go to MEDReader
-  testMEDReader13_med = MEDReader( FileName=fname )
+  testMEDReader13_med = MEDReader( FileNames=[fname] )
 
-  testMEDReader13_med.GenerateVectors = 1
-  testMEDReader13_med.AllArrays = ['TS0/mesh/ComSup0/fieldELNO@@][@@GSSNE']
+  testMEDReader13_med.VectorsProperty = 1
+  testMEDReader13_med.FieldsStatus = ['TS0/mesh/ComSup0/fieldELNO@@][@@GSSNE']
 
   if '-D' not in sys.argv:
     RenderView1 = GetRenderView()

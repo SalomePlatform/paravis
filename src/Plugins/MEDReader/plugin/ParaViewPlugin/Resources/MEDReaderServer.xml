@@ -1,6 +1,6 @@
 <ServerManagerConfiguration>
-  <ProxyGroup name="sources">
-    <SourceProxy name="MEDReader" class="vtkMEDReader" label="MED Reader">
+  <ProxyGroup name="internal_sources">
+    <SourceProxy name="MEDReaderInternal" class="vtkMEDReader">
 
       <Hints>
 	<ReaderFactory extensions="med rmed"
@@ -133,6 +133,54 @@
         <BooleanDomain name="bool"/>
       </IntVectorProperty>
 
+   </SourceProxy>
+  </ProxyGroup>
+  <ProxyGroup name="sources">
+
+   <SourceProxy class="vtkFileSeriesGroupReader"
+                 file_name_method="SetFileName"
+                 label="MED Reader"
+                 name="MEDReader"
+                 si_class="vtkSIMetaReaderProxy">
+      <SubProxy>
+        <Proxy name="Reader"
+               proxygroup="internal_sources"
+               proxyname="MEDReaderInternal"></Proxy>
+        <ExposedProperties>
+          <Property name="Reload" />
+          <Property name="FieldsTreeInfo" />
+          <Property name="FieldsStatus" />
+          <Property name="VectorsProperty" />
+          <Property name="Separator" />
+          <Property name="TimeModeProperty" />
+          <Property name="TimesFlagsInfo" />
+          <Property name="TimesFlagsStatus" />
+          <Property name="GhostCellGeneratorCallForPara" />
+        </ExposedProperties>
+      </SubProxy>
+      <StringVectorProperty animateable="0"
+                            clean_command="RemoveAllFileNames"
+                            command="AddFileName"
+                            name="FileNames"
+                            number_of_elements="0"
+                            panel_visibility="never"
+                            repeat_command="1">
+        <FileListDomain name="files" />
+        <Documentation>The list of files to be read by the 
+        reader.</Documentation>
+      </StringVectorProperty>
+      <DoubleVectorProperty
+          information_only="1"
+          name="TimestepValues"
+          repeatable="1">
+        <TimeStepsInformationHelper />
+      </DoubleVectorProperty>
+
+      <Hints>
+	      <ReaderFactory extensions="med rmed"
+		                   file_description="MED Files">
+        </ReaderFactory>
+      </Hints>
    </SourceProxy>
   </ProxyGroup>
 

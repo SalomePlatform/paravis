@@ -63,14 +63,14 @@ def GenerateCase():
 def test(baseline_file):
   fname = GenerateCase()
   ################### MED write is done -> Go to MEDReader
-  myMedReader=MEDReader(FileName=fname)
+  myMedReader=MEDReader(FileNames=[fname])
   keys=myMedReader.GetProperty("FieldsTreeInfo")[::2]
   # list all the names of arrays that can be seen (including their spatial discretization)
   arr_name_with_dis=[elt.split("/")[-1] for elt in keys]
   # list all the names of arrays (Equal to those in the MED File)
   arr_name=[elt.split(myMedReader.GetProperty("Separator").GetData())[0] for elt in arr_name_with_dis]
-  myMedReader.AllArrays=keys
-  myMedReader.GenerateVectors=1
+  myMedReader.FieldsStatus=keys
+  myMedReader.VectorsProperty=1
 
   if '-D' not in sys.argv:
     RenderView1=GetRenderView()
@@ -89,7 +89,8 @@ def test(baseline_file):
     wbv=WarpByVector(Input=myMedReader)
     wbv.ScaleFactor=0.1
     wbv.Vectors=['POINTS','f3NbComp4_Vector']
-    assert(list(wbv.PointData.keys())==['f0NbComp1','f1NbComp2','f1NbComp2_Vector','f2NbComp3','f3NbComp4','f3NbComp4_Vector'])
+    print( list(wbv.PointData.keys()) )
+    assert(list(wbv.PointData.keys())==['f0NbComp1','f1NbComp2','f1NbComp2_Vector','f2NbComp3','f3NbComp4','f3NbComp4_Vector','vtkGhostType'])
     #
     DataRepresentation2 = Show()
     DataRepresentation2.EdgeColor = [0.0, 0.0, 0.5000076295109483]

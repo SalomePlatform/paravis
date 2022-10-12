@@ -65,7 +65,7 @@ class vtkMEDReader::vtkMEDReaderInternal
 {
 
 public:
-  vtkMEDReaderInternal(vtkMEDReader *master):TK(0),IsStdOrMode(false),GenerateVect(false),SIL(0),LastLev0(-1),GCGCP(true)
+  vtkMEDReaderInternal(vtkMEDReader *master):TK(0),SIL(0),LastLev0(-1)
   {
   }
 
@@ -76,21 +76,13 @@ public:
   }
 public:
   MEDFileFieldRepresentationTree Tree;
-  vtkNew<vtkDataArraySelection> FieldSelection;
-  vtkNew<vtkDataArraySelection> TimeFlagSelection;
-
   TimeKeeper TK;
-  std::string FileName;
-  //when false -> std, true -> mode. By default std (false).
-  bool IsStdOrMode;
-  //when false -> do nothing. When true cut off or extend to nbOfCompo=3 vector arrays.
-  bool GenerateVect;
+
   std::string DftMeshName;
   // Store the vtkMutableDirectedGraph that represents links between family, groups and cell types
   vtkMutableDirectedGraph* SIL;
   // store the lev0 id in Tree corresponding to the TIME_STEPS in the pipeline.
   int LastLev0;
-  bool GCGCP;
 };
 
 vtkStandardNewMacro(vtkMEDReader)
@@ -99,7 +91,7 @@ vtkStandardNewMacro(vtkMEDReader)
 // start of overload of vtkInformationKeyMacro
 static vtkInformationDataObjectMetaDataKey *vtkMEDReader_META_DATA=new vtkInformationDataObjectMetaDataKey("META_DATA","vtkMEDReader");
 
-vtkInformationDataObjectMetaDataKey *vtkMEDReader::META_DATA()  
+vtkInformationDataObjectMetaDataKey *vtkMEDReader::META_DATA()
 {
   static const char ZE_KEY[]="vtkMEDReader::META_DATA";
   vtkInformationDataObjectMetaDataKey *ret(vtkMEDReader_META_DATA);
@@ -114,7 +106,7 @@ vtkInformationDataObjectMetaDataKey *vtkMEDReader::META_DATA()
 
 static vtkInformationGaussDoubleVectorKey *vtkMEDReader_GAUSS_DATA=new vtkInformationGaussDoubleVectorKey("GAUSS_DATA","vtkMEDReader");
 
-vtkInformationGaussDoubleVectorKey *vtkMEDReader::GAUSS_DATA()  
+vtkInformationGaussDoubleVectorKey *vtkMEDReader::GAUSS_DATA()
 {
   static const char ZE_KEY[]="vtkMEDReader::GAUSS_DATA";
   vtkInformationGaussDoubleVectorKey *ret(vtkMEDReader_GAUSS_DATA);
@@ -143,21 +135,30 @@ vtkMEDReader::~vtkMEDReader()
 
 void vtkMEDReader::Reload()
 {
-  std::string fName((const char *)this->GetFileName());
+  this->ReloadInternals();
+  this->IsStdOrMode = false;
+  this->GenerateVect = false;
+  this->GCGCP = true;
+  this->FieldSelection->RemoveAllArrays();
+  this->TimeFlagSelection->RemoveAllArrays();
+  this->Modified();
+}
+void vtkMEDReader::ReloadInternals()
+{
   delete this->Internal;
   this->Internal=new vtkMEDReaderInternal(this);
-  this->SetFileName(fName.c_str());
+  this->Modified();
 }
 
 void vtkMEDReader::GenerateVectors(int val)
 {
   if ( !this->Internal )
     return;
-  
+
   bool val2((bool)val);
-  if(val2!=this->Internal->GenerateVect)
+  if(val2!=this->GenerateVect)
     {
-      this->Internal->GenerateVect=val2;
+      this->GenerateVect=val2;
       this->Modified();
     }
 }
@@ -166,8 +167,8 @@ void vtkMEDReader::ChangeMode(int newMode)
 {
   if ( !this->Internal )
     return;
-  
-  this->Internal->IsStdOrMode=newMode!=0;
+
+  this->IsStdOrMode=newMode!=0;
   this->Modified();
 }
 
@@ -175,11 +176,11 @@ void vtkMEDReader::GhostCellGeneratorCallForPara(int gcgcp)
 {
   if ( !this->Internal )
     return;
-  
+
   bool newVal(gcgcp!=0);
-  if(newVal!=this->Internal->GCGCP)
+  if(newVal!=this->GCGCP)
     {
-      this->Internal->GCGCP=newVal;
+      this->GCGCP=newVal;
       this->Modified();
     }
 }
@@ -195,7 +196,7 @@ void vtkMEDReader::SetFileName(const char *fname)
     return;
   try
     {
-      this->Internal->FileName=fname;
+      this->FileName=fname;
       this->Modified();
     }
   catch(INTERP_KERNEL::Exception& e)
@@ -216,7 +217,7 @@ char *vtkMEDReader::GetFileName()
 {
   if (!this->Internal)
     return 0;
-  return const_cast<char *>(this->Internal->FileName.c_str());
+  return const_cast<char *>(this->FileName.c_str());
 }
 
 int vtkMEDReader::RequestInformation(vtkInformation *request, vtkInformationVector ** /*inputVector*/, vtkInformationVector *outputVector)
@@ -231,22 +232,25 @@ int vtkMEDReader::RequestInformation(vtkInformation *request, vtkInformationVect
         {
           int iPart(-1),nbOfParts(-1);
 #ifdef MEDREADER_USE_MPI
-          vtkMultiProcessController *vmpc(vtkMultiProcessController::GetGlobalController());
-          if(vmpc)
+          if (this->DistributeWithMPI)
+          {
+            vtkMultiProcessController *vmpc(vtkMultiProcessController::GetGlobalController());
+            if(vmpc)
             {
               iPart=vmpc->GetLocalProcessId();
               nbOfParts=vmpc->GetNumberOfProcesses();
             }
+          }
 #endif
-          this->Internal->Tree.loadMainStructureOfFile(this->Internal->FileName.c_str(),iPart,nbOfParts);
-          
+          this->Internal->Tree.loadMainStructureOfFile(this->FileName.c_str(),iPart,nbOfParts);
+
           // Leaves
           this->Internal->Tree.activateTheFirst();//This line manually initialize the status of server (this) with the remote client.
           for (int idLeaveArray = 0; idLeaveArray < this->Internal->Tree.getNumberOfLeavesArrays(); idLeaveArray++)
           {
             std::string name = this->Internal->Tree.getNameOf(idLeaveArray);
             bool status = this->Internal->Tree.getStatusOf(idLeaveArray);
-            this->Internal->FieldSelection->AddArray(name.c_str(), status);
+            this->FieldSelection->AddArray(name.c_str(), status);
           }
         }
 
@@ -257,24 +261,24 @@ int vtkMEDReader::RequestInformation(vtkInformation *request, vtkInformationVect
       {
         std::string name = timeFlagsArray[idTimeFlag].second;
         bool status = timeFlagsArray[idTimeFlag].first;
-        this->Internal->TimeFlagSelection->AddArray(name.c_str(), status);
+        this->TimeFlagSelection->AddArray(name.c_str(), status);
       }
 
       // Make sure internal model are synchronized
       /// So the SIL is up to date
-      int nArrays = this->Internal->FieldSelection->GetNumberOfArrays();
+      int nArrays = this->FieldSelection->GetNumberOfArrays();
       for(int i = nArrays - 1; i >= 0; i--)
       {
         try
         {
         this->Internal->Tree.changeStatusOfAndUpdateToHaveCoherentVTKDataSet(
-          this->Internal->Tree.getIdHavingZeName(this->Internal->FieldSelection->GetArrayName(i)),
-          this->Internal->FieldSelection->GetArraySetting(i));
+          this->Internal->Tree.getIdHavingZeName(this->FieldSelection->GetArrayName(i)),
+          this->FieldSelection->GetArraySetting(i));
         }
         catch(INTERP_KERNEL::Exception& e)
         {
           // Remove the incorrect array
-          this->Internal->FieldSelection->RemoveArrayByIndex(i);
+          this->FieldSelection->RemoveArrayByIndex(i);
         }
       }
 
@@ -311,22 +315,22 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
     return 0;
   try
   {
-      for(int i = 0; i < this->Internal->FieldSelection->GetNumberOfArrays(); i++)
+      for(int i = 0; i < this->FieldSelection->GetNumberOfArrays(); i++)
       {
         this->Internal->Tree.changeStatusOfAndUpdateToHaveCoherentVTKDataSet(
-          this->Internal->Tree.getIdHavingZeName(this->Internal->FieldSelection->GetArrayName(i)), 
-          this->Internal->FieldSelection->GetArraySetting(i));
+          this->Internal->Tree.getIdHavingZeName(this->FieldSelection->GetArrayName(i)),
+          this->FieldSelection->GetArraySetting(i));
       }
-          
+
       auto& timeFlagsArray = this->Internal->TK.getTimesFlagArray();
-      if (timeFlagsArray.size() != this->Internal->TimeFlagSelection->GetNumberOfArrays())
+      if (timeFlagsArray.size() != this->TimeFlagSelection->GetNumberOfArrays())
       {
         throw INTERP_KERNEL::Exception("Unexpected size of TimeFlagSelection");
       }
-      for(int i = 0; i < this->Internal->TimeFlagSelection->GetNumberOfArrays(); i++)
+      for(int i = 0; i < this->TimeFlagSelection->GetNumberOfArrays(); i++)
       {
-        timeFlagsArray[i] = std::make_pair(this->Internal->TimeFlagSelection->GetArraySetting(i), 
-          this->Internal->TimeFlagSelection->GetArrayName(i));
+        timeFlagsArray[i] = std::make_pair(this->TimeFlagSelection->GetArraySetting(i),
+          this->TimeFlagSelection->GetArrayName(i));
       }
 
 //      request->Print(cout);
@@ -340,26 +344,22 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
 #ifndef MEDREADER_USE_MPI
       this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #else
-      int nbParts(0);
-      vtkMultiProcessController *vmpc(vtkMultiProcessController::GetGlobalController());
-      if( vmpc )
-        nbParts = vmpc->GetNumberOfProcesses();
-      if(this->Internal->GCGCP && nbParts>1)
-      {
-        vtkSmartPointer<vtkGhostCellsGenerator> gcg(vtkSmartPointer<vtkGhostCellsGenerator>::New());
-        {
-          vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
-          gcg->SetInputData(ret);
-          ret->Delete();
-        }
-        // To be checked
-        // gcg->SetUseGlobalPointIds(true);
-        gcg->SetBuildIfRequired(false);
-        gcg->Update();
-        output->SetBlock(0,gcg->GetOutput());
-      }
+      if (this->DistributeWithMPI && this->GCGCP)
+	{
+	  vtkSmartPointer<vtkGhostCellsGenerator> gcg(vtkSmartPointer<vtkGhostCellsGenerator>::New());
+	  {
+	    vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
+	    gcg->SetInputData(ret);
+	    ret->Delete();
+	  }
+          // To be checked
+	  // gcg->SetUseGlobalPointIds(true);
+	  gcg->SetBuildIfRequired(false);
+	  gcg->Update();
+	  output->SetBlock(0,gcg->GetOutput());
+	}
       else
-        this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
+	this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #endif
       if(!ti.empty())
         {
@@ -382,19 +382,19 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
 //------------------------------------------------------------------------------
 int vtkMEDReader::GetNumberOfFieldsTreeArrays()
 {
-  return this->Internal->FieldSelection->GetNumberOfArrays();
+  return this->FieldSelection->GetNumberOfArrays();
 }
 
 //------------------------------------------------------------------------------
 const char* vtkMEDReader::GetFieldsTreeArrayName(int index)
 {
-  return this->Internal->FieldSelection->GetArrayName(index);
+  return this->FieldSelection->GetArrayName(index);
 }
 
 //------------------------------------------------------------------------------
 int vtkMEDReader::GetFieldsTreeArrayStatus(const char* name)
 {
-  return this->Internal->FieldSelection->ArrayIsEnabled(name);
+  return this->FieldSelection->ArrayIsEnabled(name);
 }
 
 //------------------------------------------------------------------------------
@@ -404,11 +404,11 @@ void vtkMEDReader::SetFieldsStatus(const char* name, int status)
   {
     if (status)
     {
-      this->Internal->FieldSelection->EnableArray(name);
+      this->FieldSelection->EnableArray(name);
     }
     else
     {
-      this->Internal->FieldSelection->DisableArray(name);
+      this->FieldSelection->DisableArray(name);
     }
     this->Modified();
   }
@@ -417,19 +417,19 @@ void vtkMEDReader::SetFieldsStatus(const char* name, int status)
 //------------------------------------------------------------------------------
 int vtkMEDReader::GetNumberOfTimesFlagsArrays()
 {
-  return this->Internal->TimeFlagSelection->GetNumberOfArrays();
+  return this->TimeFlagSelection->GetNumberOfArrays();
 }
 
 //------------------------------------------------------------------------------
 const char* vtkMEDReader::GetTimesFlagsArrayName(int index)
 {
-  return this->Internal->TimeFlagSelection->GetArrayName(index);
+  return this->TimeFlagSelection->GetArrayName(index);
 }
 
 //------------------------------------------------------------------------------
 int vtkMEDReader::GetTimesFlagsArrayStatus(const char* name)
 {
-  return this->Internal->TimeFlagSelection->ArrayIsEnabled(name);
+  return this->TimeFlagSelection->ArrayIsEnabled(name);
 }
 
 //------------------------------------------------------------------------------
@@ -439,11 +439,11 @@ void vtkMEDReader::SetTimesFlagsStatus(const char* name, int status)
   {
     if (status)
     {
-      this->Internal->TimeFlagSelection->EnableArray(name);
+      this->TimeFlagSelection->EnableArray(name);
     }
     else
     {
-      this->Internal->TimeFlagSelection->DisableArray(name);
+      this->TimeFlagSelection->DisableArray(name);
     }
     this->Modified();
   }
@@ -513,7 +513,7 @@ double vtkMEDReader::PublishTimeStepsIfNeeded(vtkInformation *outInfo, bool& isU
 
   int lev0(-1);
   std::vector<double> tsteps;
-  if(!this->Internal->IsStdOrMode)
+  if(!this->IsStdOrMode)
     tsteps=this->Internal->Tree.getTimeSteps(lev0,this->Internal->TK);
   else
     { tsteps.resize(1); tsteps[0]=0.; }
@@ -545,8 +545,8 @@ vtkDataSet *vtkMEDReader::RetrieveDataSetAtTime(double reqTS, ExportedTinyInfo *
   if( !this->Internal )
     return 0;
   std::string meshName;
-  vtkDataSet *ret(this->Internal->Tree.buildVTKInstance(this->Internal->IsStdOrMode,reqTS,meshName,this->Internal->TK,internalInfo));
-  if(this->Internal->GenerateVect)
+  vtkDataSet *ret(this->Internal->Tree.buildVTKInstance(this->IsStdOrMode,reqTS,meshName,this->Internal->TK,internalInfo));
+  if(this->GenerateVect)
     {
       vtkGenerateVectors::Operate(ret->GetPointData());
       vtkGenerateVectors::Operate(ret->GetCellData());

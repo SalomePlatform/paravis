@@ -5,7 +5,11 @@ DEPENDS
   VTK::FiltersExtraction
   VTK::IOLegacy
   ParaView::RemotingCore
+  ParaView::VTKExtensionsIOCore
 PRIVATE_DEPENDS
   VTK::IOLegacy
   ParaView::VTKExtensionsFiltersRendering
+  ParaView::VTKExtensionsFiltersGeneral
   ParaView::VTKExtensionsMisc
+OPTIONAL_DEPENDS
+  VTK::FiltersParallelGeometry

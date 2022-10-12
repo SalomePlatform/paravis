@@ -25,7 +25,9 @@
 
 #include "vtkMultiBlockDataSetAlgorithm.h"
 #include "vtkInformationGaussDoubleVectorKey.h"
+#include "vtkNew.h"
 
+class vtkDataArraySelection;
 class vtkDataSet;
 class vtkMutableDirectedGraph;
 class vtkInformationDataObjectMetaDataKey;
@@ -60,7 +62,12 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
 
   // Description
   // Reload will delete the internal reader and recreate it with default properties
+  // As well as reset public properties to their default values, except for the FileName
   virtual void Reload();
+
+  // Description
+  // ReloadInternals will delete the internal reader and recreate it
+  virtual void ReloadInternals();
 
   virtual void GenerateVectors(int);
   virtual void ChangeMode(int);
@@ -71,6 +78,12 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
   // Static information key used to transfer the meta data graph along the pipeline
   static vtkInformationDataObjectMetaDataKey* META_DATA();
   static vtkInformationGaussDoubleVectorKey* GAUSS_DATA();
+
+  // Description
+  // Control if MPI should be used for distribution when using a distributed server
+  // Only has an effect if MEDREADER_USE_MPI is defined.
+  vtkSetMacro(DistributeWithMPI, bool);
+  vtkGetMacro(DistributeWithMPI, bool);
 
  protected:
   vtkMEDReader();
@@ -88,6 +101,16 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
 
   class vtkMEDReaderInternal;
   vtkMEDReaderInternal* Internal;
+
+  vtkNew<vtkDataArraySelection> FieldSelection;
+  vtkNew<vtkDataArraySelection> TimeFlagSelection;
+  std::string FileName;
+  //when false -> std, true -> mode. By default std (false).
+  bool IsStdOrMode = false;
+  //when false -> do nothing. When true cut off or extend to nbOfCompo=3 vector arrays.
+  bool GenerateVect = false;
+  bool GCGCP = true;
+  bool DistributeWithMPI = true;
 };
 
 #endif //__vtkMEDReader_h_

@@ -45,11 +45,11 @@ def generateCase(fname,globalNodeIds,coordinates):
   mm.write(fname,2)
 
 generateCase(fname,ids,coo)
-myMedReader = MEDReader(registrationName = fname, FileName = fname)
-myMedReader.AllArrays = ['TS0/mesh/ComSup0/mesh@@][@@P0']
+myMedReader = MEDReader(registrationName = fname, FileNames = [fname])
+myMedReader.FieldsStatus = ['TS0/mesh/ComSup0/mesh@@][@@P0']
 myMedReader.UpdatePipeline()
 # first important testing here
-MyAssert(   [myMedReader.PointData.GetArray(i).GetName() for i in range(myMedReader.PointData.GetNumberOfArrays())] == ['GlobalNodeIds']    )
+MyAssert(   [myMedReader.PointData.GetArray(i).GetName() for i in range(myMedReader.PointData.GetNumberOfArrays())] == ['GlobalNodeIds','vtkGhostType']    )
 ReadUnstructuredGrid = servermanager.Fetch(myMedReader).GetBlock(0)
 numpy_support.vtk_to_numpy( ReadUnstructuredGrid.GetPointData().GetArray('GlobalNodeIds') )
 # check match of coordinates written in testMEDReader23.med file and its representation

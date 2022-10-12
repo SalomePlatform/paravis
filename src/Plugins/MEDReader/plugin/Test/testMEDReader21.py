@@ -48,9 +48,9 @@ def GenerateCase():
 def test(baseline_file):
   fname, meshName, fieldName = GenerateCase()
   ########
-  testTotomed = MEDReader(FileName=fname)
-  testTotomed.AllArrays = ['TS0/%s/ComSup0/%s@@][@@GSSNE'%(meshName,fieldName)]
-  testTotomed.AllTimeSteps = ['0000']
+  testTotomed = MEDReader(FileNames=[fname])
+  testTotomed.FieldsStatus = ['TS0/%s/ComSup0/%s@@][@@GSSNE'%(meshName,fieldName)]
+  testTotomed.TimesFlagsStatus = ['0000']
 
   if '-D' not in sys.argv:
     # get active view

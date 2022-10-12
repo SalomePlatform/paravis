@@ -51,10 +51,10 @@ def GenerateCase():
 def test():
     fname,arr2 = GenerateCase()
     #
-    reader=MEDReader(FileName=fname)
+    reader=MEDReader(FileNames=[fname])
     ExpectedEntries=['TS0/Mesh/ComSup0/MyField@@][@@GSSNE','TS1/Mesh/ComSup0/Mesh@@][@@P0']
     assert(reader.GetProperty("FieldsTreeInfo")[::2]==ExpectedEntries)
-    reader.AllArrays=['TS0/Mesh/ComSup0/MyField@@][@@GSSNE']
+    reader.FieldsStatus=['TS0/Mesh/ComSup0/MyField@@][@@GSSNE']
     ExtractGroup1 = ExtractGroup(Input=reader)
     #ExtractGroup1.UpdatePipelineInformation()
     ExtractGroup1.AllGroups=["GRP_grp1"]

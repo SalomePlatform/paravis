@@ -48,8 +48,8 @@ def GenerateCase():
 @WriteInTmpDir
 def test():
   fname = GenerateCase()
-  reader=MEDReader(FileName=fname)
-  reader.AllArrays=['TS0/mesh/ComSup0/mesh@@][@@P0']
+  reader=MEDReader(FileNames=[fname])
+  reader.FieldsStatus=['TS0/mesh/ComSup0/mesh@@][@@P0']
   ExtractGroup1 = ExtractGroup(Input=reader)
   ExtractGroup1.AllGroups=["GRP_grp0","GRP_grp1"]
   #ExtractGroup1.UpdatePipelineInformation()

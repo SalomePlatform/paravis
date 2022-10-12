@@ -88,20 +88,20 @@ def test0(baseline_file):
     fname = GenerateCase()
     ################### MED write is done -> Go to MEDReader
 
-    myMedReader=MEDReader(FileName=fname)
+    myMedReader=MEDReader(FileNames=[fname])
 
-    myMedReader.AllArrays = ['TS0/mesh/ComSup0/SolutionDEPL@@][@@P1', 'NotAValidName']
+    myMedReader.FieldsStatus = ['TS0/mesh/ComSup0/SolutionDEPL@@][@@P1', 'NotAValidName']
     myMedReader.UpdatePipeline()
-    myMedReader.AllArrays = ['TS0/mesh/ComSup0/SolutionDEPL@@][@@P1', 'TS0/mesh/ComSup0/SolutionSIEF_ELGA@@][@@GAUSS', 'TS0/mesh/ComSup0/SolutionSIEQ_ELNO@@][@@GSSNE', 'TS0/mesh/ComSup0/mesh@@][@@P0']
+    myMedReader.FieldsStatus = ['TS0/mesh/ComSup0/SolutionDEPL@@][@@P1', 'TS0/mesh/ComSup0/SolutionSIEF_ELGA@@][@@GAUSS', 'TS0/mesh/ComSup0/SolutionSIEQ_ELNO@@][@@GSSNE', 'TS0/mesh/ComSup0/mesh@@][@@P0']
     myMedReader.UpdatePipeline()
-    assert(myMedReader.CellData.GetNumberOfArrays()==4)
+    assert(myMedReader.CellData.GetNumberOfArrays()==5) # vtkGhostType
 
     keys=myMedReader.GetProperty("FieldsTreeInfo")[::2]
     # list all the names of arrays that can be seen (including their spatial discretization)
     arr_name_with_dis=[elt.split("/")[-1] for elt in keys]
     # list all the names of arrays (Equal to those in the MED File)
     arr_name=[elt.split(myMedReader.GetProperty("Separator").GetData())[0] for elt in arr_name_with_dis]
-    myMedReader.AllArrays=keys
+    myMedReader.FieldsStatus=keys
 
     if '-D' not in sys.argv:
         RenderView1 = GetRenderView()

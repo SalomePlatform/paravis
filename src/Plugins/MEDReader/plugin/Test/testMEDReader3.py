@@ -94,8 +94,8 @@ def test(baseline_file):
   AnimationScene1.AnimationTime = 1.0
   AnimationScene1.StartTime = 1.0
 
-  testMEDReader3=MEDReader(FileName=fname)
-  testMEDReader3.AllArrays=['TS0/mesh/ComSup0/ANodeField@@][@@P1']
+  testMEDReader3=MEDReader(FileNames=[fname])
+  testMEDReader3.FieldsStatus=['TS0/mesh/ComSup0/ANodeField@@][@@P1']
 
   assert(list(testMEDReader3.TimestepValues)==[1.,2.,3.,4.,5.]) ## <- the test is here - double time steps are too big use dt.
 

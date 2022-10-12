@@ -65,9 +65,9 @@ def test(baseline_file):
     fname = GenerateCase()
     ################### MED write is done -> Go to MEDReader
 
-    myMedReader=MEDReader(FileName=fname)
-    myMedReader.AllArrays = ['TS0/mesh/ComSup0/fGauss@@][@@GAUSS']
-    myMedReader.AllTimeSteps = ['0000']
+    myMedReader=MEDReader(FileNames=[fname])
+    myMedReader.FieldsStatus = ['TS0/mesh/ComSup0/fGauss@@][@@GAUSS']
+    myMedReader.TimesFlagsStatus = ['0000']
 
     ExtractGroup1 = ExtractGroup(Input=myMedReader)
     ExtractGroup1.UpdatePipelineInformation()

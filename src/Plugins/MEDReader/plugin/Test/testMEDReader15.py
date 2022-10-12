@@ -51,7 +51,7 @@ def GenerateCase():
 @WriteInTmpDir
 def test(baseline_file):
   fname = GenerateCase()
-  reader=MEDReader(FileName=fname)
+  reader=MEDReader(FileNames=[fname])
   ExpectedEntries=['TS0/zeName/ComSup0/zeName@@][@@P1','TS0/zeName/ComSup0/MESH@zeName@@][@@P1']
   assert(reader.GetProperty("FieldsTreeInfo")[::2]==ExpectedEntries)
 

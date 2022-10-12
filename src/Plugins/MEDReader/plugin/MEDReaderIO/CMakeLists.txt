@@ -29,6 +29,7 @@ set(classes
   vtkGroupAsMultiBlock
   vtkGroupsNames
   vtkUgSelectCellIds
+  vtkFileSeriesGroupReader
 )
 
 vtk_module_add_module(MEDReaderIO

@@ -41,7 +41,7 @@ ROSETTE = True
 
 print ("**** Importing MED file")
 
-myResult0 = MEDReader(FileName=MEDFILE)
+myResult0 = MEDReader(FileNames=[MEDFILE])
 if myResult0 is None : raise "Erreur de fichier MED"
 
 # Imposition GenerateVectors à faire

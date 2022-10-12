@@ -74,9 +74,9 @@ def test(baseline_file):
     fname = GenerateCase()
     #####################
     # create a new 'MED Reader'
-    testMEDReader20med = MEDReader(FileName=fname)
-    testMEDReader20med.AllArrays = ['TS0/mesh/ComSup0/Field@@][@@P0']
-    testMEDReader20med.AllTimeSteps = ['0000', '0001', '0002', '0003', '0004']
+    testMEDReader20med = MEDReader(FileNames=[fname])
+    testMEDReader20med.FieldsStatus = ['TS0/mesh/ComSup0/Field@@][@@P0']
+    testMEDReader20med.TimesFlagsStatus = ['0000', '0001', '0002', '0003', '0004']
 
     # get animation scene
     animationScene1 = GetAnimationScene()
