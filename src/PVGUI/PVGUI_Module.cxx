@@ -951,7 +951,7 @@ void PVGUI_Module::onShowTrace()
   if (!myTraceWindow) {
     myTraceWindow = new pqPythonScriptEditor(getApp()->desktop());
   }
-  myTraceWindow->setText(getTraceString());
+  myTraceWindow->updateTrace(getTraceString());
   myTraceWindow->show();
   myTraceWindow->raise();
   myTraceWindow->activateWindow();
