@@ -106,7 +106,7 @@ int vtkStaticEnSightGoldReader::RequestData(vtkInformation* vtkNotUsed(request),
               int filenameNum = filenameNumbers->GetId(timeStep - 1);
               if (!this->UseFileSets)
               {
-                this->ReplaceWildcards(&fileName[0], filenameNum);
+                this->ReplaceWildcardsHelper(&fileName[0], filenameNum);
               }
             }
           }
@@ -140,7 +140,7 @@ int vtkStaticEnSightGoldReader::RequestData(vtkInformation* vtkNotUsed(request),
               {
                 vtkIdList* filenameNumbers = this->FileSetFileNameNumbers->GetItem(collectionNum);
                 int filenameNum = filenameNumbers->GetId(fileNum - 1);
-                this->ReplaceWildcards(&fileName[0], filenameNum);
+                this->ReplaceWildcardsHelper(&fileName[0], filenameNum);
               }
             }
           }
@@ -187,7 +187,7 @@ int vtkStaticEnSightGoldReader::RequestData(vtkInformation* vtkNotUsed(request),
               int filenameNum = filenameNumbers->GetId(timeStep - 1);
               if (!this->UseFileSets)
               {
-                this->ReplaceWildcards(&fileName[0], filenameNum);
+                this->ReplaceWildcardsHelper(&fileName[0], filenameNum);
               }
             }
           }
@@ -221,7 +221,7 @@ int vtkStaticEnSightGoldReader::RequestData(vtkInformation* vtkNotUsed(request),
               {
                 vtkIdList* filenameNumbers = this->FileSetFileNameNumbers->GetItem(fileSet);
                 int filenameNum = filenameNumbers->GetId(fileNum - 1);
-                this->ReplaceWildcards(&fileName[0], filenameNum);
+                this->ReplaceWildcardsHelper(&fileName[0], filenameNum);
               }
             }
           }

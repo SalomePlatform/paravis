@@ -34,12 +34,12 @@
 #include <vtkNew.h>
 #include <vtkPlaneCutter.h>
 #include <vtkSmartPointer.h>
-#include <vtkUnstructuredGrid.h>
 
 #include <vector>
 
 #include "StaticMeshModuleModule.h"
 
+class vtkUnstructuredGrid;
 class vtkMultiPieceDataSet;
 
 class STATICMESHMODULE_EXPORT vtkStaticPlaneCutter : public vtkPlaneCutter
@@ -66,7 +66,7 @@ protected:
   /**
    * Remove an Ids cell array in all polydata pieces of output
    */
-  static void RemoveIdsArray(vtkMultiPieceDataSet* output);
+  static void RemoveIdsArray(vtkDataObject* output);
 
   /**
    * Update cache point, cell and field data using input
@@ -77,6 +77,11 @@ protected:
    * Compute the ids and weights to be used when updating the cache later
    */
   void ComputeIds(vtkUnstructuredGrid* input);
+
+  /**
+   * Fill the output using the Cache, depending on its type
+   */
+   void SetOutputFromCache(vtkDataObject* output);
 
 private:
   // Hide these from the user and the compiler.

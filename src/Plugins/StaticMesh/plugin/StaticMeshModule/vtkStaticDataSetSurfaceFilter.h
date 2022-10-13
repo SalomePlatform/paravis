@@ -30,19 +30,19 @@
 #ifndef vtkStaticDataSetSurfaceFilter_h
 #define vtkStaticDataSetSurfaceFilter_h
 
-#include <vtkDataSetSurfaceFilter.h>
+#include <vtkGeometryFilter.h>
 #include <vtkNew.h>
 
 #include "StaticMeshModuleModule.h"
 
 class vtkPolyData;
 
-class STATICMESHMODULE_EXPORT vtkStaticDataSetSurfaceFilter : public vtkDataSetSurfaceFilter
+class STATICMESHMODULE_EXPORT vtkStaticDataSetSurfaceFilter : public vtkGeometryFilter
 {
 public:
   static vtkStaticDataSetSurfaceFilter* New();
   // vtkTypeMacro can't be used with a factory built object
-  using Superclass = vtkDataSetSurfaceFilter;
+  using Superclass = vtkGeometryFilter;
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**

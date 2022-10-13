@@ -46,7 +46,7 @@ VTK_CREATE_CREATE_FUNCTION(vtkStaticPUnstructuredGridGhostCellsGenerator);
 //-----------------------------------------------------------------------------
 vtkStaticMeshObjectFactory::vtkStaticMeshObjectFactory()
 {
-  this->RegisterOverride("vtkDataSetSurfaceFilter", "vtkStaticDataSetSurfaceFilter",
+  this->RegisterOverride("vtkGeometryFilter", "vtkStaticDataSetSurfaceFilter",
     "StaticDataSetSurfaceFilter", 1, vtkObjectFactoryCreatevtkStaticDataSetSurfaceFilter);
   this->RegisterOverride("vtkPlaneCutter", "vtkStaticPlaneCutter", "StaticPlaneCutter", 1,
     vtkObjectFactoryCreatevtkStaticPlaneCutter);

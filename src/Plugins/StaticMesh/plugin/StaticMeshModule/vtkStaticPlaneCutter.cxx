@@ -24,6 +24,7 @@
 #include <vtkMultiBlockDataSet.h>
 #include <vtkMultiPieceDataSet.h>
 #include <vtkObjectFactory.h>
+#include <vtkPartitionedDataSetCollection.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkUnstructuredGrid.h>
@@ -38,31 +39,43 @@ int vtkStaticPlaneCutter::RequestData(
   vtkInformation* request, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
   // get the inputs and outputs
-
-  vtkUnstructuredGrid* input = vtkUnstructuredGrid::GetData(inputVector[0]);
-  vtkMultiBlockDataSet* inputMB = vtkMultiBlockDataSet::GetData(inputVector[0]);
-  vtkMultiBlockDataSet* mb = vtkMultiBlockDataSet::GetData(outputVector);
-  if (!mb)
+  auto inputDO = vtkDataObject::GetData(inputVector[0], 0);
+  auto outputDO = vtkDataObject::GetData(outputVector, 0);
+  if (inputDO == nullptr)
   {
-    vtkErrorMacro("Ouput information does not contain expected type of data object");
+    vtkErrorMacro("Input is nullptr.");
     return 0;
   }
 
-  // Recover the first and only block so this works with single block mb
+  vtkUnstructuredGrid* inputUG = vtkUnstructuredGrid::SafeDownCast(inputDO);
+  vtkMultiBlockDataSet* inputMB = vtkMultiBlockDataSet::SafeDownCast(inputDO);
+  vtkPartitionedDataSetCollection* inputPDC =
+    vtkPartitionedDataSetCollection::SafeDownCast(inputDO);
+  vtkPartitionedDataSet* inputPD = vtkPartitionedDataSet::SafeDownCast(inputDO);
+
+  // Recover the first and only block/partition so this works with single block composite
   if (inputMB && inputMB->GetNumberOfBlocks() == 1)
   {
-    input = vtkUnstructuredGrid::SafeDownCast(inputMB->GetBlock(0));
+    inputUG = vtkUnstructuredGrid::SafeDownCast(inputMB->GetBlock(0));
+  }
+  if (inputPDC && inputPDC->GetNumberOfPartitionedDataSets() == 1)
+  {
+    inputPD = vtkPartitionedDataSet::SafeDownCast(inputPDC->GetPartitionedDataSet(0));
+  }
+  if (inputPD && inputPD->GetNumberOfPartitions() == 1)
+  {
+    inputUG = vtkUnstructuredGrid::SafeDownCast(inputPD->GetPartition(0));
   }
 
   // Recover the static unstructured grid
-  if (!input)
+  if (!inputUG)
   {
     // For any other type of input, fall back to superclass implementation
     return this->Superclass::RequestData(request, inputVector, outputVector);
   }
 
   // Check cache validity
-  if (this->InputMeshTime == input->GetMeshMTime() && this->FilterMTime == this->GetMTime())
+  if (this->InputMeshTime == inputUG->GetMeshMTime() && this->FilterMTime == this->GetMTime())
   {
     // Cache mesh is up to date, use it to generate data
     if (vtksys::SystemTools::HasEnv("VTK_DEBUG_STATIC_MESH"))
@@ -73,11 +86,12 @@ int vtkStaticPlaneCutter::RequestData(
     if (this->InterpolateAttributes)
     {
       // Update the cache data
-      this->UpdateCacheData(input);
+      this->UpdateCacheData(inputUG);
     }
 
     // Copy the updated cache into the output
-    mb->SetBlock(0, this->Cache);
+    this->SetOutputFromCache(outputDO);
+    this->RemoveIdsArray(outputDO);
     return 1;
   }
   else
@@ -90,7 +104,7 @@ int vtkStaticPlaneCutter::RequestData(
 
     // Add needed Arrays
     vtkNew<vtkUnstructuredGrid> tmpInput;
-    this->AddIdsArray(input, tmpInput);
+    this->AddIdsArray(inputUG, tmpInput);
 
     // Create an input vector to pass the completed input to the superclass
     // RequestData method
@@ -102,20 +116,14 @@ int vtkStaticPlaneCutter::RequestData(
     int ret = this->Superclass::RequestData(request, &tmpInputVecPt, outputVector);
 
     // Update the cache with superclass output
-    vtkMultiPieceDataSet* output = vtkMultiPieceDataSet::SafeDownCast(mb->GetBlock(0));
-    if (!output)
-    {
-      vtkErrorMacro("Output is not of expected type");
-      return 0;
-    }
-
-    this->Cache->ShallowCopy(output);
-    this->InputMeshTime = input->GetMeshMTime();
+    this->Cache->ShallowCopy(outputDO);
+    assert(this->Cache);
+    this->InputMeshTime = inputUG->GetMeshMTime();
     this->FilterMTime = this->GetMTime();
 
     // Compute the ids to be passed from the input to the cache
-    this->ComputeIds(input);
-    this->RemoveIdsArray(this->Cache);
+    this->ComputeIds(inputUG);
+    this->RemoveIdsArray(outputDO);
     return ret;
   }
 }
@@ -145,18 +153,30 @@ void vtkStaticPlaneCutter::AddIdsArray(vtkDataSet* input, vtkDataSet* output)
 }
 
 //-----------------------------------------------------------------------------
-void vtkStaticPlaneCutter::RemoveIdsArray(vtkMultiPieceDataSet* output)
+void vtkStaticPlaneCutter::RemoveIdsArray(vtkDataObject* output)
 {
-  vtkSmartPointer<vtkCompositeDataIterator> iter;
-  iter.TakeReference(output->NewIterator());
-  iter->SkipEmptyNodesOn();
-  for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
+
+  if (auto pd = vtkPolyData::SafeDownCast(output))
   {
-    vtkPolyData* slice = vtkPolyData::SafeDownCast(iter->GetCurrentDataObject());
-    if (slice)
+    pd->GetCellData()->RemoveArray(IdsArrayName);
+  }
+  else if (auto outputMP = vtkMultiPieceDataSet::SafeDownCast(output))
+  {
+    vtkSmartPointer<vtkCompositeDataIterator> iter;
+    iter.TakeReference(outputMP->NewIterator());
+    iter->SkipEmptyNodesOn();
+    for (iter->GoToFirstItem(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
     {
-      slice->GetCellData()->RemoveArray(IdsArrayName);
+      vtkPolyData* slice = vtkPolyData::SafeDownCast(iter->GetCurrentDataObject());
+      if (slice)
+      {
+        slice->GetCellData()->RemoveArray(IdsArrayName);
+      }
     }
+  }
+  else
+  {
+    std::cerr << "Unhandled object type: " << output->GetClassName() << std::endl;
   }
 }
 
@@ -292,4 +312,24 @@ void vtkStaticPlaneCutter::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Cache: " << this->Cache << endl;
   os << indent << "Input Mesh Time: " << this->InputMeshTime << endl;
   os << indent << "Filter mTime: " << this->FilterMTime << endl;
+}
+
+//----------------------------------------------------------------------------
+void vtkStaticPlaneCutter::SetOutputFromCache(vtkDataObject* output)
+{
+  if (auto pd = vtkPolyData::SafeDownCast(output))
+  {
+    assert(this->Cache->GetNumberOfPieces() == 1);
+    auto p0 = vtkPolyData::SafeDownCast(this->Cache->GetPartition(0));
+    assert(p0);
+    pd->ShallowCopy(p0);
+  }
+  else if (auto mb = vtkMultiPieceDataSet::SafeDownCast(output))
+  {
+    mb->ShallowCopy(this->Cache);
+  }
+  else
+  {
+    vtkErrorMacro("Unhandled output type: " << output->GetClassName());
+  }
 }

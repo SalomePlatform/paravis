@@ -16,7 +16,7 @@
  * @class   vtkStaticPUnstructuredGridGhostCellsGenerator
  * @brief   StaticMesh aware GhostCellGenerator implementation
  *
- * This class specialize vtkPUnstructuredGridGhostCellGenerator
+ * This class specialize vtkGhostCellsGenerator
  * This class improves it by making it static mesh aware.
  * The first time this filter is executed it will store its output
  * in a cache as well as a list of ghost and point ids to request from other rank
@@ -25,28 +25,29 @@
  * allowing to update the output without needing to recompute everything
  *
  * @sa
- * vtkPUnstructuredGridGhostCellsGenerator
+ * vtkGhostCellsGenerator
  */
 
 #ifndef vtkStaticPUnstructuredGridGhostCellsGenerator_h
 #define vtkStaticPUnstructuredGridGhostCellsGenerator_h
 
 #include <vtkNew.h>
-#include <vtkPUnstructuredGridGhostCellsGenerator.h>
+#include <vtkGhostCellsGenerator.h>
 
 #include <vector>
 
 #include "StaticMeshModuleModule.h"
 
 class vtkIdList;
+class vtkDataSet;
 class vtkUnstructuredGrid;
 
 class STATICMESHMODULE_EXPORT vtkStaticPUnstructuredGridGhostCellsGenerator
-  : public vtkPUnstructuredGridGhostCellsGenerator
+  : public vtkGhostCellsGenerator
 {
 public:
   static vtkStaticPUnstructuredGridGhostCellsGenerator* New();
-  typedef vtkPUnstructuredGridGhostCellsGenerator
+  typedef vtkGhostCellsGenerator
     Superclass; // vtkTypeMacro can't be used with a factory built object
   void PrintSelf(ostream& os, vtkIndent indent) override;
 

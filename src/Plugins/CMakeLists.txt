@@ -29,7 +29,7 @@ SET(_subdirs
   ArrayRenamer
   JSONReader
   DevelopedSurface
-  #StaticMesh
+  StaticMesh
   GaussToCell
   VoroGauss
   )
