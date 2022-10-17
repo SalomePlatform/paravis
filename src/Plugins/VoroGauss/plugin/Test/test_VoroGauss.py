@@ -79,8 +79,8 @@ def test_geom(result, ref_mass_center, ref_volumes):
 # create a new 'MED Reader'
 file_name = os.path.join(data_dir, "testMEDReader14.med")
 testMEDReader14med = MEDReader(registrationName='testMEDReader14.med',
-                               FileName=file_name)
-testMEDReader14med.AllTimeSteps = ['0000', '0001', '0002', '0003', '0004']
+                               FileNames=file_name)
+testMEDReader14med.TimesFlagsStatus = ['0000', '0001', '0002', '0003', '0004']
 print("Testing {}".format(file_name))
 
 fields = [(['zeField0'],
@@ -112,7 +112,7 @@ fields = [(['zeField0'],
          ]
 
 for field_names, field, refs, center_mass, volume in fields:
-    testMEDReader14med.AllArrays = field
+    testMEDReader14med.FieldsStatus = field
     testMEDReader14med.UpdatePipeline()
 
     # create a new 'ELGA field To Surface'
@@ -134,9 +134,9 @@ for field_names, field, refs, center_mass, volume in fields:
 ###
 # create a new 'MED Reader'
 file_name = os.path.join(data_dir, "PG_3D.med")
-pG_3Dmed = MEDReader(registrationName='PG_3D.med', FileName=file_name)
-pG_3Dmed.AllArrays = ['TS0/Extruded/ComSup0/Extruded@@][@@P0',
-                      'TS0/Extruded/ComSup0/MyFieldPG@@][@@GAUSS']
+pG_3Dmed = MEDReader(registrationName='PG_3D.med', FileNames=file_name)
+pG_3Dmed.FieldsStatus = ['TS0/Extruded/ComSup0/Extruded@@][@@P0',
+                         'TS0/Extruded/ComSup0/MyFieldPG@@][@@GAUSS']
 print("Testing {}".format(file_name))
 pG_3Dmed.UpdatePipeline()
 
@@ -219,10 +219,10 @@ f1.setArray(arr)
 WriteFieldUsingAlreadyWrittenMesh(fname,f1)
 
 # create a new 'MED Reader'
-voroGauss1med = MEDReader(registrationName='VoroGauss1.med', FileName=fname)
-voroGauss1med.AllArrays = ['TS0/mesh/ComSup0/MyFieldCell@@][@@P0',
-                           'TS0/mesh/ComSup0/MyFieldPG@@][@@GAUSS']
-voroGauss1med.AllTimeSteps = ['0000']
+voroGauss1med = MEDReader(registrationName='VoroGauss1.med', FileNames=fname)
+voroGauss1med.FieldsStatus = ['TS0/mesh/ComSup0/MyFieldCell@@][@@P0',
+                              'TS0/mesh/ComSup0/MyFieldPG@@][@@GAUSS']
+voroGauss1med.TimesFlagsStatus = ['0000']
 print("Testing {}".format(fname))
 voroGauss1med.UpdatePipeline()
 
@@ -356,10 +356,10 @@ fieldGauss2.checkConsistencyLight();
 WriteFieldUsingAlreadyWrittenMesh(file_name, fieldGauss2)
 
 # create a new 'MED Reader'
-simple_meshmed = MEDReader(registrationName='simple_mesh.med', FileName=file_name)
-simple_meshmed.AllArrays = ['TS0/MESH/ComSup0/RESU____EPSI_NOEU@@][@@GAUSS',
-                            'TS0/MESH/ComSup0/RESU____SIGM_NOEU@@][@@GAUSS']
-simple_meshmed.AllTimeSteps = ['0000']
+simple_meshmed = MEDReader(registrationName='simple_mesh.med', FileNames=file_name)
+simple_meshmed.FieldsStatus = ['TS0/MESH/ComSup0/RESU____EPSI_NOEU@@][@@GAUSS',
+                               'TS0/MESH/ComSup0/RESU____SIGM_NOEU@@][@@GAUSS']
+simple_meshmed.TimesFlagsStatus = ['0000']
 print("Testing {}".format(file_name))
 simple_meshmed.UpdatePipeline()
 

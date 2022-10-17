@@ -44,8 +44,8 @@ print ("**** Importing MED file")
 myResult0 = MEDReader(FileNames=[MEDFILE])
 if myResult0 is None : raise "Erreur de fichier MED"
 
-# Imposition GenerateVectors à faire
-myResult0.GenerateVectors=1
+# Imposition VectorsProperty à faire
+myResult0.VectorsProperty=1
 
 NB_ORDRE = myResult0.GetPropertyValue('TimestepValues')
 

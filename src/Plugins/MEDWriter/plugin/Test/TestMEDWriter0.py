@@ -49,9 +49,9 @@ with tempfile.TemporaryDirectory(prefix="MEDWriter_") as tmpdir:
     plane1 = Sphere()
     SaveData(fname0,proxy=plane1,WriteAllTimeSteps=1)
     #
-    totomed=MEDReader(FileName=fname0)
-    totomed.AllArrays=['TS1/Mesh/ComSup0/Mesh@@][@@P0']
-    totomed.AllTimeSteps=['0000']
+    totomed=MEDReader(FileNames=fname0)
+    totomed.FieldsStatus=['TS1/Mesh/ComSup0/Mesh@@][@@P0']
+    totomed.TimesFlagsStatus=['0000']
     SaveData(fname1,proxy=totomed,WriteAllTimeSteps=1)
     # Sphere has been written. Try to check to write it in MED file !
     mfd=ml.MEDFileData(fname0)
@@ -110,9 +110,9 @@ with tempfile.TemporaryDirectory(prefix="MEDWriter_") as tmpdir:
     f1ts1.setFieldNoProfileSBT(f0)
     f1ts1.write(fname2,0)
     #
-    test3=MEDReader(FileName=fname2)
-    test3.AllArrays=['TS0/%s/ComSup0/%s@@][@@P0'%(mName,fieldName0),'TS0/%s/ComSup0/%s@@][@@P1'%(mName,fieldName1)]
-    test3.AllTimeSteps = ['0000']
+    test3=MEDReader(FileNames=fname2)
+    test3.FieldsStatus=['TS0/%s/ComSup0/%s@@][@@P0'%(mName,fieldName0),'TS0/%s/ComSup0/%s@@][@@P1'%(mName,fieldName1)]
+    test3.TimesFlagsStatus = ['0000']
     SaveData(fname3,proxy=test3,WriteAllTimeSteps=1)
     ### test content of fname3
     mfd2=ml.MEDFileData(fname3)

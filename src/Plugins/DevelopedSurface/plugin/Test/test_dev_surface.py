@@ -24,9 +24,9 @@ from paraview.simple import *
 paraview.simple._DisableFirstRenderCameraReset()
 
 # create a new 'MED Reader'
-multiTSmed = MEDReader(FileName='multiTS.med')
-multiTSmed.AllArrays = ['TS0/Mesh/ComSup0/Pressure@@][@@P0']
-multiTSmed.AllTimeSteps = ['0000', '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009']
+multiTSmed = MEDReader(FileNames='multiTS.med')
+multiTSmed.FieldsStatus = ['TS0/Mesh/ComSup0/Pressure@@][@@P0']
+multiTSmed.TimesFlagsStatus = ['0000', '0001', '0002', '0003', '0004', '0005', '0006', '0007', '0008', '0009']
 
 # get animation scene
 animationScene1 = GetAnimationScene()

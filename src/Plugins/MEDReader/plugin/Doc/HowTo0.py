@@ -1,6 +1,6 @@
 from paraview.simple import *
 
-myMedReader=MEDReader(FileName="/home/H87074/WORK/TESTS_AMA/TESTS0/ssll117a/ssll117a.med")
+myMedReader=MEDReader(FileNames="/home/H87074/WORK/TESTS_AMA/TESTS0/ssll117a/ssll117a.med")
 
 # list of all keys
 

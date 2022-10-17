@@ -84,7 +84,7 @@ with tempfile.TemporaryDirectory(prefix="MEDWriter_") as tmpdir:
     f1ts12n.setFieldNoProfileSBT(f1n)
     f1ts12n.write(fname_int64,0)
 
-    test12=MEDReader(FileName=fname_int64)
+    test12=MEDReader(FileNames=fname_int64)
     SaveData(fname_int64_exported, WriteAllTimeSteps=1)
     ### test content of fname_int64_exported
     mfd2=ml.MEDFileData(fname_int64_exported)
