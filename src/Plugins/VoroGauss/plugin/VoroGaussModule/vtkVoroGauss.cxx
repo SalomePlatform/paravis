@@ -118,9 +118,9 @@ std::map<int,int> ComputeRevMapOfType()
 
 ///////////////////
 
-vtkInformationDoubleVectorKey *GetMEDReaderMetaDataIfAny()
+static vtkInformationDoubleVectorKey *GetMEDReaderMetaDataIfAny()
 {
-  static const char ZE_KEY[]="vtkMEDReader::GAUSS_DATA";
+  static const char ZE_KEY[]="vtkFileSeriesGroupReader::GAUSS_DATA";
   MEDCoupling::GlobalDict *gd(MEDCoupling::GlobalDict::GetInstance());
   if(!gd->hasKey(ZE_KEY))
     return 0;
@@ -130,7 +130,7 @@ vtkInformationDoubleVectorKey *GetMEDReaderMetaDataIfAny()
   return reinterpret_cast<vtkInformationDoubleVectorKey *>(pt);
 }
 
-bool IsInformationOK(vtkInformation *info, std::vector<double>& data)
+static bool IsInformationOK(vtkInformation *info, std::vector<double>& data)
 {
   vtkInformationDoubleVectorKey *key(GetMEDReaderMetaDataIfAny());
   if(!key)
@@ -144,7 +144,7 @@ bool IsInformationOK(vtkInformation *info, std::vector<double>& data)
   return true;
 }
 
-void ExtractInfo(vtkInformationVector *inputVector, vtkUnstructuredGrid *& usgIn)
+static void ExtractInfo(vtkInformationVector *inputVector, vtkUnstructuredGrid *& usgIn)
 {
   vtkInformation *inputInfo(inputVector->GetInformationObject(0));
   vtkDataSet *input(0);
@@ -173,7 +173,7 @@ void ExtractInfo(vtkInformationVector *inputVector, vtkUnstructuredGrid *& usgIn
     throw INTERP_KERNEL::Exception("Input data set is not an unstructured mesh ! This filter works only on unstructured meshes !");
 }
 
-DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
+static DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
 {
   if(!data)
     throw INTERP_KERNEL::Exception("ConvertVTKArrayToMCArrayInt : internal error !");
@@ -214,7 +214,7 @@ DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
   throw INTERP_KERNEL::Exception(oss.str());
 }
 
-DataArrayDouble *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data)
+static DataArrayDouble *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data)
 {
   if(!data)
     throw INTERP_KERNEL::Exception("ConvertVTKArrayToMCArrayDouble : internal error !");
@@ -249,7 +249,7 @@ DataArrayDouble *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data)
   throw INTERP_KERNEL::Exception(oss.str());
 }
 
-DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
+static DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
 {
   if(!data)
     throw INTERP_KERNEL::Exception("ConvertVTKArrayToMCArray : internal error !");
@@ -266,7 +266,7 @@ DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
   throw INTERP_KERNEL::Exception(oss.str());
 }
 
-DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
+static DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
 {
   if(!ds)
     throw INTERP_KERNEL::Exception("BuildCoordsFrom : internal error !");
@@ -280,7 +280,7 @@ DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
   return coords.retn();
 }
 
-void ConvertFromUnstructuredGrid(vtkUnstructuredGrid *ds, std::vector< MCAuto<MEDCouplingUMesh> >& ms, std::vector< MCAuto<DataArrayIdType> >& ids)
+static void ConvertFromUnstructuredGrid(vtkUnstructuredGrid *ds, std::vector< MCAuto<MEDCouplingUMesh> >& ms, std::vector< MCAuto<DataArrayIdType> >& ids)
 {
   MCAuto<DataArrayDouble> coords(BuildCoordsFrom(ds));
   vtkIdType nbCells(ds->GetNumberOfCells());
@@ -356,7 +356,7 @@ void ConvertFromUnstructuredGrid(vtkUnstructuredGrid *ds, std::vector< MCAuto<ME
     }
 }
 
-vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCouplingUMesh *mVor)
+static vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCouplingUMesh *mVor)
 {
   std::map<int,int> zeMapRev(ComputeRevMapOfType());
   int nbCells(mVor->getNumberOfCells());
@@ -543,7 +543,7 @@ private:
   vtkIdTypeArray *_vtk_arr;
 };
 
-void FillAdvInfoFrom(int vtkCT, const std::vector<double>& GaussAdvData, int nbGaussPt, int nbNodesPerCell, std::vector<double>& refCoo,std::vector<double>& posInRefCoo)
+static void FillAdvInfoFrom(int vtkCT, const std::vector<double>& GaussAdvData, int nbGaussPt, int nbNodesPerCell, std::vector<double>& refCoo,std::vector<double>& posInRefCoo)
 {
   int nbOfCTS((int)GaussAdvData[0]),pos(1);
   for(int i=0;i<nbOfCTS;i++)
@@ -616,7 +616,7 @@ vtkSmartPointer<T> ExtractCellFieldArr(T *elt2, int sizeOfOutArr, int nbOfCellsO
   return elt3;
 }
 
-vtkSmartPointer<vtkUnstructuredGrid> Voronize(const MEDCouplingUMesh *m, const DataArrayIdType *ids, vtkIdTypeArray *vtkOff, const DataArrayIdType *offsetsBase, const std::vector<vtkDataArray *>& arrGauss, const std::vector<double>& GaussAdvData, const std::vector<vtkDataArray *>& arrsOnCells)
+static vtkSmartPointer<vtkUnstructuredGrid> Voronize(const MEDCouplingUMesh *m, const DataArrayIdType *ids, vtkIdTypeArray *vtkOff, const DataArrayIdType *offsetsBase, const std::vector<vtkDataArray *>& arrGauss, const std::vector<double>& GaussAdvData, const std::vector<vtkDataArray *>& arrsOnCells)
 {
   if(arrGauss.empty())
     throw INTERP_KERNEL::Exception("Voronize : no Gauss array !");
@@ -730,7 +730,7 @@ vtkSmartPointer<vtkUnstructuredGrid> Voronize(const MEDCouplingUMesh *m, const D
   return ret;
 }
 
-vtkSmartPointer<vtkUnstructuredGrid> ComputeVoroGauss(vtkUnstructuredGrid *usgIn, const std::vector<double>& GaussAdvData)
+static vtkSmartPointer<vtkUnstructuredGrid> ComputeVoroGauss(vtkUnstructuredGrid *usgIn, const std::vector<double>& GaussAdvData)
 {
   OffsetKeeper zeOffsets;
   std::string zeArrOffset;

@@ -24,14 +24,13 @@
 #include <string>
 
 #include "vtkMultiBlockDataSetAlgorithm.h"
-#include "vtkInformationGaussDoubleVectorKey.h"
+#include "vtkInformationDoubleVectorKey.h"
 #include "vtkNew.h"
 
 class vtkDataArraySelection;
 class vtkDataSet;
 class vtkMutableDirectedGraph;
 class vtkInformationDataObjectMetaDataKey;
-class vtkInformationDoubleVectorKey;
 class ExportedTinyInfo;
 
 class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
@@ -77,7 +76,7 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
   // Description
   // Static information key used to transfer the meta data graph along the pipeline
   static vtkInformationDataObjectMetaDataKey* META_DATA();
-  static vtkInformationGaussDoubleVectorKey* GAUSS_DATA();
+  static vtkInformationDoubleVectorKey* GAUSS_DATA();
 
   // Description
   // Control if MPI should be used for distribution when using a distributed server

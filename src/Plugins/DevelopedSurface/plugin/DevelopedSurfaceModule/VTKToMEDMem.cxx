@@ -63,8 +63,8 @@
 #include <sstream>
 #include <cstring>
 
-using VTKToMEDMem::Grp;
-using VTKToMEDMem::Fam;
+using VTKToMEDMemDevelopSurface::Grp;
+using VTKToMEDMemDevelopSurface::Fam;
 
 using MEDCoupling::MEDFileData;
 using MEDCoupling::MEDFileMesh;
@@ -95,6 +95,8 @@ using MEDCoupling::MCAuto;
 using MEDCoupling::Traits;
 using MEDCoupling::MLFieldTraits;
 
+using namespace VTKToMEDMemDevelopSurface;
+
 ///////////////////
 
 Fam::Fam(const std::string& name)
@@ -111,7 +113,7 @@ Fam::Fam(const std::string& name)
 
 #include "VTKMEDTraits.hxx"
 
-std::map<int,int> ComputeMapOfType()
+static std::map<int,int> ComputeMapOfType()
 {
   std::map<int,int> ret;
   int nbOfTypesInMC(sizeof(MEDCOUPLING2VTKTYPETRADUCER)/sizeof( decltype(MEDCOUPLING2VTKTYPETRADUCER[0]) ));
@@ -124,7 +126,7 @@ std::map<int,int> ComputeMapOfType()
   return ret;
 }
 
-std::string GetMeshNameWithContext(const std::vector<int>& context)
+static std::string GetMeshNameWithContext(const std::vector<int>& context)
 {
   static const char DFT_MESH_NAME[]="Mesh";
   if(context.empty())
@@ -135,7 +137,7 @@ std::string GetMeshNameWithContext(const std::vector<int>& context)
   return oss.str();
 }
 
-DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
+static DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
 {
   if(!data)
     throw MZCException("ConvertVTKArrayToMCArrayInt : internal error !");
@@ -191,7 +193,7 @@ DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
 }
 
 template<class T>
-typename Traits<T>::ArrayType *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data)
+static typename Traits<T>::ArrayType *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data)
 {
   if(!data)
     throw MZCException("ConvertVTKArrayToMCArrayDouble : internal error !");
@@ -228,7 +230,7 @@ typename Traits<T>::ArrayType *ConvertVTKArrayToMCArrayDouble(vtkDataArray *data
   throw MZCException(oss.str());
 }
 
-DataArrayDouble *ConvertVTKArrayToMCArrayDoubleForced(vtkDataArray *data)
+static DataArrayDouble *ConvertVTKArrayToMCArrayDoubleForced(vtkDataArray *data)
 {
   if(!data)
     throw MZCException("ConvertVTKArrayToMCArrayDoubleForced : internal error 0 !");
@@ -245,7 +247,7 @@ DataArrayDouble *ConvertVTKArrayToMCArrayDoubleForced(vtkDataArray *data)
   throw MZCException("ConvertVTKArrayToMCArrayDoubleForced : unrecognized type of data for double !");
 }
 
-DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
+static DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
 {
   if(!data)
     throw MZCException("ConvertVTKArrayToMCArray : internal error !");
@@ -267,7 +269,7 @@ DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
   throw MZCException(oss.str());
 }
 
-MEDCouplingUMesh *BuildMeshFromCellArray(vtkCellArray *ca, DataArrayDouble *coords, int meshDim, INTERP_KERNEL::NormalizedCellType type)
+static MEDCouplingUMesh *BuildMeshFromCellArray(vtkCellArray *ca, DataArrayDouble *coords, int meshDim, INTERP_KERNEL::NormalizedCellType type)
 {
   MCAuto<MEDCouplingUMesh> subMesh(MEDCouplingUMesh::New("",meshDim));
   subMesh->setCoords(coords); subMesh->allocateCells();
@@ -288,7 +290,7 @@ MEDCouplingUMesh *BuildMeshFromCellArray(vtkCellArray *ca, DataArrayDouble *coor
   return subMesh.retn();
 }
 
-MEDCouplingUMesh *BuildMeshFromCellArrayTriangleStrip(vtkCellArray *ca, DataArrayDouble *coords, MCAuto<DataArrayIdType>& ids)
+static MEDCouplingUMesh *BuildMeshFromCellArrayTriangleStrip(vtkCellArray *ca, DataArrayDouble *coords, MCAuto<DataArrayIdType>& ids)
 {
   MCAuto<MEDCouplingUMesh> subMesh(MEDCouplingUMesh::New("",2));
   subMesh->setCoords(coords); subMesh->allocateCells();
@@ -365,7 +367,7 @@ MicroField::MicroField(const std::vector< MicroField >& vs)
 }
 
 template<class T>
-void AppendToFields(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, const DataArrayIdType *n2oPtr, typename MEDFileVTKTraits<T>::MCType *dadPtr, MEDFileFields *fs, double timeStep, int tsId)
+static void AppendToFields(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, const DataArrayIdType *n2oPtr, typename MEDFileVTKTraits<T>::MCType *dadPtr, MEDFileFields *fs, double timeStep, int tsId)
 {
   std::string fieldName(dadPtr->getName());
   MCAuto< typename Traits<T>::FieldType > f(Traits<T>::FieldType::New(tf));
@@ -389,7 +391,7 @@ void AppendToFields(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, const Da
   fs->pushField(fmts);
 }
 
-void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFileData *mfd, MCAuto<DataArray> da, const DataArrayIdType *n2oPtr, double timeStep, int tsId)
+static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFileData *mfd, MCAuto<DataArray> da, const DataArrayIdType *n2oPtr, double timeStep, int tsId)
 {
   static const char FAMFIELD_FOR_CELLS[]="FamilyIdCell";
   static const char FAMFIELD_FOR_NODES[]="FamilyIdNode";
@@ -457,7 +459,7 @@ void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFi
     }
 }
 
-void PutAtLevelDealOrder(MEDFileData *mfd, int meshDimRel, const MicroField& mf, double timeStep, int tsId)
+static void PutAtLevelDealOrder(MEDFileData *mfd, int meshDimRel, const MicroField& mf, double timeStep, int tsId)
 {
   if(!mfd)
     throw MZCException("PutAtLevelDealOrder : internal error !");
@@ -490,7 +492,7 @@ void PutAtLevelDealOrder(MEDFileData *mfd, int meshDimRel, const MicroField& mf,
     }
 }
 
-void AssignSingleGTMeshes(MEDFileData *mfd, const std::vector< MicroField >& ms, double timeStep, int tsId)
+static void AssignSingleGTMeshes(MEDFileData *mfd, const std::vector< MicroField >& ms, double timeStep, int tsId)
 {
   if(!mfd)
     throw MZCException("AssignSingleGTMeshes : internal error !");
@@ -527,7 +529,7 @@ void AssignSingleGTMeshes(MEDFileData *mfd, const std::vector< MicroField >& ms,
     }
 }
 
-DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
+static DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
 {
   if(!ds)
     throw MZCException("BuildCoordsFrom : internal error !");
@@ -540,7 +542,7 @@ DataArrayDouble *BuildCoordsFrom(vtkPointSet *ds)
   return ConvertVTKArrayToMCArrayDoubleForced(data);
 }
 
-void AddNodeFields(MEDFileData *mfd, vtkDataSetAttributes *dsa, double timeStep, int tsId)
+static void AddNodeFields(MEDFileData *mfd, vtkDataSetAttributes *dsa, double timeStep, int tsId)
 {
   if(!mfd || !dsa)
     throw MZCException("AddNodeFields : internal error !");
@@ -569,7 +571,7 @@ void AddNodeFields(MEDFileData *mfd, vtkDataSetAttributes *dsa, double timeStep,
     }
 }
 
-std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part, vtkDataSetAttributes *dsa)
+static std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part, vtkDataSetAttributes *dsa)
 {
   std::vector< MCAuto<DataArray> > ret;
   if(!dsa)
@@ -592,7 +594,7 @@ std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part, vtkDa
   return ret;
 }
 
-std::vector<MCAuto<DataArray> > AddPartFields2(int bg, int end, vtkDataSetAttributes *dsa)
+static std::vector<MCAuto<DataArray> > AddPartFields2(int bg, int end, vtkDataSetAttributes *dsa)
 {
   std::vector< MCAuto<DataArray> > ret;
   if(!dsa)
@@ -614,7 +616,7 @@ std::vector<MCAuto<DataArray> > AddPartFields2(int bg, int end, vtkDataSetAttrib
   return ret;
 }
 
-void ConvertFromRectilinearGrid(MEDFileData *ret, vtkRectilinearGrid *ds, const std::vector<int>& context, double timeStep, int tsId)
+static void ConvertFromRectilinearGrid(MEDFileData *ret, vtkRectilinearGrid *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !ret)
     throw MZCException("ConvertFromRectilinearGrid : internal error !");
@@ -660,7 +662,7 @@ void ConvertFromRectilinearGrid(MEDFileData *ret, vtkRectilinearGrid *ds, const 
     }
 }
 
-void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::vector<int>& context, double timeStep, int tsId)
+static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !ret)
     throw MZCException("ConvertFromPolyData : internal error !");
@@ -736,7 +738,7 @@ void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::vector<in
   AddNodeFields(ret,ds->GetPointData(),timeStep,tsId);
 }
 
-void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *ds, const std::vector<int>& context, double timeStep, int tsId)
+static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !ret)
     throw MZCException("ConvertFromUnstructuredGrid : internal error !");
@@ -848,7 +850,7 @@ void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *ds, cons
 
 ///////////////////
 
-void WriteMEDFileFromVTKDataSet(MEDFileData *mfd, vtkDataSet *ds, const std::vector<int>& context, double timeStep, int tsId)
+void VTKToMEDMemDevelopSurface::WriteMEDFileFromVTKDataSet(MEDFileData *mfd, vtkDataSet *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !mfd)
     throw MZCException("Internal error in WriteMEDFileFromVTKDataSet.");
@@ -871,7 +873,7 @@ void WriteMEDFileFromVTKDataSet(MEDFileData *mfd, vtkDataSet *ds, const std::vec
     throw MZCException("Unrecognized vtkDataSet ! Sorry ! Try to convert it to UnstructuredGrid to be able to write it !");
 }
 
-void WriteMEDFileFromVTKMultiBlock(MEDFileData *mfd, vtkMultiBlockDataSet *ds, const std::vector<int>& context, double timeStep, int tsId)
+static void WriteMEDFileFromVTKMultiBlock(MEDFileData *mfd, vtkMultiBlockDataSet *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !mfd)
     throw MZCException("Internal error in WriteMEDFileFromVTKMultiBlock.");
@@ -919,7 +921,7 @@ void WriteMEDFileFromVTKMultiBlock(MEDFileData *mfd, vtkMultiBlockDataSet *ds, c
     }
 }
 
-void WriteMEDFileFromVTKGDS(MEDFileData *mfd, vtkDataObject *input, double timeStep, int tsId)
+void VTKToMEDMemDevelopSurface::WriteMEDFileFromVTKGDS(MEDFileData *mfd, vtkDataObject *input, double timeStep, int tsId)
 {
   if(!input || !mfd)
     throw MZCException("WriteMEDFileFromVTKGDS : internal error !");
@@ -939,7 +941,7 @@ void WriteMEDFileFromVTKGDS(MEDFileData *mfd, vtkDataObject *input, double timeS
   throw MZCException("WriteMEDFileFromVTKGDS : not recognized data type !");
 }
 
-void PutFamGrpInfoIfAny(MEDFileData *mfd, const std::string& meshName, const std::vector<Grp>& groups, const std::vector<Fam>& fams)
+void VTKToMEDMemDevelopSurface::PutFamGrpInfoIfAny(MEDFileData *mfd, const std::string& meshName, const std::vector<Grp>& groups, const std::vector<Fam>& fams)
 {
   if(!mfd)
     return ;

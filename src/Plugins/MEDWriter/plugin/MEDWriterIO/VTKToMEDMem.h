@@ -51,7 +51,7 @@ private:
   std::string _reason;
 };
 
-namespace VTKToMEDMem
+namespace VTKToMEDMemWriter
 {
   class VTK_EXPORT Grp
   {
@@ -78,12 +78,13 @@ namespace VTKToMEDMem
 }
 
 class vtkDataObject;
-
+namespace VTKToMEDMemWriter
+{
 void VTK_EXPORT WriteMEDFileFromVTKDataSet(MEDCoupling::MEDFileData *mfd, vtkDataSet *ds, const std::vector<int>& context, double timeStep, int tsId);
 
 void VTK_EXPORT WriteMEDFileFromVTKGDS(MEDCoupling::MEDFileData *mfd, vtkDataObject *input, double timeStep, int tsId);
   
-void VTK_EXPORT PutFamGrpInfoIfAny(MEDCoupling::MEDFileData *mfd, const std::string& meshName, const std::vector<VTKToMEDMem::Grp>& groups, const std::vector<VTKToMEDMem::Fam>& fams);
-
+void VTK_EXPORT PutFamGrpInfoIfAny(MEDCoupling::MEDFileData *mfd, const std::string& meshName, const std::vector<VTKToMEDMemWriter::Grp>& groups, const std::vector<VTKToMEDMemWriter::Fam>& fams);
+}
 #endif
 

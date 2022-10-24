@@ -287,7 +287,7 @@ void dealWith(vtkPolyData *outdata, const double center[3], const double axis[3]
     c_cyl=cc->fromCartToCyl();
   }
   MEDCoupling::MCAuto<MEDCoupling::MEDFileData> mfd(MEDCoupling::MEDFileData::New());
-  WriteMEDFileFromVTKDataSet(mfd,outdata,{},0.,0);
+  VTKToMEDMemDevelopSurface::WriteMEDFileFromVTKDataSet(mfd,outdata,{},0.,0);
   bool a;
   {
     MEDCoupling::MEDFileMeshes *ms(mfd->getMeshes());

@@ -74,12 +74,12 @@ vtkStandardNewMacro(vtkMEDWriter)
 
 using MEDCoupling::MCAuto;
 using MEDCoupling::MEDFileData;
-using VTKToMEDMem::Fam;
-using VTKToMEDMem::Grp;
+using VTKToMEDMemWriter::Fam;
+using VTKToMEDMemWriter::Grp;
 
-vtkInformationDataObjectMetaDataKey* GetMEDReaderMetaDataIfAny()
+static vtkInformationDataObjectMetaDataKey* GetMEDReaderMetaDataIfAny()
 {
-  static const char ZE_KEY[] = "vtkMEDReader::META_DATA";
+  static const char ZE_KEY[] = "vtkFileSeriesGroupReader::META_DATA";
   MEDCoupling::GlobalDict* gd(MEDCoupling::GlobalDict::GetInstance());
   if (!gd->hasKey(ZE_KEY))
     return 0;
@@ -90,7 +90,7 @@ vtkInformationDataObjectMetaDataKey* GetMEDReaderMetaDataIfAny()
   return reinterpret_cast<vtkInformationDataObjectMetaDataKey*>(pt);
 }
 
-bool IsInformationOK(vtkInformation* info)
+static bool IsInformationOK(vtkInformation* info)
 {
   vtkInformationDataObjectMetaDataKey* key(GetMEDReaderMetaDataIfAny());
   if (!key)
@@ -116,7 +116,7 @@ bool IsInformationOK(vtkInformation* info)
   return false;
 }
 
-void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshName,
+static void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshName,
   std::vector<Grp>& groups, std::vector<Fam>& fams)
 {
   if (!sil)
@@ -273,8 +273,8 @@ int vtkMEDWriter::RequestData(
     }
     ////////////
     MCAuto<MEDFileData> mfd(MEDFileData::New());
-    WriteMEDFileFromVTKGDS(mfd, input, timeStep, this->CurrentTimeIndex);
-    PutFamGrpInfoIfAny(mfd, meshName, groups, fams);
+    VTKToMEDMemWriter::WriteMEDFileFromVTKGDS(mfd, input, timeStep, this->CurrentTimeIndex);
+    VTKToMEDMemWriter::PutFamGrpInfoIfAny(mfd, meshName, groups, fams);
     if (this->WriteAllTimeSteps == 0 ||
       (this->WriteAllTimeSteps != 0 && this->CurrentTimeIndex == 0))
       mfd->write(this->FileName, 2);

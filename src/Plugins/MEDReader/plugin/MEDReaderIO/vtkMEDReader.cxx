@@ -89,11 +89,11 @@ vtkStandardNewMacro(vtkMEDReader)
 
 // vtkInformationKeyMacro(vtkMEDReader, META_DATA, DataObjectMetaData); // Here we need to customize vtkMEDReader::META_DATA method
 // start of overload of vtkInformationKeyMacro
-static vtkInformationDataObjectMetaDataKey *vtkMEDReader_META_DATA=new vtkInformationDataObjectMetaDataKey("META_DATA","vtkMEDReader");
+static vtkInformationDataObjectMetaDataKey *vtkMEDReader_META_DATA=new vtkInformationDataObjectMetaDataKey("META_DATA","vtkFileSeriesGroupReader");
 
 vtkInformationDataObjectMetaDataKey *vtkMEDReader::META_DATA()
 {
-  static const char ZE_KEY[]="vtkMEDReader::META_DATA";
+  static const char ZE_KEY[]="vtkFileSeriesGroupReader::META_DATA";
   vtkInformationDataObjectMetaDataKey *ret(vtkMEDReader_META_DATA);
   MEDCoupling::GlobalDict *gd(MEDCoupling::GlobalDict::GetInstance());
   if(!gd->hasKey(ZE_KEY))
@@ -104,12 +104,12 @@ vtkInformationDataObjectMetaDataKey *vtkMEDReader::META_DATA()
   return ret;
 }
 
-static vtkInformationGaussDoubleVectorKey *vtkMEDReader_GAUSS_DATA=new vtkInformationGaussDoubleVectorKey("GAUSS_DATA","vtkMEDReader");
+static vtkInformationDoubleVectorKey *vtkMEDReader_GAUSS_DATA=new vtkInformationDoubleVectorKey("GAUSS_DATA","vtkFileSeriesGroupReader");
 
-vtkInformationGaussDoubleVectorKey *vtkMEDReader::GAUSS_DATA()
+vtkInformationDoubleVectorKey *vtkMEDReader::GAUSS_DATA()
 {
-  static const char ZE_KEY[]="vtkMEDReader::GAUSS_DATA";
-  vtkInformationGaussDoubleVectorKey *ret(vtkMEDReader_GAUSS_DATA);
+  static const char ZE_KEY[]="vtkFileSeriesGroupReader::GAUSS_DATA";
+  vtkInformationDoubleVectorKey *ret(vtkMEDReader_GAUSS_DATA);
   MEDCoupling::GlobalDict *gd(MEDCoupling::GlobalDict::GetInstance());
   if(!gd->hasKey(ZE_KEY))
     {// here META_DATA is put on global var to be exchanged with other filters without dependancy of MEDReader. Please do not change ZE_KEY !
