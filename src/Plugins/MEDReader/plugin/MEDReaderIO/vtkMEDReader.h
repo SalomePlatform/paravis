@@ -24,13 +24,14 @@
 #include <string>
 
 #include "vtkMultiBlockDataSetAlgorithm.h"
-#include "vtkInformationDoubleVectorKey.h"
+#include "vtkInformationGaussDoubleVectorKey.h"
 #include "vtkNew.h"
 
 class vtkDataArraySelection;
 class vtkDataSet;
 class vtkMutableDirectedGraph;
 class vtkInformationDataObjectMetaDataKey;
+class vtkInformationDoubleVectorKey;
 class ExportedTinyInfo;
 
 class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
@@ -68,21 +69,38 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
   // ReloadInternals will delete the internal reader and recreate it
   virtual void ReloadInternals();
 
-  virtual void GenerateVectors(int);
-  virtual void ChangeMode(int);
-  virtual void GhostCellGeneratorCallForPara(int);
   static const char *GetSeparator();
 
   // Description
   // Static information key used to transfer the meta data graph along the pipeline
   static vtkInformationDataObjectMetaDataKey* META_DATA();
-  static vtkInformationDoubleVectorKey* GAUSS_DATA();
+  static vtkInformationGaussDoubleVectorKey* GAUSS_DATA();
 
   // Description
   // Control if MPI should be used for distribution when using a distributed server
   // Only has an effect if MEDREADER_USE_MPI is defined.
+  // Default is true
   vtkSetMacro(DistributeWithMPI, bool);
   vtkGetMacro(DistributeWithMPI, bool);
+
+  // Description
+  // Control if vectors should be generated
+  // Default is false
+  void GenerateVectors(int);
+  vtkGetMacro(GenerateVect, bool);
+
+  // Description
+  // Control to set is std or mode should be used
+  // Default is false
+  void ChangeMode(int);
+  vtkGetMacro(IsStdOrMode, bool);
+
+  // Description
+  // Control if a Ghost Cell Generator should be used
+  // Default is true
+  void GhostCellGeneratorCallForPara(int);
+  vtkGetMacro(GCGCP, bool);
+
 
  protected:
   vtkMEDReader();

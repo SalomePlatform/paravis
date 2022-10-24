@@ -19,6 +19,7 @@
 
 #include "vtkFileSeriesGroupReader.h"
 
+#include <vtkCollection.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkMultiBlockDataSet.h>
@@ -38,6 +39,7 @@ vtkStandardNewMacro(vtkFileSeriesGroupReader);
 struct vtkFileSeriesGroupReaderInternals
 {
   std::vector<std::string> FileNames;
+  vtkNew<vtkCollection> ReaderCollection;
 };
 
 //=============================================================================
@@ -129,21 +131,36 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
   unsigned int iProc = vmpc ? vmpc->GetLocalProcessId() : 0;
   unsigned int nProc = vmpc ? vmpc->GetNumberOfProcesses() : 1;
 
-  // Simple case, one file/block per proc
-  if (nBlock == 1 || (nBlock <= nProc && iProc < nBlock))
+  // Simple case, one file/bloc for n proc
+  if (nBlock == 1)
+  {
+    // Make sure the information is up to date
+    this->ReaderSetFileName(this->GetFileName(0));
+    vtkMEDReader::SafeDownCast(this->Reader)->ReloadInternals();
+    this->Reader->UpdateInformation();
+
+    this->Reader->UpdateTimeStep(time);
+    vtkDataObject* outputReader = vtkMultiBlockDataSet::SafeDownCast(this->Reader->GetOutputDataObject(0))->GetBlock(0);
+    output->SetBlock(0, outputReader);
+
+    // Copy the GAUSS_DATA info key
+    vtkInformation* mInfo = this->Reader->GetOutputInformation(0);
+    if (mInfo->Has(vtkMEDReader::GAUSS_DATA()))
+    {
+      info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
+    }
+  }
+  // N file/block read by m proc, with n <= m, means 0/1 file/block per proc
+  else if (nBlock <= nProc && iProc < nBlock)
   {
     // Distribute in MEDReader only when reading a single file in a single block
-    iProc = nBlock == 1 ? 0 : iProc;
-    vtkMEDReader::SafeDownCast(this->Reader)->SetDistributeWithMPI(nBlock == 1);
+    vtkMEDReader::SafeDownCast(this->Reader)->SetDistributeWithMPI(false);
 
+    // Needed as the MEDReader do not support changing its filename
+    // without reloading everything.
     this->ReaderSetFileName(this->GetFileName(iProc));
-
-    // Needed only when reading a different file on each proc
-    if (nBlock != 1)
-    {
-      vtkMEDReader::SafeDownCast(this->Reader)->ReloadInternals();
-      this->Reader->UpdateInformation();
-    }
+    vtkMEDReader::SafeDownCast(this->Reader)->ReloadInternals();
+    this->Reader->UpdateInformation();
 
     this->Reader->UpdateTimeStep(time);
     vtkDataObject* outputReader = vtkMultiBlockDataSet::SafeDownCast(this->Reader->GetOutputDataObject(0))->GetBlock(0);
@@ -156,9 +173,9 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
       info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
     }
   }
+  // Multiple files/block per proc
   else
   {
-    // Multiple files/block per proc
     unsigned int nFiles = nBlock / nProc;
     unsigned int offFile = iProc * nFiles;
     unsigned int supFiles = nBlock % nProc;
@@ -169,33 +186,46 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
       nFiles += supFiles;
     }
 
+    vtkMEDReader* exposedReader = vtkMEDReader::SafeDownCast(this->Reader);
+    this->Internals->ReaderCollection->RemoveAllItems();
     for (unsigned int i = 0; i < nFiles; i++)
     {
-      this->ReaderSetFileName(this->GetFileName(i + offFile));
-      vtkMEDReader::SafeDownCast(this->Reader)->SetDistributeWithMPI(false);
-      vtkMEDReader::SafeDownCast(this->Reader)->ReloadInternals();
-      this->Reader->UpdateInformation();
-      this->Reader->UpdateTimeStep(time);
-      vtkDataObject* outputReader = vtkMultiBlockDataSet::SafeDownCast(this->Reader->GetOutputDataObject(0))->GetBlock(0);
-      if (i + 1 == nFiles)
-      {
-	// Last reader, just use the reader output directly
-        output->SetBlock(i + offFile, outputReader);
-      }
-      else
-      {
-	// Need to deep copy as the reader will be reused
-        vtkSmartPointer<vtkDataObject> outputLeaf = vtkSmartPointer<vtkDataObject>::Take(outputReader->NewInstance());
-        outputLeaf->DeepCopy(outputReader);
-        output->SetBlock(i + offFile, outputLeaf);
-      }
-    }
+      // Create as many MEDReader as we need to avoid deep copy
+      vtkNew<vtkMEDReader> localReader;
+      this->Internals->ReaderCollection->AddItem(localReader.Get());
 
-    // Copy the GAUSS_DATA info key for the last reader
-    vtkInformation* mInfo = this->Reader->GetOutputInformation(0);
-    if (mInfo->Has(vtkMEDReader::GAUSS_DATA()))
-    {
-      info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
+      for (int iField = 0; iField < exposedReader->GetNumberOfFieldsTreeArrays(); iField++)
+      {
+	const char* name = exposedReader->GetFieldsTreeArrayName(iField);
+        localReader->SetFieldsStatus(name, exposedReader->GetFieldsTreeArrayStatus(name));
+      }
+      for (int iTimes = 0; iTimes < exposedReader->GetNumberOfTimesFlagsArrays(); iTimes++)
+      {
+	const char* name = exposedReader->GetTimesFlagsArrayName(iTimes);
+        localReader->SetTimesFlagsStatus(name, exposedReader->GetTimesFlagsArrayStatus(name));
+      }
+      localReader->GenerateVectors(exposedReader->GetGenerateVect());
+      localReader->ChangeMode(exposedReader->GetIsStdOrMode());
+      localReader->GhostCellGeneratorCallForPara(exposedReader->GetGCGCP());
+
+      // Configure the localReader for usage with the files
+      localReader->SetFileName(this->GetFileName(i + offFile));
+      localReader->SetDistributeWithMPI(false);
+      localReader->UpdateInformation();
+      localReader->UpdateTimeStep(time);
+
+      vtkDataObject* outputReader = vtkMultiBlockDataSet::SafeDownCast(localReader->GetOutputDataObject(0))->GetBlock(0);
+      output->SetBlock(i + offFile, outputReader);
+
+      if (i == 0)
+      {
+        // Copy the GAUSS_DATA info key of the first filename
+        vtkInformation* mInfo = localReader->GetOutputInformation(0);
+        if (mInfo->Has(vtkMEDReader::GAUSS_DATA()))
+        {
+          info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
+        }
+      }
     }
   }
   return 1;
