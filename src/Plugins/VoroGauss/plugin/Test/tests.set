@@ -18,7 +18,7 @@
 #
 
 SET(TEST_NAMES
-  #test_VoroGauss
+  test_VoroGauss
   )
 
 SET(all_src
