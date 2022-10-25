@@ -148,6 +148,13 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
     this->Reader->UpdateTimeStep(time);
     vtkDataObject* outputReader = vtkMultiBlockDataSet::SafeDownCast(this->Reader->GetOutputDataObject(0))->GetBlock(0);
     output->SetBlock(iProc, outputReader);
+
+    // Copy the GAUSS_DATA info key
+    vtkInformation* mInfo = this->Reader->GetOutputInformation(0);
+    if (mInfo->Has(vtkMEDReader::GAUSS_DATA()))
+    {
+      info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
+    }
   }
   else
   {
@@ -182,6 +189,13 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
         outputLeaf->DeepCopy(outputReader);
         output->SetBlock(i + offFile, outputLeaf);
       }
+    }
+
+    // Copy the GAUSS_DATA info key for the last reader
+    vtkInformation* mInfo = this->Reader->GetOutputInformation(0);
+    if (mInfo->Has(vtkMEDReader::GAUSS_DATA()))
+    {
+      info->CopyEntry(mInfo, vtkMEDReader::GAUSS_DATA());
     }
   }
   return 1;
