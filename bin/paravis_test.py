@@ -57,7 +57,7 @@ class TestParavis(unittest.TestCase):
             # ---- import med File
             print('... Load MED file')
             file_path = os.path.join(os.getenv('DATA_DIR'), 'MedFiles', 'ResOK_0000.med')
-            med_reader = pvs.MEDReader(FileName=file_path)
+            med_reader = pvs.MEDReader(FileNames=file_path)
             self.assertIsNotNone(med_reader)
             times = med_reader.TimestepValues.GetData()
             self.assertEqual(len(times), 2)

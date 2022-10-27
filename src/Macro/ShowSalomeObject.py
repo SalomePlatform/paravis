@@ -72,7 +72,7 @@ for entry in selection:
             tmpf.close()
             mo.ExportMED(fname, True, True, True)
             ShowParaviewView()
-            p = MEDReader(FileName=fname)
+            p = MEDReader(FileNames=fname)
             renderView = GetActiveViewOrCreate('RenderView')
             pd = Show(p, renderView)
             renderView.ResetCamera()
