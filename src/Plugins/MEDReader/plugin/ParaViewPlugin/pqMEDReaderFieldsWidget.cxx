@@ -126,7 +126,7 @@ void pqMEDReaderFieldsWidget::loadTreeWidgetItems()
         comsup->setData(0, Qt::ToolTipRole, comSupToolTipName);
 
         comsup->setFlags(comsup->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsSelectable);
-        comsup->setChecked(true);
+        comsup->setChecked(false);
         QObject::connect(comsup, SIGNAL(checkedStateChanged(bool)), this, SLOT(updateChecks()));
         this->UniqueCheckedItems.push_back(comsup);
 
@@ -148,7 +148,7 @@ void pqMEDReaderFieldsWidget::loadTreeWidgetItems()
 
           array->setText(0, QString(name.c_str()));
           array->setFlags(array->flags() | Qt::ItemIsUserCheckable);
-          array->setChecked(true);
+          array->setChecked(false);
 
           // Special Field
           if (tree->GetNumberOfChildren(arrayId) != 0)
