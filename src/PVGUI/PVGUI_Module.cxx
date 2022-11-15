@@ -604,7 +604,7 @@ bool PVGUI_Module::activateModule( SUIT_Study* study )
 */
 bool PVGUI_Module::deactivateModule( SUIT_Study* study )
 {
-  MESSAGE("PARAVIS deactivation ...")
+  MESSAGE("PARAVIS deactivation ...");
 
   QMenu* aMenu = menuMgr()->findMenu( myRecentMenuId );
   if(aMenu) {
