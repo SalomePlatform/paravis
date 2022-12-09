@@ -136,7 +136,6 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
   {
     // Make sure the information is up to date
     this->ReaderSetFileName(this->GetFileName(0));
-    vtkMEDReader::SafeDownCast(this->Reader)->ReloadInternals();
     this->Reader->UpdateInformation();
 
     this->Reader->UpdateTimeStep(time);

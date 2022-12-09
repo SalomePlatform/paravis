@@ -113,21 +113,19 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
       cellIds->SetId(i, origCellArray->GetTuple1(i));
     }
 
-    // Remove array that have disappeared from input
+    // EDF26573 : Initially At the begining Remove array that have disappeared from input
+    // But after investigation ShallowCopy of Cache leads to a same array on input/output and leads to conflicts
+    // on inArr->GetTuples(cellIds.Get(), outArr); operation. So here a deepCopy of arrays is done inconditionnaly
     for (int iArr = outCD->GetNumberOfArrays() - 1; iArr >= 0; iArr--)
     {
-      vtkAbstractArray* inArr = inCD->GetAbstractArray(outCD->GetArrayName(iArr));
-      if (!inArr)
-      {
-        outCD->RemoveArray(iArr);
-      }
+      outCD->RemoveArray(iArr);
     }
 
     for (int iArr = 0; iArr < inCD->GetNumberOfArrays(); iArr++)
     {
       vtkAbstractArray* outArr = outCD->GetAbstractArray(inCD->GetArrayName(iArr));
-      if (outArr)
-      {
+      if(outArr)
+      {// EDF26573 : normally this condition is never fetched
         inCD->GetAbstractArray(iArr)->GetTuples(cellIds.Get(), outArr);
       }
       else
