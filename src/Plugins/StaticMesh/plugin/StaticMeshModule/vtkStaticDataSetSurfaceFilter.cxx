@@ -75,11 +75,7 @@ int vtkStaticDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* input, vt
     // Remove array that have disappeared from input
     for (int iArr = outPD->GetNumberOfArrays() - 1; iArr >= 0; iArr--)
     {
-      vtkAbstractArray* inArr = inPD->GetAbstractArray(outPD->GetArrayName(iArr));
-      if (!inArr)
-      {
-        outPD->RemoveArray(iArr);
-      }
+      outPD->RemoveArray(iArr);
     }
 
     // Update or create arrays present in input
