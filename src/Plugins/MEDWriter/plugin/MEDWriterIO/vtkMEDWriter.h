@@ -37,6 +37,8 @@ public:
   int Write();
   vtkGetMacro(WriteAllTimeSteps, int);
   vtkSetMacro(WriteAllTimeSteps, int);
+  vtkGetMacro(UnPolygonize, int);
+  vtkSetMacro(UnPolygonize, int);
   vtkBooleanMacro(WriteAllTimeSteps, int);
 protected:
   vtkMEDWriter();
@@ -49,6 +51,7 @@ private:
   vtkMEDWriter(const vtkMEDWriter&);
   void operator=(const vtkMEDWriter&); // Not implemented.
  private:
+  int UnPolygonize;
   int WriteAllTimeSteps;
   int NumberOfTimeSteps;
   int CurrentTimeIndex;

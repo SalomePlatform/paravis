@@ -55,6 +55,7 @@
 #include <vtkUnstructuredGrid.h>
 #include <vtkVariantArray.h>
 #include <vtkWarpScalar.h>
+#include <vtkAppendDataSets.h>
 
 #include "MEDCouplingFieldDouble.hxx"
 #include "MEDCouplingFieldFloat.hxx"
@@ -183,7 +184,7 @@ static void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshNam
 }
 
 vtkMEDWriter::vtkMEDWriter()
-  : WriteAllTimeSteps(0)
+  : UnPolygonize(0),WriteAllTimeSteps(0)
   , NumberOfTimeSteps(0)
   , CurrentTimeIndex(0)
   , FileName(0)
@@ -261,8 +262,8 @@ int vtkMEDWriter::RequestData(
       LoadFamGrpMapInfo(famGrpGraph, meshName, groups, fams);
     }
     vtkInformation* outInfo(outputVector->GetInformationObject(0));
-    vtkDataObject* input(vtkDataObject::SafeDownCast(inputInfo->Get(vtkDataObject::DATA_OBJECT())));
-    if (!input)
+    vtkDataObject* inputBase(vtkDataObject::SafeDownCast(inputInfo->Get(vtkDataObject::DATA_OBJECT())));
+    if (!inputBase)
       throw MZCException(
         "Not recognized data object in input of the MEDWriter ! Maybe not implemented yet !");
     double timeStep;
@@ -270,6 +271,22 @@ int vtkMEDWriter::RequestData(
       vtkInformation* inInfo(inputVector[0]->GetInformationObject(0));
       vtkDataObject* input(vtkDataObject::GetData(inInfo));
       timeStep = input->GetInformation()->Get(vtkDataObject::DATA_TIME_STEP());
+    }
+    ////////////
+    vtkDataObject* input = inputBase;
+    vtkSmartPointer<vtkDataObject> inputUnpoly;
+    if(this->UnPolygonize)
+    {
+      vtkPointSet *inputPS = vtkPointSet::SafeDownCast(input);
+      if(!inputPS)
+        throw MZCException("UnPolygonize is activated whereas it is not a PointSet type !");
+      vtkSmartPointer<vtkAppendDataSets> ads = vtkSmartPointer<vtkAppendDataSets>::New();
+      ads->SetInputData(inputPS);
+      ads->Update();
+      vtkDataObject *inputPostPro = ads->GetOutputDataObject(0);
+      inputPostPro->Register(nullptr);
+      inputUnpoly.TakeReference(inputPostPro);
+      input = inputPostPro;
     }
     ////////////
     MCAuto<MEDFileData> mfd(MEDFileData::New());
