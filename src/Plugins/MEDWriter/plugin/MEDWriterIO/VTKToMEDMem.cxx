@@ -393,8 +393,10 @@ static void AppendToFields(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, c
 
 static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFileData *mfd, MCAuto<DataArray> da, const DataArrayIdType *n2oPtr, double timeStep, int tsId)
 {
-  static const char FAMFIELD_FOR_CELLS[]="FamilyIdCell";
-  static const char FAMFIELD_FOR_NODES[]="FamilyIdNode";
+  constexpr char FAMFIELD_FOR_CELLS[]="FamilyIdCell";
+  constexpr char FAMFIELD_FOR_NODES[]="FamilyIdNode";
+  constexpr char NUMFIELD_FOR_CELLS[]="NumIdCell";
+  constexpr char NUMFIELD_FOR_NODES[]="NumIdNode";
   if(!da || !mesh || !mfd)
     throw MZCException("AppendMCFieldFrom : internal error !");
   MEDFileFields *fs(mfd->getFields());
@@ -418,7 +420,10 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
   if(dai.isNotNull() || daId.isNotNull())
     {
       std::string fieldName(da->getName());
-      if((fieldName!=FAMFIELD_FOR_CELLS || tf!=MEDCoupling::ON_CELLS) && (fieldName!=FAMFIELD_FOR_NODES || tf!=MEDCoupling::ON_NODES))
+      if((fieldName!=FAMFIELD_FOR_CELLS || tf!=MEDCoupling::ON_CELLS)
+          && (fieldName!=FAMFIELD_FOR_NODES || tf!=MEDCoupling::ON_NODES)
+          && (fieldName!=NUMFIELD_FOR_CELLS || tf!=MEDCoupling::ON_CELLS)
+          && (fieldName!=NUMFIELD_FOR_NODES || tf!=MEDCoupling::ON_NODES) )
         {
           if(!dai)
             AppendToFields<mcIdType>(tf,mesh,n2oPtr,daId,fs,timeStep,tsId);
@@ -441,7 +446,7 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
               mm->setFamilyFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),dai2);
             }
         }
-      else if(fieldName==FAMFIELD_FOR_NODES || tf==MEDCoupling::ON_NODES)
+      else if(fieldName==FAMFIELD_FOR_NODES && tf==MEDCoupling::ON_NODES)
         {
           MEDFileMesh *mm(ms->getMeshWithName(mesh->getName()));
           if(!mm)
@@ -456,6 +461,36 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
               mm->setFamilyFieldArr(1,dai2);
             }
         }
+      else if(fieldName==NUMFIELD_FOR_CELLS && tf==MEDCoupling::ON_CELLS)
+      {
+          MEDFileMesh *mm(ms->getMeshWithName(mesh->getName()));
+          if(!mm)
+            throw MZCException("AppendMCFieldFrom : internal error 5 !");
+          if(!daId)
+            throw MZCException("AppendMCFieldFrom : internal error 5 (not mcIdType) !");
+          if(!n2oPtr)
+            mm->setRenumFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),daId);
+          else
+            {
+              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              mm->setRenumFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),dai2);
+            }
+      }
+      else if(fieldName==NUMFIELD_FOR_NODES && tf==MEDCoupling::ON_NODES)
+      {
+          MEDFileMesh *mm(ms->getMeshWithName(mesh->getName()));
+          if(!mm)
+            throw MZCException("AppendMCFieldFrom : internal error 6 !");
+          if(!daId)
+            throw MZCException("AppendMCFieldFrom : internal error 6 (not mcIdType) !");
+          if(!n2oPtr)
+            mm->setRenumFieldArr(1,daId);
+          else
+            {
+              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              mm->setRenumFieldArr(1,dai2);
+            }
+      }
     }
 }
 
