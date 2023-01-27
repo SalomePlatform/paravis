@@ -133,6 +133,18 @@
         <BooleanDomain name="bool"/>
       </IntVectorProperty>
 
+      <IntVectorProperty name="GetRidOffDebugArrays"
+                        label="Get Rid Off Debug Arrays"
+                        command="GetRidOffDebugArrays"
+                        number_of_elements="1"
+                        default_values="0"
+			                  panel_visibility="advanced">
+        <Documentation>
+          This property tells if arrays of mesh ids and number ids should be removed or not from output dataset. By default these arrays are present.
+        </Documentation>
+        <BooleanDomain name="bool"/>
+      </IntVectorProperty>
+
    </SourceProxy>
   </ProxyGroup>
   <ProxyGroup name="sources">
@@ -156,6 +168,7 @@
           <Property name="TimesFlagsInfo" />
           <Property name="TimesFlagsStatus" />
           <Property name="GhostCellGeneratorCallForPara" />
+          <Property name="GetRidOffDebugArrays" />
         </ExposedProperties>
       </SubProxy>
       <StringVectorProperty animateable="0"

@@ -147,7 +147,7 @@ void Visualization::ConvertToVTK(MEDCoupling::MEDCouplingFieldDouble* field, vtk
   TimeKeeper TK(0);
   int tmp1,tmp2;
   double tmp3(f->getTime(tmp1,tmp2));
-  vtkDataSet *ret(Tree.buildVTKInstance(false,tmp3,meshName,TK));
+  vtkDataSet *ret(Tree.buildVTKInstance(false,tmp3,meshName,true,TK));
   VTKGrid = ret;
 }
 

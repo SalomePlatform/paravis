@@ -122,7 +122,7 @@ public:
   std::vector<double> getTimeSteps(const TimeKeeper& tk) const;
   std::vector< std::pair<int,int> > getTimeStepsInCoarseMEDFileFormat(std::vector<double>& ts) const;
   std::string getHumanReadableOverviewOfTS() const;
-  vtkDataSet *buildVTKInstanceNoTimeInterpolation(const MEDTimeReq *tr, const MEDCoupling::MEDFileFieldGlobsReal *globs, const MEDCoupling::MEDFileMeshes *meshes, ExportedTinyInfo *internalInfo=0) const;
+  vtkDataSet *buildVTKInstanceNoTimeInterpolation(const MEDTimeReq *tr, const MEDCoupling::MEDFileFieldGlobsReal *globs, const MEDCoupling::MEDFileMeshes *meshes, bool debugArrays, ExportedTinyInfo *internalInfo=0) const;
 private:
   vtkUnstructuredGrid *buildVTKInstanceNoTimeInterpolationUnstructured(MEDCoupling::MEDUMeshMultiLev *mm) const;
   vtkRectilinearGrid *buildVTKInstanceNoTimeInterpolationCartesian(MEDCoupling::MEDCMeshMultiLev *mm) const;
@@ -154,7 +154,7 @@ public:
   //
   std::string getDftMeshName() const;
   std::vector<double> getTimeSteps(int& lev0, const TimeKeeper& tk) const;
-  vtkDataSet *buildVTKInstance(bool isStdOrMode, double timeReq, std::string& meshName, const TimeKeeper& tk, ExportedTinyInfo *internalInfo=0) const;
+  vtkDataSet *buildVTKInstance(bool isStdOrMode, double timeReq, std::string& meshName, const TimeKeeper& tk, bool debugArrays, ExportedTinyInfo *internalInfo=0) const;
   void printMySelf(std::ostream& os) const;
   std::map<std::string,bool> dumpState() const;
   //non const methods

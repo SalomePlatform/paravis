@@ -206,6 +206,7 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
       localReader->GenerateVectors(exposedReader->GetGenerateVect());
       localReader->ChangeMode(exposedReader->GetIsStdOrMode());
       localReader->GhostCellGeneratorCallForPara(exposedReader->GetGCGCP());
+      localReader->GetRidOffDebugArrays(exposedReader->GetRemoveDebugArrays());
 
       // Configure the localReader for usage with the files
       localReader->SetFileName(this->GetFileName(i + offFile));

@@ -139,6 +139,7 @@ void vtkMEDReader::Reload()
   this->IsStdOrMode = false;
   this->GenerateVect = false;
   this->GCGCP = true;
+  this->RemoveDebugArrays = false;
   this->FieldSelection->RemoveAllArrays();
   this->TimeFlagSelection->RemoveAllArrays();
   this->Modified();
@@ -181,6 +182,19 @@ void vtkMEDReader::GhostCellGeneratorCallForPara(int gcgcp)
   if(newVal!=this->GCGCP)
     {
       this->GCGCP=newVal;
+      this->Modified();
+    }
+}
+
+void vtkMEDReader::GetRidOffDebugArrays(int rmda)
+{
+  if ( !this->Internal )
+    return;
+
+  bool newVal(rmda!=0);
+  if(newVal!=this->RemoveDebugArrays)
+    {
+      this->RemoveDebugArrays=newVal;
       this->Modified();
     }
 }
@@ -345,21 +359,21 @@ int vtkMEDReader::RequestData(vtkInformation *request, vtkInformationVector ** /
       this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #else
       if (this->DistributeWithMPI && this->GCGCP)
-	{
-	  vtkSmartPointer<vtkGhostCellsGenerator> gcg(vtkSmartPointer<vtkGhostCellsGenerator>::New());
-	  {
-	    vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
-	    gcg->SetInputData(ret);
-	    ret->Delete();
-	  }
-          // To be checked
-	  // gcg->SetUseGlobalPointIds(true);
-	  gcg->SetBuildIfRequired(false);
-	  gcg->Update();
-	  output->SetBlock(0,gcg->GetOutput());
-	}
+      {
+        vtkSmartPointer<vtkGhostCellsGenerator> gcg(vtkSmartPointer<vtkGhostCellsGenerator>::New());
+        {
+          vtkDataSet *ret(RetrieveDataSetAtTime(reqTS,&ti));
+          gcg->SetInputData(ret);
+          ret->Delete();
+        }
+              // To be checked
+        // gcg->SetUseGlobalPointIds(true);
+        gcg->SetBuildIfRequired(false);
+        gcg->Update();
+        output->SetBlock(0,gcg->GetOutput());
+      }
       else
-	this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
+	      this->FillMultiBlockDataSetInstance(output,reqTS,&ti);
 #endif
       if(!ti.empty())
         {
@@ -545,7 +559,7 @@ vtkDataSet *vtkMEDReader::RetrieveDataSetAtTime(double reqTS, ExportedTinyInfo *
   if( !this->Internal )
     return 0;
   std::string meshName;
-  vtkDataSet *ret(this->Internal->Tree.buildVTKInstance(this->IsStdOrMode,reqTS,meshName,this->Internal->TK,internalInfo));
+  vtkDataSet *ret(this->Internal->Tree.buildVTKInstance(this->IsStdOrMode,reqTS,meshName,this->Internal->TK,!this->RemoveDebugArrays,internalInfo));
   if(this->GenerateVect)
     {
       vtkGenerateVectors::Operate(ret->GetPointData());

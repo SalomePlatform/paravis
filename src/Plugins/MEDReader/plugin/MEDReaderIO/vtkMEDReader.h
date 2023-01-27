@@ -100,6 +100,12 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
   // Default is true
   void GhostCellGeneratorCallForPara(int);
   vtkGetMacro(GCGCP, bool);
+  
+  // Description
+  // Control if mesh debug arrays should be removed or not
+  // Default is true
+  void GetRidOffDebugArrays(int);
+  vtkGetMacro(RemoveDebugArrays, bool);
 
 
  protected:
@@ -128,6 +134,7 @@ class VTK_EXPORT vtkMEDReader : public vtkMultiBlockDataSetAlgorithm
   bool GenerateVect = false;
   bool GCGCP = true;
   bool DistributeWithMPI = true;
+  bool RemoveDebugArrays = false;
 };
 
 #endif //__vtkMEDReader_h_

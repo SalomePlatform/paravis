@@ -851,8 +851,8 @@ vtkStructuredGrid *MEDFileFieldRepresentationLeaves::buildVTKInstanceNoTimeInter
   da->Delete();
   return ret;
 }
- 
-vtkDataSet *MEDFileFieldRepresentationLeaves::buildVTKInstanceNoTimeInterpolation(const MEDTimeReq *tr, const MEDFileFieldGlobsReal *globs, const MEDCoupling::MEDFileMeshes *meshes, ExportedTinyInfo *internalInfo) const
+
+vtkDataSet *MEDFileFieldRepresentationLeaves::buildVTKInstanceNoTimeInterpolation(const MEDTimeReq *tr, const MEDFileFieldGlobsReal *globs, const MEDCoupling::MEDFileMeshes *meshes, bool debugArrays, ExportedTinyInfo *internalInfo) const
 {
   vtkDataSet *ret(0);
   //_fsp->isDataSetSupportEqualToThePreviousOne(i,globs);
@@ -904,7 +904,7 @@ vtkDataSet *MEDFileFieldRepresentationLeaves::buildVTKInstanceNoTimeInterpolatio
       famCells->decrRef();
     }
   ptMML2->retrieveNumberIdsOnCells(numCells,noCpyNumCells);
-  if(numCells)
+  if(numCells && debugArrays)
     {
       vtkMCIdTypeArray *vtkTab(vtkMCIdTypeArray::New());
       vtkTab->SetNumberOfComponents(1);
@@ -929,7 +929,7 @@ vtkDataSet *MEDFileFieldRepresentationLeaves::buildVTKInstanceNoTimeInterpolatio
       famNodes->decrRef();
     }
   ptMML2->retrieveNumberIdsOnNodes(numNodes,noCpyNumNodes);
-  if(numNodes)
+  if(numNodes && debugArrays)
     {
       vtkMCIdTypeArray *vtkTab(vtkMCIdTypeArray::New());
       vtkTab->SetNumberOfComponents(1);
@@ -1376,7 +1376,7 @@ std::vector<double> MEDFileFieldRepresentationTree::getTimeSteps(int& lev0, cons
   return leaf.getTimeSteps(tk);
 }
 
-vtkDataSet *MEDFileFieldRepresentationTree::buildVTKInstance(bool isStdOrMode, double timeReq, std::string& meshName, const TimeKeeper& tk, ExportedTinyInfo *internalInfo) const
+vtkDataSet *MEDFileFieldRepresentationTree::buildVTKInstance(bool isStdOrMode, double timeReq, std::string& meshName, const TimeKeeper& tk, bool debugArrays, ExportedTinyInfo *internalInfo) const
 {
   int lev0,lev1,lev2;
   const MEDFileFieldRepresentationLeaves& leaf(getTheSingleActivated(lev0,lev1,lev2));
@@ -1432,7 +1432,7 @@ vtkDataSet *MEDFileFieldRepresentationTree::buildVTKInstance(bool isStdOrMode, d
     tr=new MEDStdTimeReq((int)zeTimeId);
   else
     tr=new MEDModeTimeReq(tk.getTheVectOfBool(),tk.getPostProcessedTime());
-  vtkDataSet *ret(leaf.buildVTKInstanceNoTimeInterpolation(tr,_fields,_ms,internalInfo));
+  vtkDataSet *ret(leaf.buildVTKInstanceNoTimeInterpolation(tr,_fields,_ms,debugArrays,internalInfo));
   delete tr;
   return ret;
 }
