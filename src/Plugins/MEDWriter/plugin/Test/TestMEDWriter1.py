@@ -114,15 +114,7 @@ with tempfile.TemporaryDirectory(prefix="MEDWriter_") as tmpdir:
     assert(f1n.isEqual(f2_1,1e-12,0))
 
     # check field of cells numbers (set by setRenumFieldArr at level 0)
-    f3=f1.deepCopy()
-    f3.setName("NumIdCell")
-    f3_0=mfd2.getFields()["NumIdCell"][0].getFieldOnMeshAtLevel(ml.ON_CELLS,0,mm2)
-    f3_0.setMesh(m2_0)
-    assert(f3.isEqual(f3_0,1e-12,0))
+    assert(mfd2.getMeshes()[0].getNumberFieldAtLevel(0).isEqual(f1.getArray()))
 
     # check field of nodes numbers (set by setRenumFieldArr at level 1)
-    f4=f1n.deepCopy()
-    f4.setName("NumIdNode")
-    f4_1=mfd2.getFields()["NumIdNode"][0].getFieldOnMeshAtLevel(ml.ON_NODES,0,mm2)
-    f4_1.setMesh(m2_0)
-    assert(f4.isEqual(f4_1,1e-12,0))
+    assert( mfd2.getMeshes()[0].getNumberFieldAtLevel(1).isEqual(f1n.getArray()) )
