@@ -35,8 +35,12 @@ paraview_plugin_scan(
 
 foreach(module IN LISTS required_modules)
   if(NOT TARGET "${module}")
-    message("Missing required module: ${module}")
-    return()
+    message(WARNING "Missing required module: ${module}")
+    if (WIN32)
+      message(WARNING "Trying to build ${CMAKE_PROJECT_NAME} without ${module}")
+    else(WIN32)
+      return()
+    endif(WIN32)
   endif()
 endforeach()
 
