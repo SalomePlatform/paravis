@@ -206,6 +206,10 @@
       <translation>カラーマップエディタ</translation>
     </message>
     <message>
+      <source>TTL_FIND_DATA</source>
+      <translation>データを見つける.</translation>
+    </message>
+    <message>
       <source>TTL_DISPLAY</source>
       <translation>表示</translation>
     </message>

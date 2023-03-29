@@ -64,6 +64,7 @@
 #include <pqCollaborationPanel.h>
 #include <pqMemoryInspectorPanel.h>
 #include <pqColorMapEditor.h>
+#include <pqFindDataWidget.h>
 #include <pqDeleteReaction.h>
 
 #include <vtkPVGeneralSettings.h>
@@ -309,7 +310,20 @@ void PVGUI_Module::setupDockWidgets()
   // Provide access to the color-editor panel for the application.
   pqApplicationCore::instance()->registerManager(
     "COLOR_EDITOR_PANEL", colorMapEditorDock);
-  
+
+  // Find data dock
+  QDockWidget* findDataDock = new QDockWidget(tr( "TTL_FIND_DATA" ), desk);
+  findDataDock->setObjectName("findDataDock");
+  pqFindDataWidget* findDataWidget = new pqFindDataWidget();
+  findDataWidget->setObjectName("findDataWidget");
+  findDataDock->setWidget(findDataWidget);
+  desk->addDockWidget(Qt::RightDockWidgetArea, findDataDock);
+  myDockWidgets[findDataDock] = false; // hidden by default
+
+  // Provide access to the find data panel for the application
+  // (through the menu Edit > Find data).
+  pqApplicationCore::instance()->registerManager("FIND_DATA_PANEL", findDataDock);
+
   // Memory inspector dock
   QDockWidget* memoryInspectorDock = new QDockWidget(tr( "TTL_MEMORY_INSPECTOR" ), desk);
   memoryInspectorDock->setObjectName("memoryInspectorDock");

@@ -206,6 +206,10 @@
         <translation>Color Map Editor</translation>
     </message>
     <message>
+        <source>TTL_FIND_DATA</source>
+        <translation>Find Data</translation>
+    </message>
+    <message>
         <source>TTL_DISPLAY</source>
         <translation>Display</translation>
     </message>

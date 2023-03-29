@@ -210,6 +210,10 @@
         <translation>Editeur de carte de couleurs</translation>
     </message>
     <message>
+        <source>TTL_FIND_DATA</source>
+        <translation>Chercher des données</translation>
+    </message>
+    <message>
         <source>TTL_DISPLAY</source>
         <translation>Affichage</translation>
     </message>
