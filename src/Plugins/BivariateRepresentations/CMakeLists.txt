@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
+project(BivariateRepresentations)
 
-#project(BivariateRepresentations)
-set(PROJECT_NAME BivariateRepresentations)
-set(CMAKE_PROJECT_NAME BivariateRepresentations)
 find_package(ParaView REQUIRED)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
@@ -13,7 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}"
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
-set("_paraview_plugin_default_${CMAKE_PROJECT_NAME}" ON)
+set("_paraview_plugin_default_BivariateRepresentations" ON)
 paraview_plugin_scan(
   PLUGIN_FILES      "${CMAKE_CURRENT_SOURCE_DIR}/Plugin/paraview.plugin"
   PROVIDES_PLUGINS  plugins
@@ -21,9 +19,7 @@ paraview_plugin_scan(
 
 foreach (module IN LISTS required_modules)
   if (NOT TARGET "${module}")
-    message(#FATAL_ERROR
-      "Skipping example ${CMAKE_PROJECT_NAME}: Missing required module: "
-      "${module}")
+    message(FATAL_ERROR "Missing required module: ${module}")
     return ()
   endif ()
 endforeach ()
@@ -33,7 +29,3 @@ paraview_plugin_build(
   LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
   PLUGINS ${plugins})
-
-# ????? rollback CMAKE_PROJECT_NAME
-set(PROJECT_NAME SalomePARAVIS)
-set(CMAKE_PROJECT_NAME SalomePARAVIS)
