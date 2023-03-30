@@ -32,6 +32,7 @@ SET(_subdirs
   StaticMesh
   GaussToCell
   VoroGauss
+  BivariateRepresentations
   )
 
 IF(NOT SALOME_LIGHT_ONLY)
