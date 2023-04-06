@@ -83,7 +83,7 @@
 #include <QHelpEngine>
 
 // Paraview includes
-#include <vtkPVConfig.h>  // for symbol PARAVIEW_VERSION
+#include <vtkPVVersion.h>  // for symbol PARAVIEW_VERSION
 #include <vtkProcessModule.h>
 #include <vtkPVSession.h>
 #include <vtkPVProgressHandler.h>
@@ -257,7 +257,7 @@ void PVGUI_Module::initialize( CAM_Application* app )
 
   // Initialize ParaView client and associated behaviors
   // and connect to externally launched pvserver
-  PVViewer_Core::ParaviewInitApp(aDesktop);
+  PVViewer_Core::ParaviewInitApp();
 
   // Clear old copies of embedded macros files
   //QString aDestPath = QString( "%1/.config/%2/Macros" ).arg( QDir::homePath() ).arg( QApplication::applicationName() );

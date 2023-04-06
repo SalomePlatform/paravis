@@ -1,0 +1,9 @@
+NAME
+  CADRepresentation
+DESCRIPTION
+  CADViewer plugin providing representations.
+REQUIRES_MODULES
+  ParaView::RemotingViews
+  VTK::CommonCore
+  VTK::CommonDataModel
+  VTK::RenderingOpenGL2

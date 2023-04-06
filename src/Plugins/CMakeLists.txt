@@ -33,6 +33,7 @@ SET(_subdirs
   GaussToCell
   VoroGauss
   BivariateRepresentations
+  CADRepresentation
   )
 
 IF(NOT SALOME_LIGHT_ONLY)
