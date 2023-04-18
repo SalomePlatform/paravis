@@ -97,7 +97,7 @@ public:
    * be modified by setOpacity / toggleColor functions
    * (for debugging purposes).
    */
-  void AddShape(vtkIdType groupId, vtkIdType cellId);
+  //void AddShape(vtkIdType groupId, vtkIdType cellId);
 
   void SetArrayIdNames(const char* pointArray, const char* cellArray) override;
 protected:
