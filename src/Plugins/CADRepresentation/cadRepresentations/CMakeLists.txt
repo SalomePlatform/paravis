@@ -22,3 +22,9 @@ paraview_add_plugin(CADRepresentation
   MODULES CADRepresentations
   MODULE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/CADRepresentations/vtk.module"
   XML_DOCUMENTATION OFF)
+
+install(TARGETS CADRepresentation
+  RUNTIME DESTINATION lib/paraview
+  LIBRARY DESTINATION lib/paraview
+  ARCHIVE DESTINATION lib/paraview
+  )
