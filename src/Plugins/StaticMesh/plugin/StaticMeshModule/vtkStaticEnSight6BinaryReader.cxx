@@ -85,6 +85,9 @@ int vtkStaticEnSight6BinaryReader::RequestData(vtkInformation* vtkNotUsed(reques
         vtkIdType timeSet = this->TimeSetIds->IsId(this->GeometryTimeSet);
         if (timeSet >= 0)
         {
+          // Always consider the first mesh when reading geometry
+          this->GeometryTimeValue = this->MinimumTimeValue;
+
           vtkDataArray* times = this->TimeSets->GetItem(timeSet);
           this->GeometryTimeValue = times->GetComponent(0, 0);
           for (vtkIdType i = 1; i < times->GetNumberOfTuples(); i++)
@@ -92,11 +95,11 @@ int vtkStaticEnSight6BinaryReader::RequestData(vtkInformation* vtkNotUsed(reques
             double newTime = times->GetComponent(i, 0);
             if (newTime <= this->ActualTimeValue && newTime > this->GeometryTimeValue)
             {
-              this->GeometryTimeValue = newTime;
               timeStep++;
               timeStepInFile++;
             }
           }
+
           if (this->TimeSetFileNameNumbers->GetNumberOfItems() > 0)
           {
             int collectionNum = this->TimeSetsWithFilenameNumbers->IsId(this->GeometryTimeSet);
