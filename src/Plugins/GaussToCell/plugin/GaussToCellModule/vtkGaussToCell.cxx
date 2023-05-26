@@ -90,7 +90,7 @@ vtkStandardNewMacro(vtkGaussToCell)
 
 vtkInformationDoubleVectorKey *GetMEDReaderMetaDataIfAny()
 {
-  static const char ZE_KEY[]="vtkMEDReader::GAUSS_DATA";
+  static const char ZE_KEY[]="vtkFileSeriesGroupReader::GAUSS_DATA";
   MEDCoupling::GlobalDict *gd(MEDCoupling::GlobalDict::GetInstance());
   if(!gd->hasKey(ZE_KEY))
     return 0;

@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2022  CEA/DEN, EDF R&D
+# Copyright (C) 2012-2022  CEA/DEN, EDF R&D
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -16,8 +16,23 @@
 #
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
+# Author : Yoann Audouin (EDF)
 
-SUBDIRS(MEDReader)
-SUBDIRS(MEDWriter)
-SUBDIRS(VoroGauss)
-SUBDIRS(GaussToCell)
+INCLUDE(tests.set)
+
+SALOME_GENERATE_TESTS_ENVIRONMENT(tests_env)
+
+FOREACH(tfile ${TEST_NAMES})
+ SET(TEST_NAME ${COMPONENT_NAME}_${tfile})
+ ADD_TEST(${TEST_NAME} python ${CMAKE_CURRENT_SOURCE_DIR}/${tfile}.py)
+ SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES ENVIRONMENT "${tests_env}")
+ENDFOREACH()
+
+# Application tests
+
+SET(TEST_INSTALL_DIRECTORY ${SALOME_INSTALL_SCRIPT_SCRIPTS}/test/GaussToCell)
+INSTALL(FILES ${all_src} tests.set DESTINATION ${TEST_INSTALL_DIRECTORY})
+
+INSTALL(FILES CTestTestfileInstall.cmake
+        DESTINATION ${TEST_INSTALL_DIRECTORY}
+        RENAME CTestTestfile.cmake)
