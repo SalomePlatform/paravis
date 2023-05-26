@@ -17,7 +17,15 @@
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 
-SUBDIRS(MEDReader)
-SUBDIRS(MEDWriter)
-SUBDIRS(VoroGauss)
-SUBDIRS(GaussToCell)
+SET(COMPONENT_NAME PARAVIS)
+
+INCLUDE(tests.set)
+
+FOREACH(tfile ${TEST_NAMES})
+  SET(TEST_NAME ${COMPONENT_NAME}_${tfile})
+  ADD_TEST(${TEST_NAME} python ${tfile}.py)
+  SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES
+    LABELS "${COMPONENT_NAME}"
+    TIMEOUT ${TIMEOUT}
+    )
+ENDFOREACH()
