@@ -39,8 +39,6 @@ list(APPEND CMAKE_MODULE_PATH ${TMP_CMAKE_MODULE_PATH})
 include(SalomeSetupPlatform)
 set(BUILD_SHARED_LIBS TRUE)
 
-find_package(SalomePythonInterp REQUIRED)
-find_package(SalomePythonLibs REQUIRED)
 find_package(SalomeHDF5 REQUIRED)
 find_package(SalomeMEDCoupling REQUIRED)
 find_package(SalomeMEDFile REQUIRED)
