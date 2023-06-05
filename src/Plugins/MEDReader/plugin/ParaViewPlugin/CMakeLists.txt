@@ -24,6 +24,9 @@ set(sources)
 cmake_policy(SET CMP0071 OLD) # bug in ParaViewPlugin.cmake?
 
 if(PARAVIEW_USE_QT)
+  set(ui_resource_files
+    Resources/pqMEDReader.qrc)
+
   set(ui_files
     MEDReaderVectorsWidget.ui
     MEDReaderTimeModeWidget.ui)
@@ -113,7 +116,7 @@ paraview_add_plugin(MEDReader
   UI_INTERFACES ${interfaces}
   UI_FILES ${ui_files}
   SOURCES ${sources}
-  UI_RESOURCES Resources/pqMEDReader.qrc
+  UI_RESOURCES ${ui_resource_files}
   SERVER_MANAGER_XML Resources/MEDReaderServer.xml
   MODULES MEDReaderIO
   MODULE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../MEDReaderIO/vtk.module"
