@@ -54,3 +54,47 @@ paraview_plugin_build(
   LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
   PLUGINS ${plugins})
+
+if(TARGET VTK::Python)
+
+  vtk_module_python_default_destination(python_destination)
+
+  vtk_module_wrap_python(
+    MODULES         MEDReaderIO
+    WRAPPED_MODULES medr_wrapped_modules
+    TARGET          MEDREADER::Python
+    INSTALL_EXPORT  MEDReaderVTKPython
+    PYTHON_PACKAGE  "MEDReaderVTK"
+    MODULE_DESTINATION  "${python_destination}"
+    CMAKE_DESTINATION   "${CMAKE_INSTALL_LIBDIR}/cmake/MEDReaderVTKPython"
+    LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    INSTALL_HEADERS ON
+    BUILD_STATIC    OFF)
+
+  # Generate __init__.py
+  set(python_modules)
+  foreach(module ${medr_wrapped_modules})
+    list(APPEND python_modules "'${module}'")
+  endforeach()
+
+  set(InitContent "__all__ = ['vtkMEDReader']")
+
+  file(GENERATE
+    OUTPUT  "${CMAKE_BINARY_DIR}/${python_destination}/MEDReaderVTK/__init__.py"
+    CONTENT "${InitContent}")
+  install(
+    FILES       "${CMAKE_BINARY_DIR}/${python_destination}/MEDReaderVTK/__init__.py"
+    DESTINATION "${python_destination}/MEDReaderVTK/")
+
+  # Install MEDReaderVTKPython
+  export(
+    EXPORT    MEDReaderVTKPython
+    NAMESPACE MEDREADER::
+    FILE "${CMAKE_BINARY_DIR}/${python_destination}/MEDReaderVTKPython/MEDReaderVTKPython-targets.cmake")
+  install(
+    EXPORT    MEDReaderVTKPython
+    NAMESPACE MEDREADER::
+    FILE      MEDReaderVTKPython-targets.cmake
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/MEDReaderVTKPython")
+
+endif()
