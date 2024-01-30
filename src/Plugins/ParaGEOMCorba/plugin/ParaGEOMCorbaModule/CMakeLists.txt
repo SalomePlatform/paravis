@@ -19,6 +19,7 @@
 
 include_directories(
   ${GEOM_ROOT_DIR}/include/salome
+  ${OPENCASCADE_ROOT_DIR}/include/opencascade
   )
 
 add_definitions(${OMNIORB_DEFINITIONS})
