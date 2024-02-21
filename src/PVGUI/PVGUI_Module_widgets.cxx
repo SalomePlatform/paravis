@@ -41,61 +41,31 @@
 #include <QShowEvent>
 #include <QToolButton>
 
-#include <pqAnimationViewWidget.h> 
-#include <pqAnimationWidget.h> 
-
-#include <pqApplicationCore.h>
-#include <pqComparativeVisPanel.h>
-#include <pqPipelineBrowserWidget.h>
-#include <pqProxyInformationWidget.h>
-#include <pqDataInformationWidget.h>
-#include <pqPVAnimationWidget.h>
-#include <pqFindDataSelectionDisplayFrame.h>
-#include <pqMultiBlockInspectorWidget.h>
-#include <pqProgressWidget.h>
-#include <pqProgressManager.h>
-#include <pqPropertiesPanel.h>
-#include <pqPVApplicationCore.h>
 #include <pqAnimationManager.h>
-
 #include <pqApplicationCore.h>
-#include <pqPluginManager.h>
-#include <pqParaViewMenuBuilders.h>
+#include <pqApplicationCore.h>
 #include <pqCollaborationPanel.h>
-#include <pqMemoryInspectorPanel.h>
 #include <pqColorMapEditor.h>
-#include <pqFindDataWidget.h>
+#include <pqComparativeVisPanel.h>
+#include <pqDataInformationWidget.h>
 #include <pqDeleteReaction.h>
+#include <pqFindDataSelectionDisplayFrame.h>
+#include <pqFindDataWidget.h>
+#include <pqMemoryInspectorPanel.h>
+#include <pqMultiBlockInspectorWidget.h>
+#include <pqPVApplicationCore.h>
+#include <pqParaViewMenuBuilders.h>
+#include <pqPipelineBrowserWidget.h>
+#include <pqPluginManager.h>
+#include <pqProgressManager.h>
+#include <pqProgressWidget.h>
+#include <pqPropertiesPanel.h>
+#include <pqProxyInformationWidget.h>
+#include <pqTimeManagerWidget.h>
 
 #include <vtkPVGeneralSettings.h>
 #include <vtkSMSettings.h>
 #include <vtkPVConfig.h>
-
-class ResizeHelper : public pqPVAnimationWidget
-{
-  // TEMPORARY WORKAROUND AROUND PARAVIEW 3.14 BUG:
-  // WHEN ANIMATION VIEW IS RESIZED, ITS CONTENTS IS NOT PREPERLY RE-ARRANGED
-  // CAUSING SOME CONTROLS TO STAY NON-VISIBLE
-  // THIS BUG IS NATURALLY FIXED BY ADDING
-  //      this->updateGeometries();
-  // TO THE
-  //     void pqAnimationWidget::resizeEvent(QResizeEvent* e);
-  // BUT THIS CANNOT BE DONE DIRECTLY, SINCE CORRESPONDING API IS NOT PUBLIC
-  // THE ONLY WAY TO DO THIS BY SENDING SHOW EVENT TO THE WIDGET
-
-public:
-  ResizeHelper( QWidget* parent ) : pqPVAnimationWidget( parent ) {}
-protected:
-  void resizeEvent(QResizeEvent* e)
-  {
-    pqAnimationWidget* w = findChild<pqAnimationWidget*>( "pqAnimationWidget" );
-    if ( w ) {
-      QShowEvent e;
-      QApplication::sendEvent( w, &e );
-    }
-    pqPVAnimationWidget::resizeEvent( e );
-  }
-};
 
 /*!
   \brief Create dock widgets for ParaView widgets such as object inspector, pipeline browser, etc.
@@ -253,14 +223,14 @@ void PVGUI_Module::setupDockWidgets()
   QDockWidget* animationViewDock     = new QDockWidget( tr( "TTL_ANIMATION_VIEW" ), desk );
   animationViewDock->setObjectName("animationViewDock");
   desk->addDockWidget( Qt::BottomDockWidgetArea, animationViewDock );
-  pqPVAnimationWidget* animation_panel = new ResizeHelper(animationViewDock); // [ABN] was resizeHelper
+  pqTimeManagerWidget* timeManager = new pqTimeManagerWidget(animationViewDock);
 
   // RNV: Emit signal in order to make sure that animation scene is set
   QMetaObject::invokeMethod( pqPVApplicationCore::instance()->animationManager(),
 			     "activeSceneChanged",
 			     Q_ARG( pqAnimationScene*, pqPVApplicationCore::instance()->animationManager()->getActiveScene() ) );
 
-  animationViewDock->setWidget(animation_panel);
+  animationViewDock->setWidget(timeManager);
   myDockWidgets[animationViewDock] = false; // hidden by default
 
   desk->tabifyDockWidget(animationViewDock,  statisticsViewDock);

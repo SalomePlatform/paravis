@@ -33,6 +33,7 @@ target_link_libraries(ParaMEDMEM2VTK
   VTK::CommonDataModel
   VTK::CommonExecutionModel
   VTK::FiltersGeneral
+  VTK::FiltersParallel
   ParaView::VTKExtensionsMisc
   ${OMNIORB_LIBRARIES}
   ${FIELDS_SalomeIDLMED}

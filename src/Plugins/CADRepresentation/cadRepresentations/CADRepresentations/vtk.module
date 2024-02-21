@@ -4,6 +4,5 @@ DEPENDS
   ParaView::RemotingViews
   VTK::RenderingOpenGL2
   VTK::CommonDataModel
-  VTK::glew
 PRIVATE_DEPENDS
   VTK::CommonCore

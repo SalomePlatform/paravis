@@ -32,7 +32,6 @@
 
 #include <string>
 
-#include <pqOptions.h>
 #include <pqSettings.h>
 #include <pqPVApplicationCore.h>
 #include <pqTabbedMultiViewWidget.h>
@@ -75,12 +74,6 @@ bool PVViewer_Core::ParaviewInitApp(QMainWindow * aDesktop, LogWindow * /*logWin
         argc++;
       }
       MyCoreApp = new pqPVApplicationCore (argc, argv);
-      if (MyCoreApp->getOptions()->GetHelpSelected() ||
-          MyCoreApp->getOptions()->GetUnknownArgument() ||
-          MyCoreApp->getOptions()->GetErrorMessage() ||
-          MyCoreApp->getOptions()->GetTellVersion()) {
-          return false;
-      }
 
       // Direct VTK log messages to our SALOME window - TODO: review this
 //      PVViewer_LogWindowAdapter * w = PVViewer_LogWindowAdapter::New();

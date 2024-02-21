@@ -32,7 +32,6 @@ SET(_subdirs
   StaticMesh
   GaussToCell
   VoroGauss
-  BivariateRepresentations
   CADRepresentation
   )
 

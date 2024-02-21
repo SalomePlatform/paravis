@@ -24,7 +24,7 @@
 #include <vtkMPIController.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkProcessIdScalars.h>
+#include <vtkGenerateProcessIds.h>
 #include <vtkTable.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnstructuredGrid.h>
@@ -188,8 +188,8 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::ProcessGhostIds()
       {
         lengths[i] = remoteGhostPoints[i].size();
         controller->NoBlockSend(&lengths[i], 1, i, SUGGCG_SIZE_EXCHANGE_TAG, pointSizeReqs[i]);
-        controller->NoBlockSend(&remoteGhostPoints[i][0], remoteGhostPoints[i].size(), i,
-          SUGGCG_DATA_EXCHANGE_TAG, pointIdsReqs[i]);
+	vtkTypeInt64 length = remoteGhostPoints[i].size();
+        controller->NoBlockSend(&remoteGhostPoints[i][0], length, i, SUGGCG_DATA_EXCHANGE_TAG, pointIdsReqs[i]);
       }
     }
 
@@ -244,8 +244,7 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::AddIdsArrays(
   vtkDataSet* tmpInput;
   tmpInput = input;
   vtkNew<vtkIdFilter> generateIdScalars;
-  vtkNew<vtkProcessIdScalars> processPointIdScalars;
-  vtkNew<vtkProcessIdScalars> processCellIdScalars;
+  vtkNew<vtkGenerateProcessIds> generateProcessIds;
 
   // Check for Ids array
   vtkAbstractArray* pointIdsTmp = input->GetPointData()->GetAbstractArray("Ids");
@@ -262,28 +261,18 @@ void vtkStaticPUnstructuredGridGhostCellsGenerator::AddIdsArrays(
     tmpInput = generateIdScalars->GetOutput();
   }
 
-  // Check for ProcessId point array
-  vtkAbstractArray* procIdsTmp = input->GetPointData()->GetAbstractArray("ProcessId");
-  if (!procIdsTmp)
+  // Generate process ids as needed
+  bool generatePointProcessIds = input->GetPointData()->GetAbstractArray("ProcessId") != nullptr;
+  bool generateCellProcessIds = input->GetPointData()->GetAbstractArray("ProcessId") != nullptr;
+  if (generatePointProcessIds || generateCellProcessIds)
   {
-    // Create ProcessId point Array
-    processPointIdScalars->SetInputData(tmpInput);
-    processPointIdScalars->SetScalarModeToPointData();
-    processPointIdScalars->Update();
-    tmpInput = processPointIdScalars->GetOutput();
+    generateProcessIds->SetInputData(tmpInput);
+    generateProcessIds->SetGeneratePointData(generatePointProcessIds);
+    generateProcessIds->SetGenerateCellData(generateCellProcessIds);
+    generateProcessIds->Update();
+    tmpInput = generateProcessIds->GetOutput();
   }
 
-  // Check for ProcessId Cell Array
-  procIdsTmp = input->GetCellData()->GetAbstractArray("ProcessId");
-  if (!procIdsTmp)
-  {
-    // Create ProcessId Cell array
-    vtkNew<vtkProcessIdScalars> processIdScalars;
-    processCellIdScalars->SetInputData(tmpInput);
-    processCellIdScalars->SetScalarModeToCellData();
-    processCellIdScalars->Update();
-    tmpInput = processCellIdScalars->GetOutput();
-  }
   output->ShallowCopy(tmpInput);
 }
 

@@ -4,6 +4,7 @@ DEPENDS
   VTK::CommonCore
   VTK::CommonDataModel
   VTK::CommonExecutionModel
+  VTK::FiltersParallel
 PRIVATE_DEPENDS
   ParaView::VTKExtensionsMisc
   ParaView::VTKExtensionsFiltersRendering

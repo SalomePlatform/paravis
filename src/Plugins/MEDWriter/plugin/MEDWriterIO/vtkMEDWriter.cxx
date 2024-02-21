@@ -144,7 +144,7 @@ static void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshNam
   while (it0->HasNext())
   {
     vtkIdType id1(it0->Next());
-    std::string mName((const char*)verticesNames2->GetValue(id1));
+    std::string mName(verticesNames2->GetValue(id1).c_str());
     meshName = mName;
     vtkAdjacentVertexIterator* it1(vtkAdjacentVertexIterator::New());
     sil->GetAdjacentVertices(id1, it1);
@@ -154,14 +154,14 @@ static void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshNam
     while (itGrps->HasNext())
     {
       vtkIdType idg(itGrps->Next());
-      Grp grp((const char*)verticesNames2->GetValue(idg));
+      Grp grp(verticesNames2->GetValue(idg).c_str());
       vtkAdjacentVertexIterator* itGrps2(vtkAdjacentVertexIterator::New());
       sil->GetAdjacentVertices(idg, itGrps2);
       std::vector<std::string> famsOnGroup;
       while (itGrps2->HasNext())
       {
         vtkIdType idgf(itGrps2->Next());
-        famsOnGroup.push_back(std::string((const char*)verticesNames2->GetValue(idgf)));
+        famsOnGroup.push_back(std::string(verticesNames2->GetValue(idgf)));
       }
       grp.setFamilies(famsOnGroup);
       itGrps2->Delete();
@@ -175,7 +175,7 @@ static void LoadFamGrpMapInfo(vtkMutableDirectedGraph* sil, std::string& meshNam
     while (itFams->HasNext())
     {
       vtkIdType idf(itFams->Next());
-      Fam fam((const char*)verticesNames2->GetValue(idf));
+      Fam fam(verticesNames2->GetValue(idf).c_str());
       fams.push_back(fam);
     }
     itFams->Delete();

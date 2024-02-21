@@ -118,19 +118,6 @@ vtkDataSet *ParaMEDMEM2VTK::MEDCouplingMultiFieldsFetcher::buildDataSetOnTime(do
   {
     vtkUnstructuredGrid *ret1=vtkUnstructuredGrid::New();
     ret1->DeepCopy(ret0);
-    if(_is_meshes_polyhedron[meshId])//bug VTK polyhedron
-    {//bug VTK polyhedron part
-      ret1->Faces->UnRegister(ret1);
-      ret1->Faces=vtkIdTypeArray::New();
-      ret1->Faces->DeepCopy(((vtkUnstructuredGrid *)ret0)->GetFaces());
-      ret1->Faces->Register(ret1);
-      ret1->Faces->Delete();
-      ret1->FaceLocations->UnRegister(ret1);
-      ret1->FaceLocations=vtkIdTypeArray::New();
-      ret1->FaceLocations->DeepCopy(((vtkUnstructuredGrid *)ret0)->GetFaceLocations());
-      ret1->FaceLocations->Register(ret1);
-      ret1->FaceLocations->Delete();
-    }//end bug VTK polyhedron part
     appendFieldValueOnAlreadyFetchedData(ret1,fieldId);
     applyBufferingPolicy();
     return ret1;

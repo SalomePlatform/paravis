@@ -42,7 +42,8 @@ SET(_link_LIBRARIES
   ${KERNEL_LDFLAGS}
   ${GUI_LDFLAGS} ${GUI_LightApp} ${GUI_CAM} ${GUI_qtx} ${GUI_suit}
                  ${GUI_SalomeObject}
-  ParaView::pqApplicationComponents		 
+  ParaView::pqApplicationComponents
+  ParaView::RemotingSettings
   ${GUI_PVViewer}
 )
 

@@ -116,7 +116,6 @@
 #include <pqApplicationCore.h>
 #include <pqPVApplicationCore.h>
 #include <pqObjectBuilder.h>
-#include <pqOptions.h>
 #include <pqSettings.h>
 #include <pqServer.h>
 #include <pqUndoStack.h>

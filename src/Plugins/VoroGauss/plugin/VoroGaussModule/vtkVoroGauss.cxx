@@ -356,10 +356,18 @@ static void ConvertFromUnstructuredGrid(vtkUnstructuredGrid *ds, std::vector< MC
     }
 }
 
+template<class VTKTYPE>
+void FillVTKArrayFromStdVector(const std::vector< typename VTKTYPE::ValueType>& stdVec, VTKTYPE *array)
+{
+  array->SetNumberOfComponents(1);
+  array->SetNumberOfTuples(stdVec.size());
+  std::copy(stdVec.begin(),stdVec.end(),array->GetPointer(0));
+}
+
 static vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCouplingUMesh *mVor)
 {
   std::map<int,int> zeMapRev(ComputeRevMapOfType());
-  int nbCells(mVor->getNumberOfCells());
+  mcIdType nbCells(mVor->getNumberOfCells());
   vtkSmartPointer<vtkUnstructuredGrid> ret(vtkSmartPointer<vtkUnstructuredGrid>::New());
   ret->Initialize();
   ret->Allocate();
@@ -377,8 +385,12 @@ static vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCou
     {
     case 3:
       {
+        bool isPolyh( false );
         vtkIdType *cPtr(nullptr),*dPtr(nullptr);
         unsigned char *aPtr(nullptr);
+        vtkNew<vtkIdTypeArray> faceLocationsOffset;
+        faceLocationsOffset->SetNumberOfComponents(1); faceLocationsOffset->SetNumberOfTuples(nbCells+1);
+        vtkIdType *ePtr( faceLocationsOffset->GetPointer(0) ); *ePtr = 0;
         vtkSmartPointer<vtkUnsignedCharArray> cellTypes(vtkSmartPointer<vtkUnsignedCharArray>::New());
         {
           cellTypes->SetNumberOfComponents(1);
@@ -399,8 +411,8 @@ static vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCou
           dPtr=cells->GetPointer(0);
         }
         const mcIdType *connPtr(mVor->getNodalConnectivity()->begin()),*connIPtr(mVor->getNodalConnectivityIndex()->begin());
-        int k(0),kk(0);
-        std::vector<vtkIdType> ee,ff;
+        int k(0),curFaceIdPolyhedron(0);
+        std::vector<vtkIdType> ff, gg(1,0), hh;
         for(int i=0;i<nbCells;i++,connIPtr++)
           {
             INTERP_KERNEL::NormalizedCellType ct(static_cast<INTERP_KERNEL::NormalizedCellType>(connPtr[connIPtr[0]]));
@@ -411,43 +423,48 @@ static vtkSmartPointer<vtkUnstructuredGrid> ConvertUMeshFromMCToVTK(const MEDCou
                 *dPtr++=sz;
                 dPtr=std::copy(connPtr+connIPtr[0]+1,connPtr+connIPtr[1],dPtr);
                 *cPtr++=k; k+=sz+1;
-                ee.push_back(kk);
+                ePtr[1] = ePtr[0]; ePtr++;
               }
             else
               {
+                isPolyh = true;
                 std::set<int> s(connPtr+connIPtr[0]+1,connPtr+connIPtr[1]); s.erase(-1);
                 vtkIdType nbFace((vtkIdType)(std::count(connPtr+connIPtr[0]+1,connPtr+connIPtr[1],-1)+1));
-                ff.push_back(nbFace);
                 const mcIdType *work(connPtr+connIPtr[0]+1);
                 for(int j=0;j<nbFace;j++)
                   {
+                    ff.push_back( curFaceIdPolyhedron++ );
+                    //
                     const mcIdType *work2=std::find(work,connPtr+connIPtr[1],-1);
-                    ff.push_back((vtkIdType)std::distance(work,work2));
-                    ff.insert(ff.end(),work,work2);
+                    vtkIdType nbPtsInFace = (vtkIdType)std::distance(work,work2);
+                    gg.push_back( gg.back() + nbPtsInFace );
+                    hh.insert(hh.end(),work,work2);
                     work=work2+1;
                   }
                 *dPtr++=(int)s.size();
                 dPtr=std::copy(s.begin(),s.end(),dPtr);
                 *cPtr++=k; k+=(int)s.size()+1;
-                ee.push_back(kk); kk+=connIPtr[1]-connIPtr[0]+1;
+                ePtr[1] = ePtr[0] + nbFace; ePtr++;
               }
           }
         //
-        vtkSmartPointer<vtkIdTypeArray> faceLocations(vtkSmartPointer<vtkIdTypeArray>::New());
-        {
-          faceLocations->SetNumberOfComponents(1);
-          faceLocations->SetNumberOfTuples((vtkIdType)ee.size());
-          std::copy(ee.begin(),ee.end(),faceLocations->GetPointer(0));
-        }
-        vtkSmartPointer<vtkIdTypeArray> faces(vtkSmartPointer<vtkIdTypeArray>::New());
-        {
-          faces->SetNumberOfComponents(1);
-          faces->SetNumberOfTuples((vtkIdType)ff.size());
-          std::copy(ff.begin(),ff.end(),faces->GetPointer(0));
-        }
         vtkSmartPointer<vtkCellArray> cells2(vtkSmartPointer<vtkCellArray>::New());
         cells2->SetCells(nbCells,cells);
-        ret->SetCells(cellTypes,cellLocations,cells2,faceLocations,faces);
+        if( !isPolyh )
+          ret->SetCells(cellTypes,cells2);
+        else
+        {
+          vtkNew<vtkCellArray> zeFaceLocations;
+          vtkNew<vtkIdTypeArray> faceLocationsConn;
+          FillVTKArrayFromStdVector<vtkIdTypeArray>(ff,faceLocationsConn);
+          zeFaceLocations->SetData(faceLocationsOffset,faceLocationsConn);
+          vtkNew<vtkCellArray> zeFaces;
+          vtkNew<vtkIdTypeArray> facesOffset,facesConn;
+          FillVTKArrayFromStdVector<vtkIdTypeArray>(gg,facesOffset);
+          FillVTKArrayFromStdVector<vtkIdTypeArray>(hh,facesConn);
+          zeFaces->SetData(facesOffset,facesConn);
+          ret->SetPolyhedralCells(cellTypes,cells2,zeFaceLocations,zeFaces);
+        }
         break;
       }
     case 2:

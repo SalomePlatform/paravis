@@ -12,6 +12,7 @@ DEPENDS
   VTK::IOGeometry
   VTK::IOEnSight
 OPTIONAL_DEPENDS
+  VTK::FiltersParallelDIY2
   VTK::FiltersParallelGeometry
 PRIVATE_DEPENDS
   VTK::CommonMisc
