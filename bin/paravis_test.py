@@ -156,7 +156,6 @@ class TestParavis(unittest.TestCase):
             b_range = b_right - b_left
             positions = [b_left + i*b_range/(nb_planes-1) for i in range(nb_planes)]
             slice.SliceOffsetValues = positions
-            pvs.Hide3DWidgets(proxy=slice.SliceType)
             cut_planes = pvs.Show(slice, view)
             self.assertIsNotNone(cut_planes)
             cut_planes.Representation = 'Surface'
