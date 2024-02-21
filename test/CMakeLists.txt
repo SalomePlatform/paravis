@@ -18,3 +18,4 @@
 #
 
 ADD_SUBDIRECTORY(standalone)
+ADD_SUBDIRECTORY(integration)

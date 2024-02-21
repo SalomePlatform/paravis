@@ -336,10 +336,10 @@ static void ConvertFromUnstructuredGrid(vtkUnstructuredGrid *ds, std::vector< MC
           else
             {
               // # de faces du polyèdre
-              vtkIdType nbOfFaces(0);
-              // connectivé des faces (numFace0Pts, id1, id2, id3, numFace1Pts,id1, id2, id3, ...)
-              const vtkIdType *facPtr(nullptr);
-              ds->GetFaceStream(*cellId, nbOfFaces, facPtr);
+	      vtkNew<vtkIdList> faces;
+              ds->GetFaceStream(*cellId, faces);
+              vtkIdType nbOfFaces = faces->GetId(0);
+              const vtkIdType* facPtr = faces->GetPointer(1);
               std::vector<mcIdType> conn;
               for(vtkIdType k=0;k<nbOfFaces;k++)
                 {

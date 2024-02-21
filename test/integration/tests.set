@@ -1,0 +1,11 @@
+SET(TEST_NAMES
+  test_Mechanics
+  test_Sphere
+  )
+
+SET(all_src
+  test_Mechanics.xml
+  test_Mechanics.png
+  test_Sphere.xml
+  test_Sphere.png
+  )
