@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<pqevents>
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&gt;&gt;&gt; from paraview.simple import *" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; UnstructuredCellTypes()" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; elno = ELNOfieldToSurface()" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; elno.ShrinkFactor=0.5" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; Show()" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; ResetCamera()" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+  <pqcompareview object="1STD_TabDesktop0/1QFrame0/1QtxWorkstack0/1QtxWorkstackSplitter0/1QtxWorkstackArea0/1QStackedWidget0/1QtxWorkstackChild0/1PVViewer_ViewWindow0/1pqTabbedMultiViewWidget0/CoreWidget/qt_tabwidget_stackedwidget/MultiViewWidget1/Container/Frame.0/CentralWidgetFrame/Viewport/1QVTKOpenGLNativeWidget0" baseline="$PARAVIEW_DATA_ROOT/test_Mechanics.png" threshold="0.05" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="set_string" arguments="&#xA;&gt;&gt;&gt; exit()" />
+  <pqevent object="1STD_TabDesktop0/pythonConsoleDock/pythonConsole/1LightApp_PyEditor0" command="key" arguments="16777220" />
+</pqevents>

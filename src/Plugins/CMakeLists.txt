@@ -28,7 +28,6 @@ SET(_subdirs
   ArrayRenamer
   JSONReader
   DevelopedSurface
-#  StaticMesh
   GaussToCell
   VoroGauss
   CADRepresentation

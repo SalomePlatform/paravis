@@ -1,0 +1,8 @@
+INCLUDE(tests.set)
+
+SET(TEST_INSTALL_DIRECTORY ${SALOME_INSTALL_SCRIPT_SCRIPTS}/test/integration)
+INSTALL(FILES ${all_src} tests.set DESTINATION ${TEST_INSTALL_DIRECTORY})
+
+INSTALL(FILES CTestTestfileInstall.cmake
+        DESTINATION ${TEST_INSTALL_DIRECTORY}
+        RENAME CTestTestfile.cmake)
