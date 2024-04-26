@@ -407,13 +407,20 @@ const char* vtkMEDReader::GetFieldsTreeArrayName(int index)
 
 //------------------------------------------------------------------------------
 int vtkMEDReader::GetFieldsTreeArrayStatus(const char* name)
-{
+{// EDF30038 : This method can alterate this->FieldSelection !
   return this->FieldSelection->ArrayIsEnabled(name);
 }
 
 //------------------------------------------------------------------------------
 void vtkMEDReader::SetFieldsStatus(const char* name, int status)
 {
+  // EDF30038 : GetFieldsTreeArrayStatus does not inform if the name entry already exists. So start to deal with this
+  if( ! this->FieldSelection->ArrayExists( name ) )
+  {
+    this->FieldSelection->SetArraySetting( name, status );
+    this->Modified();
+    return ;
+  }
   if (this->GetFieldsTreeArrayStatus(name) != status)
   {
     if (status)

@@ -195,12 +195,12 @@ int vtkFileSeriesGroupReader::RequestData(vtkInformation* vtkNotUsed(request),
 
       for (int iField = 0; iField < exposedReader->GetNumberOfFieldsTreeArrays(); iField++)
       {
-	const char* name = exposedReader->GetFieldsTreeArrayName(iField);
+        const char* name = exposedReader->GetFieldsTreeArrayName(iField);
         localReader->SetFieldsStatus(name, exposedReader->GetFieldsTreeArrayStatus(name));
       }
       for (int iTimes = 0; iTimes < exposedReader->GetNumberOfTimesFlagsArrays(); iTimes++)
       {
-	const char* name = exposedReader->GetTimesFlagsArrayName(iTimes);
+        const char* name = exposedReader->GetTimesFlagsArrayName(iTimes);
         localReader->SetTimesFlagsStatus(name, exposedReader->GetTimesFlagsArrayStatus(name));
       }
       localReader->GenerateVectors(exposedReader->GetGenerateVect());
