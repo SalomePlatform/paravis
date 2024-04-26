@@ -23,8 +23,8 @@
 #include "vtkSMProxy.h"
 #include "vtkSMSourceProxy.h"
 #include "vtkSMProperty.h"
-
-#include "pqPropertiesPanel.h"
+#include "pqUndoStack.h"
+#include "vtkSMReaderReloadHelper.h"
 
 #include <QPushButton>
 #include <QGridLayout>
@@ -57,40 +57,25 @@ pqMEDReaderReloadWidget::~pqMEDReaderReloadWidget()
 
 void pqMEDReaderReloadWidget::buttonClicked()
 {
-  // Recovering Property Panel
-  pqPropertiesPanel* panel = NULL;
-  QObject* tmp = this;
-  while (panel == NULL)
-    {
-    tmp = tmp->parent();
-    if (!tmp)
-      {
-      break;
-      }
-    panel = qobject_cast<pqPropertiesPanel*>(tmp);
-    }
+  // code adapted from ParaView/Qt/ApplicationComponents/pqReloadFilesReaction.cxx
+  // which corresponds to right-click reload files
 
-  if (!panel)
-    {
-    qDebug() << "Cannot find pqPropertiesPanel, reload may not work";
-    }
-  else
-    {
-    // Restoring property to defaults, necessary when unchecked property are not applied
-    panel->propertiesRestoreDefaults();
-    }
+  vtkNew<vtkSMReaderReloadHelper> helper;
 
-  // Reloading the data and associated properties
-  this->Property->Modified();
-  this->proxy()->UpdateProperty(this->proxy()->GetPropertyName(this->Property));
-  vtkSMSourceProxy::SafeDownCast(this->proxy())->UpdatePipelineInformation();
+  vtkSMSourceProxy* sourceProxy = vtkSMSourceProxy::SafeDownCast(this->proxy());
 
-  // Restting properties to dufault using domains and XML values
-  this->proxy()->ResetPropertiesToDefault();
+  if (!helper->SupportsReload(sourceProxy))
+  {
+    return;
+  }
 
-  if (panel)
-    {
-    // Disabled apply button inderectly
-    panel->propertiesRestoreDefaults();
-    }
+  BEGIN_UNDO_EXCLUDE();
+  // as MEDReader support FileSeries, we can either reload files or extend file series
+  // (the right-click reload files allows to choose it from a dialog box)
+  // as single med file is the main use case, we choose to reload it
+  // (instead of extending file series)
+  helper->ReloadFiles(sourceProxy);
+//  helper->ExtendFileSeries(sourceProxy);
+  pqApplicationCore::instance()->render();
+  END_UNDO_EXCLUDE();
 }
