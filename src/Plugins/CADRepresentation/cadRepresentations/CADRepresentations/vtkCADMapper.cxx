@@ -450,3 +450,10 @@ void vtkCADMapper::AddCellIdsToSelectionPrimitives(vtkPolyData* poly, const char
     this->ForceUpdate();
   }
 }
+
+//----------------------------------------------------------------------------
+
+vtkIdType vtkCADMapper::GetPreselectedId()
+{
+  return this->PreselectedCellId;
+}

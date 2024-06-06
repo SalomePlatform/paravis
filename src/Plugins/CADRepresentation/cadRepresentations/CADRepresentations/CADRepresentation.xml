@@ -57,6 +57,14 @@
            Enable or disable the Group Mode.
         </Documentation>
       </IntVectorProperty>
+      <IntVectorProperty name="PreSelectedID"
+                         command="GetPreselectedId"
+                         information_only="1"
+                         number_of_elements="0">
+        <Documentation>
+          PreSelected solid ID
+        </Documentation>
+      </IntVectorProperty>
       <Property command="Reset" name="Reset"/>
       <Property command="BeginSelect" name="BeginSelect"/>
       <Property command="EndSelect" name="EndSelect"/>

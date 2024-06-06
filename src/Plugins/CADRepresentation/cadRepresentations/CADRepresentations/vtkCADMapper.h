@@ -103,6 +103,11 @@ public:
    */
   void ResetSelection();
 
+  /**
+   * Get PreSelected Id
+   */
+  vtkIdType GetPreselectedId();
+
 protected:
   vtkCADMapper() = default;
   ~vtkCADMapper() = default;
@@ -130,6 +135,11 @@ private:
    */
   void AddCellIdsToSelectionPrimitives(vtkPolyData* poly, const char* arrayName,
     unsigned int processId, unsigned int compositeIndex, vtkIdType selectedId) override;
+
+  /**
+   * Get Selected Id list
+   */
+  //vtkIdType GetSelectedId();
 
   /**
    * Initialise the primitive colors using color array stored in the input polydata.

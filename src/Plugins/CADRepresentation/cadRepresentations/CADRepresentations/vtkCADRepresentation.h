@@ -100,6 +100,13 @@ public:
   //void AddShape(vtkIdType groupId, vtkIdType cellId);
 
   void SetArrayIdNames(const char* pointArray, const char* cellArray) override;
+
+  /**
+   * Get PreSelected Id
+   */
+
+  vtkIdType GetPreselectedId();
+
 protected:
   vtkCADRepresentation();
   ~vtkCADRepresentation() = default;

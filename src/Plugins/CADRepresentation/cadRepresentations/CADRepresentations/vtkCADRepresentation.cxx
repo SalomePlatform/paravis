@@ -281,3 +281,9 @@ void vtkCADRepresentation::SetArrayIdNames(const char* pointArray, const char* c
   mapper->SetPointIdArrayName(pointArray ? pointArray : "vtkOriginalPointIds");
   mapper->SetCellIdArrayName(cellArray ? cellArray : "vtkOriginalCellIds");
 }
+
+//----------------------------------------------------------------------------
+vtkIdType vtkCADRepresentation::GetPreselectedId()
+{
+  return this->Mapper->GetPreselectedId();
+}
