@@ -27,4 +27,4 @@
 # This variables is: TEST_NUMBERS.
 # Additional variables might be defined if necessary.
 
-SET(TEST_NUMBERS 0 1)
+SET(TEST_NUMBERS 0 1 2)

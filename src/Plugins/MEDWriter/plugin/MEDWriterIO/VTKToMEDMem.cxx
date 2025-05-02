@@ -123,6 +123,7 @@ static std::map<int,int> ComputeMapOfType()
       if(vtkId!=MEDCOUPLING2VTKTYPETRADUCER_NONE)
         ret[vtkId]=i;
     }
+  ret[VTK_VOXEL] = INTERP_KERNEL::NORM_HEXA8;
   return ret;
 }
 
@@ -773,6 +774,14 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
   AddNodeFields(ret,ds->GetPointData(),timeStep,tsId);
 }
 
+static void dealVoxel(std::vector<mcIdType>& conn)
+{// see Voxel topology
+  //std::vector<mcIdType> tmp{conn[0],conn[1],conn[3],conn[2],conn[4],conn[5],conn[7],conn[6]};
+  //std::vector<mcIdType> tmp{conn[2],conn[0],conn[1],conn[3],conn[6],conn[4],conn[5],conn[7]};
+  std::vector<mcIdType> tmp{conn[1],conn[0],conn[2],conn[3],conn[5],conn[4],conn[6],conn[7]};
+  conn = tmp;
+}
+
 static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *ds, const std::vector<int>& context, double timeStep, int tsId)
 {
   if(!ds || !ret)
@@ -837,7 +846,7 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
       MCAuto<DataArrayIdType> cellIdsCurLev(lev->findIdsEqual(*curLev));
       for(const mcIdType *cellId=cellIdsCurLev->begin();cellId!=cellIdsCurLev->end();cellId++)
         {
-          int vtkType(ds->GetCellType(*cellId));
+          auto vtkType(ds->GetCellType(*cellId));
           std::map<int,int>::iterator it(m.find(vtkType));
           INTERP_KERNEL::NormalizedCellType ct=it!=m.end()?(INTERP_KERNEL::NormalizedCellType)((*it).second):INTERP_KERNEL::NORM_POINT1;
           if(ct!=INTERP_KERNEL::NORM_POLYHED && vtkType!=VTK_POLY_VERTEX)
@@ -846,6 +855,8 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
               const vtkIdType *pts(nullptr);
               ds->GetCellPoints(*cellId, sz, pts);
               std::vector<mcIdType> conn2(pts,pts+sz);
+              if( vtkType == VTK_VOXEL )
+                dealVoxel(conn2);
               m0->insertNextCell(ct,sz,conn2.data());
             }
           else if(ct==INTERP_KERNEL::NORM_POLYHED)
