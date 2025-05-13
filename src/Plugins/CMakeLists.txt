@@ -25,7 +25,6 @@ SET(_subdirs
   ElevationSurface
   ScaleVector
   EllipseBuilder
-  DifferenceTimesteps
   ArrayRenamer
   JSONReader
   DevelopedSurface
