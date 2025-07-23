@@ -121,7 +121,7 @@ with tempfile.TemporaryDirectory(prefix="MEDWriter_") as tmpdir:
     c1=mm2.getCoords()
     assert(c.isEqualWithoutConsideringStr(c1[:,:2],1e-12))
     fs2=ml.MEDFileFields(fname3)
-    assert(len(fs2)==3)
+    assert(len(fs2) in [2,3]) # + vtkGhostType
     assert(mm2.getSpaceDimension()==3) ; assert(mm2.getCoords()[:,2].isUniform(0.,0.))
     m2_0=mm2[0].deepCopy() ; m2_0.changeSpaceDimension(2,0.) ; m2_0.getCoords().setInfoOnComponents(mm[0].getCoords().getInfoOnComponents())
     assert(m2_0.isEqual(mm[0],1e-12))
