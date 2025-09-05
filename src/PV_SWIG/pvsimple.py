@@ -34,7 +34,7 @@ def __getFromGUI():
     @return a value strictly greater than 0 if we are in SALOME's embedded interpreter
     @return 2 if we are in Salome embedded Python console.
     """
-    import salome_iapp
+    from salome.kernel import salome_iapp
     ret = 0
     if salome_iapp.IN_SALOME_GUI:
       ret += 1
@@ -68,7 +68,7 @@ def ShowParaviewView():
 ShowParaviewView()
 
 import paraview
-import pvserver
+import salome.pvserver
 from paraview import simple
 
 def SalomeConnectToPVServer():
