@@ -28,9 +28,9 @@
 
 import tempfile, os
 
-import SALOME
+from salome.kernel import SALOME
 
-import salome
+from salome.kernel import salome
 salome.salome_init()
 
 session = salome.naming_service.Resolve('/Kernel/Session')
@@ -42,7 +42,7 @@ selection = session.getSelection()
 for entry in selection:
     sobj = salome.myStudy.FindObjectID(entry)
     try:
-        import GEOM
+        from salome.kernel import GEOM
         from salome.geom import geomBuilder
         geompy = geomBuilder.New()
         go = sobj.GetObject()._narrow(GEOM.GEOM_Object)
@@ -62,7 +62,7 @@ for entry in selection:
         # not geom object
         pass
     try: 
-        import SMESH
+        from salome.kernel import SMESH
         from salome.smesh import smeshBuilder
         mesh = smeshBuilder.New()
         mo = sobj.GetObject()._narrow(SMESH.SMESH_Mesh)

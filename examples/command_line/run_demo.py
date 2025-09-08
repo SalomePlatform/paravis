@@ -36,7 +36,7 @@ def generate_data():
   field = create_field(med_filename, "Mesh_tri", "field_on_tri_cells", out_filename=field_filename)
 #
 
-import salome
+from salome.kernel import salome
 salome.salome_init()
 
 generate_data()

@@ -25,11 +25,11 @@ import unittest
 class TestParavis(unittest.TestCase):
 
     def setUp(self):
-        import salome
+        from salome.kernel import salome
         salome.salome_init()
 
     def processGuiEvents(self):
-        import salome
+        from salome.kernel import salome
         if salome.sg.hasDesktop():
             salome.sg.updateObjBrowser();
             import SalomePyQt
@@ -38,7 +38,7 @@ class TestParavis(unittest.TestCase):
     def test_paravis(self):
         """Quick test for Paravis module"""
 
-        import salome
+        from salome.kernel import salome
         if salome.hasDesktop(): # can test paravis in gui mode only
 
             print()

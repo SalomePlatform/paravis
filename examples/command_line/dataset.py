@@ -17,8 +17,8 @@
 # See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 #
 def create_geometry(out_filename=None):
-  import GEOM
-  import salome
+  from salome.kernel import GEOM
+  from salome.kernel import salome
   from salome.geom import geomBuilder
   geompy = geomBuilder.New()
 
@@ -43,8 +43,8 @@ def create_geometry(out_filename=None):
 #
 
 def create_meshes(geometry, out_filename=None):
-  import SMESH
-  import salome
+  from salome.kernel import SMESH
+  from salome.kernel import salome
   from salome.smesh import smeshBuilder
 
   smesh = smeshBuilder.New()
