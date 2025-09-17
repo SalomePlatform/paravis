@@ -28,7 +28,7 @@
 
 import tempfile, os
 
-from salome.kernel import SALOME
+from salome.kernel import SALOME_CMOD
 
 from salome.kernel import salome
 salome.salome_init()

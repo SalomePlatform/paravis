@@ -95,7 +95,7 @@ void * th_Visualize(void * s)
     PARAVIS_ORB::VisualizationComponent_var compo = PARAVIS_ORB::VisualizationComponent::_narrow((*(st->tior))[st->ip]);
     compo->Visualize(st->field,st->path_python_file);
   }
-  catch(const SALOME::SALOME_Exception &ex)
+  catch(const SALOME_CMOD::SALOME_Exception &ex)
   {
     est->exception = true;
     est->msg = ex.details.text;
@@ -222,7 +222,7 @@ v.run(const_cast<MEDCoupling::MEDCouplingFieldDouble*>(local_field), path_python
               msg << "[" << ip << "] " << est->msg;
               delete est;
               delete[] th;
-              THROW_SALOME_CORBA_EXCEPTION(msg.str().c_str(),SALOME::INTERNAL_ERROR);
+              THROW_SALOME_CORBA_EXCEPTION(msg.str().c_str(),SALOME_CMOD::INTERNAL_ERROR);
           }
           delete est;
         }
@@ -231,19 +231,19 @@ v.run(const_cast<MEDCoupling::MEDCouplingFieldDouble*>(local_field), path_python
     }
   catch ( const SALOME_Exception & ex)
     {
-      THROW_SALOME_CORBA_EXCEPTION(CORBA::string_dup(ex.what()), SALOME::INTERNAL_ERROR);
+      THROW_SALOME_CORBA_EXCEPTION(CORBA::string_dup(ex.what()), SALOME_CMOD::INTERNAL_ERROR);
     }
-  catch ( const SALOME::SALOME_Exception & ex)
+  catch ( const SALOME_CMOD::SALOME_Exception & ex)
     {
       throw;
     }
   catch ( const std::exception& ex)
     {
-      THROW_SALOME_CORBA_EXCEPTION(CORBA::string_dup(ex.what()), SALOME::INTERNAL_ERROR);
+      THROW_SALOME_CORBA_EXCEPTION(CORBA::string_dup(ex.what()), SALOME_CMOD::INTERNAL_ERROR);
     }
   catch (...)
     {
-      THROW_SALOME_CORBA_EXCEPTION("unknown exception", SALOME::INTERNAL_ERROR);
+      THROW_SALOME_CORBA_EXCEPTION("unknown exception", SALOME_CMOD::INTERNAL_ERROR);
     }
   endService("VisualizationComponent_i::Visualize");
 }

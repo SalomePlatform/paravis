@@ -38,7 +38,7 @@ typedef Engines::dataref dataref;
 
   interface VisualizationComponent: Engines::MPIObject, Engines::EngineComponent
   {
-    void Visualize(in SALOME_MED::ParaMEDCouplingFieldDoubleCorbaInterface field,in string path_python_file) raises (SALOME::SALOME_Exception);
+    void Visualize(in SALOME_MED::ParaMEDCouplingFieldDoubleCorbaInterface field,in string path_python_file) raises (SALOME_CMOD::SALOME_Exception);
   };
 
 };
