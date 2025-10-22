@@ -80,6 +80,7 @@ using MEDCoupling::MEDFileIntFieldMultiTS;
 using MEDCoupling::MEDFileFieldMultiTS;
 using MEDCoupling::MEDFileAnyTypeFieldMultiTS;
 using MEDCoupling::DataArray;
+using MEDCoupling::DataArrayIdType;
 using MEDCoupling::DataArrayInt32;
 using MEDCoupling::DataArrayInt64;
 using MEDCoupling::DataArrayFloat;
@@ -144,7 +145,7 @@ static DataArrayIdType *ConvertVTKArrayToMCArrayInt(vtkDataArray *data)
     throw MZCException("ConvertVTKArrayToMCArrayInt : internal error !");
   int nbTuples(data->GetNumberOfTuples()),nbComp(data->GetNumberOfComponents());
   std::size_t nbElts(nbTuples*nbComp);
-  MCAuto<DataArrayIdType> ret(DataArrayIdType::New());
+  MCAuto<MEDCoupling::DataArrayIdType> ret(DataArrayIdType::New());
   ret->alloc(nbTuples,nbComp);
   for(int i=0;i<nbComp;i++)
     {
@@ -238,8 +239,8 @@ static DataArrayDouble *ConvertVTKArrayToMCArrayDoubleForced(vtkDataArray *data)
   vtkFloatArray *d0(vtkFloatArray::SafeDownCast(data));
   if(d0)
     {
-      MCAuto<DataArrayFloat> ret(ConvertVTKArrayToMCArrayDouble<float>(data));
-      MCAuto<DataArrayDouble> ret2(ret->convertToDblArr());
+      MCAuto<MEDCoupling::DataArrayFloat> ret(ConvertVTKArrayToMCArrayDouble<float>(data));
+      MCAuto<MEDCoupling::DataArrayDouble> ret2(ret->convertToDblArr());
       return ret2.retn();
     }
   vtkDoubleArray *d1(vtkDoubleArray::SafeDownCast(data));
@@ -248,7 +249,7 @@ static DataArrayDouble *ConvertVTKArrayToMCArrayDoubleForced(vtkDataArray *data)
   throw MZCException("ConvertVTKArrayToMCArrayDoubleForced : unrecognized type of data for double !");
 }
 
-static DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
+static MEDCoupling::DataArray *ConvertVTKArrayToMCArray(vtkDataArray *data)
 {
   if(!data)
     throw MZCException("ConvertVTKArrayToMCArray : internal error !");
@@ -291,7 +292,7 @@ static MEDCouplingUMesh *BuildMeshFromCellArray(vtkCellArray *ca, DataArrayDoubl
   return subMesh.retn();
 }
 
-static MEDCouplingUMesh *BuildMeshFromCellArrayTriangleStrip(vtkCellArray *ca, DataArrayDouble *coords, MCAuto<DataArrayIdType>& ids)
+static MEDCouplingUMesh *BuildMeshFromCellArrayTriangleStrip(vtkCellArray *ca, DataArrayDouble *coords, MCAuto<MEDCoupling::DataArrayIdType>& ids)
 {
   MCAuto<MEDCouplingUMesh> subMesh(MEDCouplingUMesh::New("",2));
   subMesh->setCoords(coords); subMesh->allocateCells();
@@ -327,22 +328,22 @@ static MEDCouplingUMesh *BuildMeshFromCellArrayTriangleStrip(vtkCellArray *ca, D
 class MicroField
 {
 public:
-  MicroField(const MCAuto<MEDCouplingUMesh>& m, const std::vector<MCAuto<DataArray> >& cellFs):_m(m),_cellFs(cellFs) { }
+  MicroField(const MCAuto<MEDCouplingUMesh>& m, const std::vector<MCAuto<MEDCoupling::DataArray> >& cellFs):_m(m),_cellFs(cellFs) { }
   MicroField(const std::vector< MicroField >& vs);
-  void setNodeFields(const std::vector<MCAuto<DataArray> >& nf) { _nodeFs=nf; }
+  void setNodeFields(const std::vector<MCAuto<MEDCoupling::DataArray> >& nf) { _nodeFs=nf; }
   MCAuto<MEDCouplingUMesh> getMesh() const { return _m; }
-  std::vector<MCAuto<DataArray> > getCellFields() const { return _cellFs; }
+  std::vector<MCAuto<MEDCoupling::DataArray> > getCellFields() const { return _cellFs; }
 private:
   MCAuto<MEDCouplingUMesh> _m;
-  std::vector<MCAuto<DataArray> > _cellFs;
-  std::vector<MCAuto<DataArray> > _nodeFs;
+  std::vector<MCAuto<MEDCoupling::DataArray> > _cellFs;
+  std::vector<MCAuto<MEDCoupling::DataArray> > _nodeFs;
 };
 
 MicroField::MicroField(const std::vector< MicroField >& vs)
 {
   std::size_t sz(vs.size());
   std::vector<const MEDCouplingUMesh *> vs2(sz);
-  std::vector< std::vector< MCAuto<DataArray> > > arrs2(sz);
+  std::vector< std::vector< MCAuto<MEDCoupling::DataArray> > > arrs2(sz);
   int nbElts(-1);
   for(std::size_t ii=0;ii<sz;ii++)
     {
@@ -357,7 +358,7 @@ MicroField::MicroField(const std::vector< MicroField >& vs)
   _cellFs.resize(nbElts);
   for(int ii=0;ii<nbElts;ii++)
     {
-      std::vector<const DataArray *> arrsTmp(sz);
+      std::vector<const MEDCoupling::DataArray *> arrsTmp(sz);
       for(std::size_t jj=0;jj<sz;jj++)
         {
           arrsTmp[jj]=arrs2[jj][ii];
@@ -392,7 +393,7 @@ static void AppendToFields(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, c
   fs->pushField(fmts);
 }
 
-static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFileData *mfd, MCAuto<DataArray> da, const DataArrayIdType *n2oPtr, double timeStep, int tsId)
+static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh, MEDFileData *mfd, MCAuto<MEDCoupling::DataArray> da, const MEDCoupling::DataArrayIdType *n2oPtr, double timeStep, int tsId)
 {
   constexpr char FAMFIELD_FOR_CELLS[]="FamilyIdCell";
   constexpr char FAMFIELD_FOR_NODES[]="FamilyIdNode";
@@ -404,20 +405,20 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
   MEDFileMeshes *ms(mfd->getMeshes());
   if(!fs || !ms)
     throw MZCException("AppendMCFieldFrom : internal error 2 !");
-  MCAuto<DataArrayDouble> dad(MEDCoupling::DynamicCast<DataArray,DataArrayDouble>(da));
+  MCAuto<MEDCoupling::DataArrayDouble> dad(MEDCoupling::DynamicCast<MEDCoupling::DataArray,DataArrayDouble>(da));
   if(dad.isNotNull())
     {
       AppendToFields<double>(tf,mesh,n2oPtr,dad,fs,timeStep,tsId);
       return ;
     }
-  MCAuto<DataArrayFloat> daf(MEDCoupling::DynamicCast<DataArray,DataArrayFloat>(da));
+  MCAuto<MEDCoupling::DataArrayFloat> daf(MEDCoupling::DynamicCast<MEDCoupling::DataArray,DataArrayFloat>(da));
   if(daf.isNotNull())
     {
       AppendToFields<float>(tf,mesh,n2oPtr,daf,fs,timeStep,tsId);
       return ;
     }
-  MCAuto<DataArrayInt> dai(MEDCoupling::DynamicCast<DataArray,DataArrayInt>(da));
-  MCAuto<DataArrayIdType> daId(MEDCoupling::DynamicCast<DataArray,DataArrayIdType>(da));
+  MCAuto<MEDCoupling::DataArrayInt> dai(MEDCoupling::DynamicCast<MEDCoupling::DataArray,MEDCoupling::DataArrayInt>(da));
+  MCAuto<MEDCoupling::DataArrayIdType> daId(MEDCoupling::DynamicCast<MEDCoupling::DataArray,MEDCoupling::DataArrayIdType>(da));
   if(dai.isNotNull() || daId.isNotNull())
     {
       std::string fieldName(da->getName());
@@ -443,7 +444,7 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
             mm->setFamilyFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),daId);
           else
             {
-              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              MCAuto<MEDCoupling::DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
               mm->setFamilyFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),dai2);
             }
         }
@@ -458,7 +459,7 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
             mm->setFamilyFieldArr(1,daId);
           else
             {
-              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              MCAuto<MEDCoupling::DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
               mm->setFamilyFieldArr(1,dai2);
             }
         }
@@ -473,7 +474,7 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
             mm->setRenumFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),daId);
           else
             {
-              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              MCAuto<MEDCoupling::DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
               mm->setRenumFieldArr(mesh->getMeshDimension()-mm->getMeshDimension(),dai2);
             }
       }
@@ -488,7 +489,7 @@ static void AppendMCFieldFrom(MEDCoupling::TypeOfField tf, MEDCouplingMesh *mesh
             mm->setRenumFieldArr(1,daId);
           else
             {
-              MCAuto<DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
+              MCAuto<MEDCoupling::DataArrayIdType> dai2(daId->selectByTupleId(n2oPtr->begin(),n2oPtr->end()));
               mm->setRenumFieldArr(1,dai2);
             }
       }
@@ -505,9 +506,9 @@ static void PutAtLevelDealOrder(MEDFileData *mfd, int meshDimRel, const MicroFie
     throw MZCException("PutAtLevelDealOrder : internal error 2 !");
   MCAuto<MEDCouplingUMesh> mesh(mf.getMesh());
   mesh->setName(mfd->getMeshes()->getMeshAtPos(0)->getName());
-  MCAuto<DataArrayIdType> o2n(mesh->sortCellsInMEDFileFrmt());
+  MCAuto<MEDCoupling::DataArrayIdType> o2n(mesh->sortCellsInMEDFileFrmt());
   //const DataArrayIdType *o2nPtr(o2n); // todo: unused
-  MCAuto<DataArrayIdType> n2o;
+  MCAuto<MEDCoupling::DataArrayIdType> n2o;
   mmu->setMeshAtLevel(meshDimRel,mesh);
   const DataArrayIdType *n2oPtr(0);
   if(o2n)
@@ -520,10 +521,10 @@ static void PutAtLevelDealOrder(MEDFileData *mfd, int meshDimRel, const MicroFie
         mm->setRenumFieldArr(meshDimRel,n2o);
     }
   //
-  std::vector<MCAuto<DataArray> > cells(mf.getCellFields());
-  for(std::vector<MCAuto<DataArray> >::const_iterator it=cells.begin();it!=cells.end();it++)
+  std::vector<MCAuto<MEDCoupling::DataArray> > cells(mf.getCellFields());
+  for(std::vector<MCAuto<MEDCoupling::DataArray> >::const_iterator it=cells.begin();it!=cells.end();it++)
     {
-      MCAuto<DataArray> da(*it);
+      MCAuto<MEDCoupling::DataArray> da(*it);
       AppendMCFieldFrom(MEDCoupling::ON_CELLS,mesh,mfd,da,n2oPtr,timeStep,tsId);
     }
 }
@@ -601,15 +602,15 @@ static void AddNodeFields(MEDFileData *mfd, vtkDataSetAttributes *dsa, double ti
       const char *name(arr->GetName());
       if(!arr)
         continue;
-      MCAuto<DataArray> da(ConvertVTKArrayToMCArray(arr));
+      MCAuto<MEDCoupling::DataArray> da(ConvertVTKArrayToMCArray(arr));
       da->setName(name);
       AppendMCFieldFrom(MEDCoupling::ON_NODES,mesh,mfd,da,NULL,timeStep,tsId);
     }
 }
 
-static std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part, vtkDataSetAttributes *dsa)
+static std::vector<MCAuto<MEDCoupling::DataArray> > AddPartFields(const DataArrayIdType *part, vtkDataSetAttributes *dsa)
 {
-  std::vector< MCAuto<DataArray> > ret;
+  std::vector< MCAuto<MEDCoupling::DataArray> > ret;
   if(!dsa)
     return ret;
   int nba(dsa->GetNumberOfArrays());
@@ -621,7 +622,7 @@ static std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part
       const char *name(arr->GetName());
       //int nbCompo(arr->GetNumberOfComponents()); // todo: unused
       //vtkIdType nbTuples(arr->GetNumberOfTuples()); // todo: unused
-      MCAuto<DataArray> mcarr(ConvertVTKArrayToMCArray(arr));
+      MCAuto<MEDCoupling::DataArray> mcarr(ConvertVTKArrayToMCArray(arr));
       if(part)
         mcarr=mcarr->selectByTupleId(part->begin(),part->end());
       mcarr->setName(name);
@@ -630,9 +631,9 @@ static std::vector<MCAuto<DataArray> > AddPartFields(const DataArrayIdType *part
   return ret;
 }
 
-static std::vector<MCAuto<DataArray> > AddPartFields2(int bg, int end, vtkDataSetAttributes *dsa)
+static std::vector<MCAuto<MEDCoupling::DataArray> > AddPartFields2(int bg, int end, vtkDataSetAttributes *dsa)
 {
-  std::vector< MCAuto<DataArray> > ret;
+  std::vector< MCAuto<MEDCoupling::DataArray> > ret;
   if(!dsa)
     return ret;
   int nba(dsa->GetNumberOfArrays());
@@ -644,7 +645,7 @@ static std::vector<MCAuto<DataArray> > AddPartFields2(int bg, int end, vtkDataSe
       const char *name(arr->GetName());
       //int nbCompo(arr->GetNumberOfComponents()); // todo: unused
       //vtkIdType nbTuples(arr->GetNumberOfTuples()); // todo: unused
-      MCAuto<DataArray> mcarr(ConvertVTKArrayToMCArray(arr));
+      MCAuto<MEDCoupling::DataArray> mcarr(ConvertVTKArrayToMCArray(arr));
       mcarr=mcarr->selectByTupleIdSafeSlice(bg,end,1);
       mcarr->setName(name);
       ret.push_back(mcarr);
@@ -668,32 +669,32 @@ static void ConvertFromRectilinearGrid(MEDFileData *ret, vtkRectilinearGrid *ds,
   vtkDataArray *cx(ds->GetXCoordinates()),*cy(ds->GetYCoordinates()),*cz(ds->GetZCoordinates());
   if(cx)
     {
-      MCAuto<DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cx));
+      MCAuto<MEDCoupling::DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cx));
       cmeshmc->setCoordsAt(0,arr);
     }
   if(cy)
     {
-      MCAuto<DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cy));
+      MCAuto<MEDCoupling::DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cy));
       cmeshmc->setCoordsAt(1,arr);
     }
   if(cz)
     {
-      MCAuto<DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cz));
+      MCAuto<MEDCoupling::DataArrayDouble> arr(ConvertVTKArrayToMCArrayDoubleForced(cz));
       cmeshmc->setCoordsAt(2,arr);
     }
   std::string meshName(GetMeshNameWithContext(context));
   cmeshmc->setName(meshName);
   cmesh->setMesh(cmeshmc);
-  std::vector<MCAuto<DataArray> > cellFs(AddPartFields(0,ds->GetCellData()));
-  for(std::vector<MCAuto<DataArray> >::const_iterator it=cellFs.begin();it!=cellFs.end();it++)
+  std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields(0,ds->GetCellData()));
+  for(std::vector<MCAuto<MEDCoupling::DataArray> >::const_iterator it=cellFs.begin();it!=cellFs.end();it++)
     {
-      MCAuto<DataArray> da(*it);
+      MCAuto<MEDCoupling::DataArray> da(*it);
       AppendMCFieldFrom(MEDCoupling::ON_CELLS,cmeshmc,ret,da,NULL,timeStep,tsId);
     }
-  std::vector<MCAuto<DataArray> > nodeFs(AddPartFields(0,ds->GetPointData()));
-  for(std::vector<MCAuto<DataArray> >::const_iterator it=nodeFs.begin();it!=nodeFs.end();it++)
+  std::vector<MCAuto<MEDCoupling::DataArray> > nodeFs(AddPartFields(0,ds->GetPointData()));
+  for(std::vector<MCAuto<MEDCoupling::DataArray> >::const_iterator it=nodeFs.begin();it!=nodeFs.end();it++)
     {
-      MCAuto<DataArray> da(*it);
+      MCAuto<MEDCoupling::DataArray> da(*it);
       AppendMCFieldFrom(MEDCoupling::ON_NODES,cmeshmc,ret,da,NULL,timeStep,tsId);
     }
 }
@@ -710,7 +711,7 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
   //
   MCAuto<MEDFileUMesh> umesh(MEDFileUMesh::New());
   meshes->pushMesh(umesh);
-  MCAuto<DataArrayDouble> coords(BuildCoordsFrom(ds));
+  MCAuto<MEDCoupling::DataArrayDouble> coords(BuildCoordsFrom(ds));
   umesh->setCoords(coords);
   umesh->setName(GetMeshNameWithContext(context));
   //
@@ -722,7 +723,7 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
       MCAuto<MEDCouplingUMesh> subMesh(BuildMeshFromCellArray(cd,coords,0,INTERP_KERNEL::NORM_POINT1));
       if((const MEDCouplingUMesh *)subMesh)
         {
-          std::vector<MCAuto<DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
+          std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
           offset+=subMesh->getNumberOfCells();
           ms.push_back(MicroField(subMesh,cellFs));
         }
@@ -742,7 +743,7 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
         }
       if((const MEDCouplingUMesh *)subMesh)
         {
-          std::vector<MCAuto<DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
+          std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
           offset+=subMesh->getNumberOfCells();
           ms.push_back(MicroField(subMesh,cellFs));
         }
@@ -753,7 +754,7 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
       MCAuto<MEDCouplingUMesh> subMesh(BuildMeshFromCellArray(cb,coords,2,INTERP_KERNEL::NORM_POLYGON));
       if((const MEDCouplingUMesh *)subMesh)
         {
-          std::vector<MCAuto<DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
+          std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields2(offset,offset+subMesh->getNumberOfCells(),ds->GetCellData()));
           offset+=subMesh->getNumberOfCells();
           ms.push_back(MicroField(subMesh,cellFs));
         }
@@ -761,11 +762,11 @@ static void ConvertFromPolyData(MEDFileData *ret, vtkPolyData *ds, const std::ve
   vtkCellArray *ca(ds->GetStrips());
   if(ca)
     {
-      MCAuto<DataArrayIdType> ids;
+      MCAuto<MEDCoupling::DataArrayIdType> ids;
       MCAuto<MEDCouplingUMesh> subMesh(BuildMeshFromCellArrayTriangleStrip(ca,coords,ids));
       if((const MEDCouplingUMesh *)subMesh)
         {
-          std::vector<MCAuto<DataArray> > cellFs(AddPartFields(ids,ds->GetCellData()));
+          std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields(ids,ds->GetCellData()));
           offset+=subMesh->getNumberOfCells();
           ms.push_back(MicroField(subMesh,cellFs));
         }
@@ -794,7 +795,7 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
   //
   MCAuto<MEDFileUMesh> umesh(MEDFileUMesh::New());
   meshes->pushMesh(umesh);
-  MCAuto<DataArrayDouble> coords(BuildCoordsFrom(ds));
+  MCAuto<MEDCoupling::DataArrayDouble> coords(BuildCoordsFrom(ds));
   umesh->setCoords(coords);
   umesh->setName(GetMeshNameWithContext(context));
   vtkIdType nbCells(ds->GetNumberOfCells());
@@ -812,7 +813,7 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
     throw MZCException("ConvertFromUnstructuredGrid : internal error 2");
   const unsigned char *ctPtr(ct->GetPointer(0));
   std::map<int,int> m(ComputeMapOfType());
-  MCAuto<DataArrayInt> lev(DataArrayInt::New()) ;  lev->alloc(nbCells,1);
+  MCAuto<MEDCoupling::DataArrayInt> lev(DataArrayInt::New()) ;  lev->alloc(nbCells,1);
   int *levPtr(lev->getPointer());
   for(vtkIdType i=0;i<nbCells;i++)
     {
@@ -836,14 +837,14 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
             }
         }
     }
-  MCAuto<DataArrayInt> levs(lev->getDifferentValues());
+  MCAuto<MEDCoupling::DataArrayInt> levs(lev->getDifferentValues());
   std::vector< MicroField > ms;
   //vtkIdTypeArray *faces(ds->GetFaces()),*faceLoc(ds->GetFaceLocations()); // todo: unused
   for(const int *curLev=levs->begin();curLev!=levs->end();curLev++)
     {
       MCAuto<MEDCouplingUMesh> m0(MEDCouplingUMesh::New("",*curLev));
       m0->setCoords(coords); m0->allocateCells();
-      MCAuto<DataArrayIdType> cellIdsCurLev(lev->findIdsEqual(*curLev));
+      MCAuto<MEDCoupling::DataArrayIdType> cellIdsCurLev(lev->findIdsEqual(*curLev));
       for(const mcIdType *cellId=cellIdsCurLev->begin();cellId!=cellIdsCurLev->end();cellId++)
         {
           auto vtkType(ds->GetCellType(*cellId));
@@ -889,7 +890,7 @@ static void ConvertFromUnstructuredGrid(MEDFileData *ret, vtkUnstructuredGrid *d
               m0->insertNextCell(ct,1,(const mcIdType*)pts);
             }
         }
-      std::vector<MCAuto<DataArray> > cellFs(AddPartFields(cellIdsCurLev,ds->GetCellData()));
+      std::vector<MCAuto<MEDCoupling::DataArray> > cellFs(AddPartFields(cellIdsCurLev,ds->GetCellData()));
       ms.push_back(MicroField(m0,cellFs));
     }
   AssignSingleGTMeshes(ret,ms,timeStep,tsId);
