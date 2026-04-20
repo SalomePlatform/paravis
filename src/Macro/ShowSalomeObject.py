@@ -29,15 +29,13 @@
 import tempfile, os
 
 from salome.kernel import SALOME_CMOD
-
 from salome.kernel import salome
 salome.salome_init()
 
 session = salome.naming_service.Resolve('/Kernel/Session')
-
-from pvsimple import *
-
 selection = session.getSelection()
+
+import pvsimple
 
 for entry in selection:
     sobj = salome.myStudy.FindObjectID(entry)
@@ -51,10 +49,10 @@ for entry in selection:
             fname = tmpf.name
             tmpf.close()
             geompy.ExportVTK(go, fname)
-            ShowParaviewView()
-            p = LegacyVTKReader(FileNames=[fname])
-            renderView = GetActiveViewOrCreate('RenderView')
-            pd = Show(p, renderView)
+            pvsimple.ShowParaviewView()
+            p = pvsimple.LegacyVTKReader(FileNames=[fname])
+            renderView = pvsimple.GetActiveViewOrCreate('RenderView')
+            pd = pvsimple.Show(p, renderView)
             renderView.ResetCamera()
             os.remove(fname)
             pass
@@ -71,10 +69,10 @@ for entry in selection:
             fname = tmpf.name
             tmpf.close()
             mo.ExportMED(fname, True, True, True)
-            ShowParaviewView()
-            p = MEDReader(FileNames=fname)
-            renderView = GetActiveViewOrCreate('RenderView')
-            pd = Show(p, renderView)
+            pvsimple.ShowParaviewView()
+            p = pvsimple.MEDReader(FileNames=fname)
+            renderView = pvsimple.GetActiveViewOrCreate('RenderView')
+            pd = pvsimple.Show(p, renderView)
             renderView.ResetCamera()
             os.remove(fname)
             pass
