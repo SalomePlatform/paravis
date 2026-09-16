@@ -22,6 +22,9 @@ SET(dist_salomeres_DATA
   pqAppIcon16.png
   )
 
+# Get the version of ParaView
+FIND_PACKAGE(SalomeParaView QUIET)
+
 SET(input ${CMAKE_CURRENT_SOURCE_DIR}/PARAVISCatalog.xml.in)
 SET(output ${CMAKE_CURRENT_BINARY_DIR}/PARAVISCatalog.xml)
 
