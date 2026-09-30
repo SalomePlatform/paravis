@@ -65,7 +65,6 @@
 #include "vtkMultiBlockDataGroupFilter.h"
 
 #include "MEDCouplingMemArray.hxx"
-#include "MEDCouplingMemArray.txx"
 #include "MEDCouplingUMesh.hxx"
 #include "MEDCouplingFieldDouble.hxx"
 #include "InterpKernelAutoPtr.hxx"
